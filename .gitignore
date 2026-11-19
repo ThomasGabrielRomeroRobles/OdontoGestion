@@ -23,3 +23,6 @@ Thumbs.db
 
 # Registro de skills (local, se regenera con skill-registry)
 .atl/
+
+# Frontend copiado a mano al backend (el build usa build/resources)
+backend/src/main/resources/static/

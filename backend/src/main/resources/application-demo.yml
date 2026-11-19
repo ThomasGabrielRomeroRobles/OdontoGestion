@@ -1,0 +1,9 @@
+# Demo local: Spring Boot sirve el build del frontend (static/) y la API desde un solo origen.
+spring:
+  web:
+    resources:
+      cache:
+        period: 1h
+logging:
+  level:
+    ar.edu.odontogestion: INFO

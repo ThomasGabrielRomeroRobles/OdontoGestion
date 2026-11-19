@@ -121,7 +121,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 > C-01 y C-02 son la cadena inicial indispensable. C-02 abre tres ramas simultáneas (C-03, C-04, C-06).
 
 ### [C-01] `foundation-setup`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado 2026-11-19 en `openspec/changes/archive/2026-11-19-c-01-foundation-setup/`)
 - **Scope**:
   - Proyecto Gradle `backend/` (Spring Boot, Web, Security, Data JPA, Validation, Mail, Flyway, PostgreSQL) con capas `api / application / domain / infrastructure` y `OdontoGestionApplication`
   - Proyecto `frontend/` (Vite + TypeScript vanilla, Vitest + jsdom, proxy `/api` → `http://localhost:8080`) con `features/`, `shared/`, `pages/`, `main.ts`; tarea Gradle que copia el build de Vite a `backend/src/main/resources/static/`

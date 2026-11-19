@@ -1,0 +1,4 @@
+# Desarrollo: el frontend lo sirve Vite (proxy /api -> :8080), sin CORS.
+logging:
+  level:
+    ar.edu.odontogestion: DEBUG
