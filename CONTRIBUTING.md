@@ -174,12 +174,88 @@ Respondé con tu nombre y confirmá antes de que arranque.
 
 ## 6. Git: ramas y PRs
 
-- **Nunca pushear directo a `main`.** Todo entra por PR.
-- **Una rama por change**: `feat/c-02-core-auth-config`, `feat/c-06-agenda-configuracion`, etc. Si dos personas comparten un change (ej. P1 + P2 en C-02), trabajan en la misma rama o en sub-ramas que mergean a la del change.
+### La idea
+
+`main` es la versión "buena" que comparte todo el equipo. **Nadie trabaja directo en `main`**: cada change se hace en su propia rama, y cuando está listo se abre un **Pull Request (PR)** en GitHub. Otra persona lo revisa y recién ahí se mergea a `main`. Si alguien rompe algo, lo rompe en su rama, no en el trabajo de los otros cinco.
+
+```
+main  ──●────────────────●────────────●──
+         \              ↗              ↗
+          feat/c-02 ──●──●  (PR)       │
+           \                           │
+            feat/c-04 ──●──●──●  (PR) ─┘
+```
+
+### Paso a paso (ejemplo: P4 con el C-04)
+
+1. **Partir de `main` actualizado**:
+
+   ```powershell
+   git checkout main; git pull
+   ```
+
+2. **Crear la rama del change** (`feat/c-NN-nombre`, igual que el change en CHANGES.md):
+
+   ```powershell
+   git checkout -b feat/c-04-pacientes-core
+   ```
+
+3. **Trabajar en la rama** (`/opsx:propose`, `/opsx:apply`, tests) y commitear cuando quieras:
+
+   ```powershell
+   git add -A; git commit -m "feat(C-04): alta de pacientes"
+   ```
+
+4. **Subir la rama** (no `main`):
+
+   ```powershell
+   git push -u origin feat/c-04-pacientes-core
+   ```
+
+   Las siguientes veces alcanza con `git push`.
+
+5. **Antes de abrir el PR, traer lo último de `main`** a tu rama, correr **todos** los tests y resolver conflictos si los hay:
+
+   ```powershell
+   git pull origin main
+   ```
+
+6. **Abrir el PR en GitHub**: al pushear aparece el botón **"Compare & pull request"** (o pestaña *Pull requests → New pull request*, base `main` ← tu rama). En el PR:
+   - Título con el change: `feat(C-04): pacientes-core`.
+   - Descripción: qué escenarios de la spec cubre y la salida de los tests.
+   - **Reviewer**: al menos otra persona (en CRITICO, idealmente alguien del mismo carril o tu par).
+7. **El revisor** lee los cambios en la pestaña *Files changed*, comenta si algo no está bien y, cuando está ok, toca **Approve**. Si pidió cambios, los hacés en la misma rama, pusheás y el PR se actualiza solo.
+8. **Merge**: con la aprobación, cualquiera de los dos toca **"Merge pull request"**. Recién ahí el change entra a `main`. Después se puede borrar la rama desde el mismo PR.
+9. **El resto del equipo actualiza**: en `main`, `git pull`; si siguen trabajando en su rama, `git pull origin main` para traer lo nuevo.
+
+### Si dos personas comparten un change (ej. P1 + P2 en C-02)
+
+- Usan **una sola rama**, `feat/c-02-core-auth-config`. Uno la crea y la pushea; el otro la baja:
+
+  ```powershell
+  git fetch; git checkout feat/c-02-core-auth-config
+  ```
+
+- **Siempre `git pull` en la rama antes de empezar a trabajar** y `git push` al terminar cada tarea, para no divergir.
+- Se reparten tareas del `tasks.md` que toquen **archivos distintos**.
+- Al final abren **un solo PR** del change.
+
+### Reglas
+
+- **Nunca pushear directo a `main`.** Todo entra por PR (la rama está protegida en GitHub: ver más abajo).
+- **Una rama por change**: `feat/c-02-core-auth-config`, `feat/c-06-agenda-configuracion`, etc.
 - **Commits**: conventional commits con el change, ej. `feat(C-02): auth por sesión con CSRF`, `test(C-07): conflicto de superposición devuelve 409`.
-- **PR**: título con el change; en la descripción, qué escenarios de la spec cubre y la salida de los tests. **Lo revisa al menos otra persona** (en CRITICO, idealmente alguien del mismo carril).
-- **Antes de abrir el PR**: `git pull --rebase origin main`, correr todos los tests y resolver conflictos en tu rama.
 - **Migraciones Flyway**: cada change toma el siguiente número libre (`V2`, `V3`, …). Si dos ramas crean el mismo número, el segundo en mergear renumera la suya. Nunca edites una migración ya mergeada.
+
+### Protección de `main` en GitHub
+
+`main` tiene activada la regla **"Require a pull request before merging"** con **1 aprobación**. Significa:
+
+- `git push origin main` **es rechazado** por GitHub: no se puede subir código a `main` sin pasar por un PR, ni siquiera por error.
+- Un PR **no se puede mergear** hasta que otra persona lo apruebe. Quien abre el PR no puede aprobarse a sí mismo.
+- Si te aparece *"protected branch"* o *"push declined"* al pushear, estás en `main`: creá tu rama (`git checkout -b feat/c-NN-nombre`), pusheá esa y abrí el PR.
+
+Para pushear ramas tenés que ser **colaborador** del repo (te invita el dueño desde *Settings → Collaborators*; aceptá la invitación que llega por email).
 
 ## 7. Problemas conocidos
 
