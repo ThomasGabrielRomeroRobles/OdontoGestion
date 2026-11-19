@@ -86,7 +86,7 @@ OdontoGestion/
 - **Contraseñas:** BCrypt (o Argon2) con costo adecuado.
 - **Validación de input:** Bean Validation en DTOs; validación de dominio en servicios; consultas parametrizadas vía JPA.
 - **Tokens de paciente** (confirmar solicitud, confirmar/cancelar turno, aceptar aviso): únicos por turno o aviso, aleatorios de 128+ bits, almacenados con hash, con vencimiento y uso único; `GET` no consume, `POST` ejecuta (RN-TK-01 a RN-TK-05).
-- **Página pública (anti-abuso, Suposición):** confirmación por email antes de reservar, TTL de retención, limitación de tasa por IP y por DNI/email (filtro en memoria, bucket4j o similar), campo señuelo, respuestas sin enumeración (RN-PU-02, RN-PU-03, RN-PU-06, RN-PU-07).
+- **Página pública (anti-abuso, decidido en DD-14):** confirmación por email antes de reservar, TTL de retención, limitación de tasa por IP y por DNI/email (filtro en memoria, bucket4j o similar), campo señuelo, respuestas sin enumeración (RN-PU-02, RN-PU-03, RN-PU-06, RN-PU-07).
 - **Transporte:** HTTP local en la demo; HTTPS y cookie `Secure` al desplegar (etapa posterior). Mismo origen (Spring sirve el frontend; en desarrollo Vite hace proxy), por lo que no se habilita CORS.
 - **Protección de datos de salud:** acceso clínico solo con sesión del odontólogo; sin datos clínicos en logs, URLs ni emails; datos ficticios (RN-GL-01).
 - **Secrets management:** credenciales de SMTP y base solo por variables de entorno; nunca en el repositorio; `.env.example` sin valores reales.

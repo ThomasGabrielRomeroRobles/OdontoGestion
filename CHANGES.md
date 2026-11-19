@@ -6,7 +6,22 @@
 
 Contexto: equipo de 6 personas, entrega 2026-11-25 (hoy 2026-11-19, ~6 días). Stack: Spring Boot + Spring Security (sesión + CSRF) + Hibernate/JPA + PostgreSQL + Flyway + Gradle; front TypeScript vanilla (Vite en dev, estáticos en Spring); JUnit 5 + Testcontainers con TDD estricto. Un único usuario con login (odontólogo); pacientes sin cuenta (página pública + tokens de un solo uso por email); sin sillones; entidad `Consultorio` desde el día 1; demo local; recordatorios con `@Scheduled`.
 
-Esta versión consolida los 26 changes originales en **12 changes** y mueve la **historia clínica a un carril paralelo** que arranca apenas están listos auth + pacientes (no depende de la agenda).
+## Corte de entrega 25/11 (decisión del equipo, 2026-11-19; DD-16)
+
+Corte **por valor**: se comprometen los 11 changes core; la historia clínica corre en su carril paralelo como "si llega".
+
+| Categoría | Changes |
+|-----------|---------|
+| **OBLIGATORIO** (entrega 2026-11-25) | C-01, C-02, C-03, C-04, C-06, C-07, C-08, C-09, C-10, C-11, C-12 |
+| **SI LLEGA** (stretch, sin compromiso) | C-05 historia-clinica (épica 8: ficha, anamnesis, odontograma FDI, evoluciones) |
+
+- Si C-05 no se entrega, se documenta como etapa posterior; no bloquea ningún otro change.
+- **C-12 no depende de C-05**: la integración de la historia clínica en la agenda es condicional a que C-05 esté cerrado.
+- Anti-abuso de la página pública confirmado (DD-14): `PENDIENTE_CONFIRMACION` con hueco retenido 30 min, confirmación por token de un solo uso, 5 solicitudes/h por IP, máx. 2 pendientes por DNI/email (429), honeypot, validación estricta y respuestas sin enumeración. CAPTCHA/OTP (US-113) queda como mejora posterior.
+
+---
+
+Esta versión consolida los 26 changes originales en **12 changes** y mueve la **historia clínica a un carril paralelo (stretch, "si llega")** que arranca apenas están listos auth + pacientes (no depende de la agenda).
 
 Mapa de consolidación (IDs viejos → nuevos): C-01+C-04 → **C-01**; C-02+C-03+C-05 → **C-02**; C-09+C-10+C-21 → **C-03**; C-08 → **C-04**; C-23+C-24+C-25 → **C-05**; C-06+C-07 → **C-06**; C-11+C-12 → **C-07**; C-13+C-22 → **C-08**; C-14+C-15+C-16 → **C-09**; C-17+C-18+C-19 → **C-10**; C-20 → **C-11**; C-26 → **C-12**.
 
@@ -34,7 +49,7 @@ C-01 foundation-setup
        ├── C-03 notificaciones-tokens-registro
        │     ├── (C-07, C-09, C-11 también lo requieren)
        ├── C-04 pacientes-core
-       │     ├── C-05 historia-clinica          ← CARRIL PARALELO (no depende de agenda)
+       │     ├── C-05 historia-clinica          ← CARRIL PARALELO, STRETCH "si llega" (no depende de agenda; no bloquea nada)
        │     └── C-07 turnos-agenda-core        (también requiere C-03, C-06)
        └── C-06 agenda-configuracion
              └── C-07 turnos-agenda-core
@@ -42,7 +57,7 @@ C-01 foundation-setup
                    ├── C-11 recordatorios-scheduler
                    └── C-09 publico-solicitud-acciones   (también requiere C-03)
                          └── C-10 lista-espera
-C-12 demo-hardening  ← depende de todos los anteriores (C-01 a C-11)
+C-12 demo-hardening  ← depende de los changes obligatorios (C-01 a C-04, C-06 a C-11); C-05 es opcional y no lo bloquea
 ```
 
 ### Paralelismo por fase
@@ -56,8 +71,8 @@ GATE 1: C-02 ✓                               ← FORK (3 ramas independientes)
   → C-04 pacientes-core                      [P4]
   → C-06 agenda-configuracion                [P1 backend prestaciones/horarios/bloqueos, P2 backend, P5 front]
 
-GATE 2: C-04 ✓                               ← ABRE CARRIL PARALELO DE HISTORIA CLÍNICA
-  → C-05 historia-clinica                    [P4 backend + P6 front; corre hasta el cierre sin bloquear nada]
+GATE 2: C-04 ✓                               ← ABRE CARRIL PARALELO DE HISTORIA CLÍNICA (STRETCH)
+  → C-05 historia-clinica  (SI LLEGA)        [P4 backend + P6 front; corre hasta el cierre sin bloquear nada]
 
 GATE 3: C-03 ✓, C-04 ✓, C-06 ✓
   → C-07 turnos-agenda-core                  [P1 disponibilidad/POST/máquina de estados, P2 mover/cancelar/atendido/eventos, P3 integración de notificaciones]
@@ -71,15 +86,15 @@ GATE 4: C-07 ✓                               ← FORK
 GATE 5: C-09 ✓
   → C-10 lista-espera                        [P1 core + avisos, P2 aceptación concurrente, P6/P5 front]
 
-GATE 6: C-01 … C-11 ✓
-  → C-12 demo-hardening                      [Todo el equipo]
+GATE 6: C-01 … C-04, C-06 … C-11 ✓  (C-05 NO es requisito)
+  → C-12 demo-hardening                      [Todo el equipo; integra HC en la agenda solo si C-05 está cerrado]
 ```
 
-### Camino crítico (7 changes — mínimo irreducible)
+### Camino crítico (7 changes — mínimo irreducible; C-05 queda fuera: es stretch)
 
 `C-01 → C-02 → C-06 → C-07 → C-09 → C-10 → C-12*`
 
-\* `C-12` es el único cierre posible. Ramas no críticas: `C-02 → C-03` (se une en C-07), `C-02 → C-04 → C-05` (carril de historia clínica, termina antes del cierre), `C-07 → C-08`, `C-07 → C-11`. Si C-04 o C-03 se retrasan, pasan a ser críticos porque C-07 los requiere.
+\* `C-12` es el único cierre posible. Ramas no críticas: `C-02 → C-03` (se une en C-07), `C-02 → C-04 → C-05` (carril de historia clínica, **stretch "si llega"**: si no termina antes del cierre, queda como etapa posterior y no bloquea C-12), `C-07 → C-08`, `C-07 → C-11`. Si C-04 o C-03 se retrasan, pasan a ser críticos porque C-07 los requiere.
 
 ### Plan óptimo con 6 personas
 
@@ -97,7 +112,7 @@ Fechas aproximadas: G0 = 19-nov, G1 = 20-nov, G2-G3 = 21-22-nov, G4 = 23-nov, G5
 | G5 (23-24-nov) | C-10 lista-espera core + avisos de hueco | C-10 aceptación concurrente de avisos | C-11 recordatorios (idempotencia) y apoyo a C-10 | Tests de integración HC; apoyo a C-10/C-11 | C-10 front público (lista de espera) | C-10 front odontólogo + página `/avisos/{token}` |
 | G6 (25-nov) | C-12 demo + verificación flujos 2, 3, 5 | C-12 revisión de seguridad (secretos, logs sin datos clínicos) | C-12 SMTP real y límites | C-12 seed demo + guía de ejecución | C-12 build Vite a `static/` y SPA fallback | C-12 smoke E2E y pulido de UI |
 
-Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX (`/opsx:propose`) y fixtures de tests, no código de producción. (2) La columna P4/P6 mantiene la historia clínica corriendo en paralelo de G2 a G5 sin tocar el camino crítico. (3) El vínculo `turno_id` de las evoluciones se guarda como columna nullable sin FK en C-05; C-07 agrega la FK en su migración.
+Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX (`/opsx:propose`) y fixtures de tests, no código de producción. (2) La columna P4/P6 mantiene la historia clínica (C-05, stretch "si llega") corriendo en paralelo de G2 a G5 sin tocar el camino crítico; si el equipo se retrasa, P4/P6 se reasignan a apoyar C-07/C-09/C-10/C-11. (3) El vínculo `turno_id` de las evoluciones se guarda como columna nullable sin FK en C-05; C-07 agrega la FK en su migración solo si C-05 ya está aplicada (si no, la FK se difiere a la etapa posterior).
 
 ---
 
@@ -162,9 +177,9 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 
 ---
 
-## FASE 2 — Pacientes, infraestructura de notificaciones/tokens e historia clínica (Épicas 6-parcial y 8)
+## FASE 2 — Pacientes, infraestructura de notificaciones/tokens e historia clínica [stretch] (Épicas 6-parcial y 8)
 
-> C-03, C-04 y C-06 corren en paralelo tras C-02. C-05 (historia clínica) arranca al cerrar C-04 y sigue en carril paralelo hasta el cierre.
+> C-03, C-04 y C-06 corren en paralelo tras C-02. C-05 (historia clínica, **stretch "si llega"**) arranca al cerrar C-04 y sigue en carril paralelo hasta el cierre.
 
 ### [C-03] `notificaciones-tokens-registro`
 - **Estado**: `[ ]` pendiente
@@ -198,15 +213,16 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
   - `knowledge-base/03_actores_y_roles.md`
   - `knowledge-base/10_preguntas_abiertas.md` §PA-03
 
-### [C-05] `historia-clinica`
-- **Estado**: `[ ]` pendiente
+### [C-05] `historia-clinica`  — STRETCH ("si llega")
+- **Estado**: `[ ]` pendiente (no comprometido para el 25/11; si no se entrega se documenta como etapa posterior, DD-16)
 - **Scope**:
+  - STRETCH: no es obligatorio para la entrega y no bloquea ningún otro change (ni C-12)
   - CARRIL PARALELO: no depende de la agenda; arranca al cerrar C-04
   - Migración V8: tablas `historia_clinica` (única por paciente, creación perezosa), `anamnesis`, `pieza_dental_estado` (único `historia_id + pieza_fdi`) y `evolucion_clinica` (`turno_id` nullable sin FK; la FK la agrega C-07)
   - `GET /api/v1/pacientes/{id}/historia`, `PUT /api/v1/pacientes/{id}/historia/anamnesis`
   - `PUT /api/v1/pacientes/{id}/historia/odontograma/piezas/{fdi}` (estado + observación, autor y fecha), validación FDI (`422`), 32 piezas permanentes, enum de estados MVP
   - `POST/GET /api/v1/pacientes/{id}/historia/evoluciones` (orden cronológico, edición por el autor dentro de ventana)
-  - Frontend `historia-clinica`: ficha con anamnesis, odontograma FDI visual (32 piezas, estado/observación) y listado + alta de evoluciones; acceso desde la ficha del paciente (el acceso desde un turno de la agenda se integra en C-12)
+  - Frontend `historia-clinica`: ficha con anamnesis, odontograma FDI visual (32 piezas, estado/observación) y listado + alta de evoluciones; acceso desde la ficha del paciente (el acceso desde un turno de la agenda se integra en C-12, solo si C-05 está hecho)
   - Sin datos clínicos en logs, URLs ni emails; acceso exclusivo con sesión del odontólogo
   - Tests: una HC por paciente, `401` sin sesión, sin datos clínicos en logs, validación FDI, unicidad por pieza, autoría, orden cronológico; Vitest de odontograma, edición de pieza y alta de evolución
 - **Dependencias**: `C-04` (y `C-02` transitivo)
@@ -327,17 +343,17 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 - **Scope**:
   - Build de Vite copiado a `static/` y arranque desde un solo proceso (`http://localhost:8080`) con perfil `demo`; SPA fallback
   - Seed de demo: 10 pacientes ficticios y datos de ejemplo; SMTP real por variables de entorno (verificación de envío y límite diario)
-  - Integración final: acceso a la historia clínica desde un turno de la agenda y ausencias en la ficha
+  - Integración final: ausencias en la ficha del paciente; **condicional a C-05** (stretch): acceso a la historia clínica desde un turno de la agenda solo si C-05 está cerrado, sin bloquear el change
   - Verificación de los flujos 2, 3 y 5 de punta a punta (Playwright opcional); revisión de que no hay secretos versionados ni datos clínicos en logs/emails
   - Guía de ejecución local y de pruebas (Docker para Testcontainers, PostgreSQL con `btree_gist`)
   - Tests: arranque con perfil demo, smoke E2E de solicitud → confirmación → recordatorio
-- **Dependencias**: `C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11`
+- **Dependencias**: `C-01, C-02, C-03, C-04, C-06, C-07, C-08, C-09, C-10, C-11` (C-05 es dependencia blanda/opcional: no bloquea)
 - **Governance**: MEDIO
 - **Leer antes**:
   - `knowledge-base/08_arquitectura_propuesta.md` §Despliegue, §Variables de entorno
   - `knowledge-base/09_decisiones_y_supuestos.md` §DD-11, §SU-10, §SU-11
   - `knowledge-base/07_flujos_principales.md` §Flujo 2, §Flujo 3, §Flujo 5
-  - `knowledge-base/10_preguntas_abiertas.md` §PA-01, §PA-07
+  - `knowledge-base/10_preguntas_abiertas.md` §PA-07; `knowledge-base/09_decisiones_y_supuestos.md` §DD-16 (corte por valor)
 
 ---
 
@@ -349,13 +365,13 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 | C-02 | core-auth-config | 1 | C-01 | CRITICO | P1, P2 |
 | C-03 | notificaciones-tokens-registro | 2 | C-02 | CRITICO | P3, P6 |
 | C-04 | pacientes-core | 2 | C-02 | MEDIO | P4 |
-| C-05 | historia-clinica | 2 | C-04 | CRITICO | P4, P6 (paralelo) |
+| C-05 (stretch) | historia-clinica | 2 | C-04 | CRITICO | P4, P6 (paralelo, "si llega") |
 | C-06 | agenda-configuracion | 1 | C-02 | MEDIO | P1, P2, P5 |
 | C-07 | turnos-agenda-core | 3 | C-03, C-04, C-06 | CRITICO | P1, P2, P3 |
 | C-08 | agenda-frontend-ausentismo | 3 | C-07 | MEDIO | P5, P3 |
 | C-09 | publico-solicitud-acciones | 4 | C-07, C-03 | CRITICO | P1, P2, P5 |
 | C-10 | lista-espera | 5 | C-09 | ALTO | P1, P2, P5, P6 |
 | C-11 | recordatorios-scheduler | 5 | C-07, C-03 | ALTO | P3 |
-| C-12 | demo-hardening | 6 | C-01 … C-11 | MEDIO | Todos |
+| C-12 | demo-hardening | 6 | C-01 … C-04, C-06 … C-11 (C-05 opcional) | MEDIO | Todos |
 
 **Primer change recomendado**: `C-01` (foundation-setup). Para arrancar: `/opsx:propose C-01-foundation-setup`

@@ -22,14 +22,16 @@ El proyecto es un **trabajo académico** desarrollado por un equipo de 6 persona
 
 ## Alcance v1.0 (MVP "núcleo turnos")
 
+> **Corte por valor para la entrega del 2026-11-25 (DD-16):** obligatorio todo lo de abajo salvo la historia clínica (épica 8), que es "si llega" (stretch).
+
 - Agenda del odontólogo con **detección de superposición** garantizada en la base de datos (un solo recurso: el odontólogo).
 - Tipos de turno (prestaciones) con duración; granularidad de 15 minutos.
 - **Login del odontólogo** con email y contraseña (sesión de Spring Security, protección CSRF).
-- **Página pública sin login**: el paciente pide un turno entre los horarios libres o se anota en la lista de espera indicando nombre, DNI, email y teléfono. Medidas anti-abuso (**Suposición**): la solicitud queda pendiente hasta que el paciente la confirma por un enlace enviado a su email, y hay limitación de tasa.
+- **Página pública sin login**: el paciente pide un turno entre los horarios libres o se anota en la lista de espera indicando nombre, DNI, email y teléfono. Medidas anti-abuso (decididas, DD-14): la solicitud queda pendiente hasta que el paciente la confirma por un enlace de un solo uso enviado a su email, con limitación de tasa, campo señuelo y validación estricta.
 - **Lista de espera**: al liberarse un hueco se notifica por email a **todos** los pacientes compatibles con un enlace de un solo uso y con vencimiento; el primero que acepta se queda con el turno.
 - **Recordatorios por email** 24 horas antes, con enlaces para confirmar o cancelar (token único por turno).
 - **Gestión de ausentismo**: marcar turno como ausente, registrarlo en el historial del paciente y enviar un email invitando a reprogramar.
-- **Historia clínica** básica (solo el odontólogo): datos del paciente, anamnesis básica, odontograma FDI con estado por pieza y notas de evolución.
+- **Historia clínica** básica — **"si llega" (stretch) para la entrega del 25/11 (DD-16)**, no comprometida; si no se entrega queda como etapa posterior (solo el odontólogo): datos del paciente, anamnesis básica, odontograma FDI con estado por pieza y notas de evolución.
 - Entidad **`Consultorio`** desde el día 1 (instancia única en el MVP).
 
 ## Fuera de alcance del MVP (etapas posteriores)

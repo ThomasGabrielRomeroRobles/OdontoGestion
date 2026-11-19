@@ -20,3 +20,6 @@ dist/
 *.iml
 .DS_Store
 Thumbs.db
+
+# Registro de skills (local, se regenera con skill-registry)
+.atl/

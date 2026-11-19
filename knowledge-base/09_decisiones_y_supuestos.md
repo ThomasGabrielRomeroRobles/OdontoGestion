@@ -93,12 +93,12 @@
 **Justificación**: mínima infraestructura; la tabla `notificacion` actúa como outbox.
 **Trade-offs aceptados**: si el proceso está caído no se envía nada hasta que vuelva (se retoman los pendientes); con varias instancias habría que agregar ShedLock.
 
-### DD-14 — Anti-abuso de la página pública (Suposición)
-**Decisión**: **Suposición** del equipo de documentación: las solicitudes públicas quedan `PENDIENTE_CONFIRMACION` hasta que el paciente confirma por un enlace con token en su email (con TTL de retención del hueco), se aplica limitación de tasa por IP y por DNI/email, campo señuelo y respuestas sin enumeración.
+### DD-14 — Anti-abuso de la página pública (decisión confirmada 2026-11-19)
+**Decisión**: confirmada por el equipo el 2026-11-19: la solicitud pública crea un turno/entrada de espera `PENDIENTE_CONFIRMACION` que retiene el hueco 30 min y pasa a `RESERVADO`/`ACTIVA` solo cuando el paciente confirma por un enlace de token de un solo uso enviado a su email; limitación de tasa de 5 solicitudes/hora por IP y máximo 2 pendientes por DNI o email (HTTP 429 al exceder); campo señuelo (honeypot) y validación estricta de formato; respuestas sin enumeración.
 **Contexto**: una página sin login que retiene huecos y dispara emails es vulnerable a abuso (reservas falsas, spam de emails a terceros).
 **Alternativas consideradas**: CAPTCHA; OTP; reserva inmediata sin confirmación.
 **Justificación**: bajo costo de implementación y alto efecto; CAPTCHA/OTP quedan como mejora (US-113).
-**Trade-offs aceptados**: un paso extra para el paciente; un atacante aún puede retener huecos durante el TTL. Registrado en [10](10_preguntas_abiertas.md).
+**Trade-offs aceptados**: un paso extra para el paciente; un atacante aún puede retener huecos durante el TTL. Resuelve PA-02 (ver [10](10_preguntas_abiertas.md)).
 
 ### DD-15 — Pruebas con JUnit 5 y Testcontainers
 **Decisión**: TDD estricto con **JUnit 5 + Testcontainers (PostgreSQL)** para las pruebas de integración y de la restricción de exclusión; Mockito para dobles; Vitest en el frontend.
@@ -106,6 +106,13 @@
 **Alternativas consideradas**: H2 (no soporta exclusión por rango); base local compartida.
 **Justificación**: pruebas reproducibles y fieles a producción.
 **Trade-offs aceptados**: requiere Docker en las máquinas que corren los tests (ver SU-11).
+
+### DD-16 — Corte de alcance por valor para la entrega
+**Decisión**: decidida por el equipo el 2026-11-19: el corte de alcance para la entrega del 2026-11-25 es por valor. **Obligatorio**: los 11 changes core C-01, C-02, C-03, C-04, C-06, C-07, C-08, C-09, C-10, C-11 y C-12 (acceso y configuración, notificaciones y tokens, pacientes, configuración de agenda, turnos core, agenda en frontend y ausentismo, página pública y acciones por token, lista de espera, recordatorios, endurecimiento de la demo). **"Si llega" (stretch, sin compromiso)**: C-05 historia clínica (ficha, anamnesis, odontograma FDI, evoluciones = épica 8), en su carril paralelo; si no se entrega se documenta como etapa posterior. C-12 no depende de C-05: la integración de la HC en la agenda es condicional a que C-05 esté hecho.
+**Contexto**: plazo de 7 días frente a un MVP de 8 épicas (IN-01, PA-01).
+**Alternativas consideradas**: comprometer las 8 épicas; recortar por épica completa sin carril paralelo.
+**Justificación**: protege el valor central (agenda, página pública, lista de espera, recordatorios, ausentismo) y deja la HC como carril independiente que no bloquea la entrega.
+**Trade-offs aceptados**: la HC con odontograma puede quedar fuera de la entrega (y es la parte con más brecha legal, IN-02). Resuelve IN-01 y PA-01.
 
 ## Supuestos inferidos
 
@@ -151,14 +158,14 @@
 **Riesgo si es falso**: DD-06 requeriría alternativa (bloqueo por aplicación o trigger).
 **Cómo validar**: ejecutar la migración V1 en una máquina de cada integrante antes del primer change de agenda.
 
-### SU-08 — Plazo ajustado (~7 días)
-**Supuesto**: el equipo entrega con el MVP recortado a lo estrictamente listado; la fecha del 2026-11-25 está a 7 días de la fecha de este documento (2026-11-18).
+### SU-08 — Plazo ajustado (~7 días) — resuelto por DD-16
+**Supuesto**: el equipo entrega con el MVP recortado a lo estrictamente listado (resuelto el 2026-11-19 por DD-16: 11 changes core obligatorios, C-05 historia clínica "si llega"); la fecha del 2026-11-25 está a 7 días de la fecha de este documento (2026-11-18).
 **Origen**: calendario del proyecto.
 **Riesgo si es falso**: ninguno; si es verdadero, hay riesgo de no completar todas las épicas.
-**Cómo validar**: priorizar en el roadmap; sugerido: épicas 1-4 primero, luego 5-7, luego 8.
+**Cómo validar**: resuelto: se prioriza según DD-16 (épicas 1-7 obligatorias; épica 8 stretch).
 
-### SU-09 — Medida anti-abuso de la página pública
-**Supuesto**: confirmación por email con token + TTL de retención + limitación de tasa + campo señuelo es suficiente para el MVP (DD-14).
+### SU-09 — Medida anti-abuso de la página pública — resuelto por DD-14
+**Supuesto** (confirmado como decisión el 2026-11-19, DD-14): confirmación por email con token + TTL de retención + limitación de tasa + campo señuelo es suficiente para el MVP (DD-14).
 **Origen**: propuesta del equipo de documentación ante la ausencia de login.
 **Riesgo si es falso**: reservas falsas o spam; habría que sumar CAPTCHA u OTP (US-113).
 **Cómo validar**: pruebas de abuso básicas en la demo (ráfagas de solicitudes, DNI/email ajenos).

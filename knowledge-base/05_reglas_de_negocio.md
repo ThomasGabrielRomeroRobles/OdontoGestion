@@ -27,7 +27,7 @@ Cada regla tiene un código único `RN-{DOMINIO}-{NN}` para trazabilidad. Las re
 - **RN-AG-09**: Los intervalos son semiabiertos `[inicio, fin)`: un turno que termina a las 10:00 no se superpone con uno que empieza a las 10:00.
 - **RN-AG-10**: Los turnos en estado `CANCELADO` o `EXPIRADO` no cuentan para la superposición y liberan el hueco.
 - **RN-AG-11**: No se reserva en el pasado ni con menos anticipación que el mínimo configurado. **Suposición:** mínimo 2 horas para solicitudes públicas; el odontólogo puede crear turnos sin ese mínimo.
-- **RN-AG-12**: Una solicitud pública `PENDIENTE_CONFIRMACION` **retiene el hueco** hasta su vencimiento (RN-PU-02); al intentar reservar, el sistema primero marca como `EXPIRADO` las pendientes vencidas.
+- **RN-AG-12**: Una solicitud pública `PENDIENTE_CONFIRMACION` **retiene el hueco** 30 min hasta su vencimiento (RN-PU-02, DD-14); al intentar reservar, el sistema primero marca como `EXPIRADO` las pendientes vencidas.
 - **RN-AG-13**: Las fechas se guardan en UTC y se muestran en la zona horaria del consultorio (America/Argentina/Buenos_Aires).
 
 ## Dominio: Turnos (RN-TU)
@@ -44,11 +44,11 @@ Cada regla tiene un código único `RN-{DOMINIO}-{NN}` para trazabilidad. Las re
 ## Dominio: Página pública (RN-PU)
 
 - **RN-PU-01**: Existe una **página pública sin login** donde el paciente (a) pide un turno entre los horarios libres o (b) se anota en la lista de espera, ingresando **nombre, apellido, DNI, email y teléfono**. Solo ve horarios libres, nunca datos de otros pacientes.
-- **RN-PU-02**: **Suposición (anti-abuso):** una solicitud pública crea el turno en `PENDIENTE_CONFIRMACION`, retiene el hueco un tiempo acotado (**Suposición:** 30 min) y solo pasa a `RESERVADO` cuando el paciente abre el enlace con token enviado a su email y lo confirma. Si no confirma, el turno pasa a `EXPIRADO` y el hueco se libera.
-- **RN-PU-03**: **Suposición (anti-abuso):** limitación de tasa en los endpoints públicos (**Suposición:** 5 solicitudes por hora por IP y como máximo 2 solicitudes pendientes por DNI o email). Excedido el límite: `429 Too Many Requests`.
+- **RN-PU-02**: *(anti-abuso, decidido: DD-14)* una solicitud pública crea el turno en `PENDIENTE_CONFIRMACION`, retiene el hueco 30 min y solo pasa a `RESERVADO` cuando el paciente abre el enlace de token de un solo uso enviado a su email y lo confirma. Si no confirma, el turno pasa a `EXPIRADO` y el hueco se libera.
+- **RN-PU-03**: *(anti-abuso, decidido: DD-14)* limitación de tasa en los endpoints públicos: 5 solicitudes por hora por IP y como máximo 2 solicitudes pendientes por DNI o email. Excedido el límite: `429 Too Many Requests`.
 - **RN-PU-04**: Si el DNI ya existe en el consultorio se reutiliza el paciente y **no se sobrescriben** sus datos de contacto desde la página pública; los emails se envían a la dirección ya registrada (**Suposición:** ver [10](10_preguntas_abiertas.md)). Si no existe, se crea un paciente sin cuenta con los datos ingresados.
 - **RN-PU-05**: Una entrada de lista de espera pedida desde la página pública nace `PENDIENTE_CONFIRMACION` y solo pasa a `ACTIVA` al confirmar el enlace de email; hasta entonces no recibe avisos. Las cargadas por el odontólogo nacen `ACTIVA`.
-- **RN-PU-06**: **Suposición (anti-abuso):** el formulario incluye un campo señuelo (*honeypot*) y validación estricta de formato de DNI, email y teléfono; un CAPTCHA queda como mejora posterior (US-113).
+- **RN-PU-06**: *(anti-abuso, decidido: DD-14)* el formulario incluye un campo señuelo (*honeypot*) y validación estricta de formato de DNI, email y teléfono; un CAPTCHA queda como mejora posterior (US-113).
 - **RN-PU-07**: Las respuestas de la página pública no revelan si un DNI o email ya existen (anti-enumeración): el mensaje es siempre "si los datos son correctos, recibirás un email".
 
 ## Dominio: Tokens de acceso del paciente (RN-TK)

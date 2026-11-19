@@ -45,15 +45,15 @@ La fuente de verdad del dominio vive en `knowledge-base/` (índice y resumen eje
 | [07_flujos_principales.md](knowledge-base/07_flujos_principales.md) | Flujos E2E |
 | [08_arquitectura_propuesta.md](knowledge-base/08_arquitectura_propuesta.md) | Patrones, estructura, concurrencia, env vars |
 | [09_decisiones_y_supuestos.md](knowledge-base/09_decisiones_y_supuestos.md) | Decisiones DD-XX y supuestos SU-XX |
-| [10_preguntas_abiertas.md](knowledge-base/10_preguntas_abiertas.md) | Inconsistencias y preguntas a resolver ANTES de codear |
+| [10_preguntas_abiertas.md](knowledge-base/10_preguntas_abiertas.md) | Inconsistencias y preguntas abiertas (IN-01, PA-01 y PA-02 resueltas el 2026-11-19) |
 | [11_contexto_de_mercado.md](knowledge-base/11_contexto_de_mercado.md) | Contexto de producto y marco legal |
 | [12_notificaciones.md](knowledge-base/12_notificaciones.md) | Email en MVP, puerto `NotificationChannel` |
 
 Insumo de discovery: [discovery/reports/Sistemas odontológicos de turnos.md](discovery/reports/Sistemas%20odontol%C3%B3gicos%20de%20turnos.md) (informe de mercado) y `discovery/research_notes/`.
 
-> ⚠️ Resolver o confirmar antes del primer change las preguntas de prioridad **Alta** de `10_preguntas_abiertas.md`:
-> - **PA-01 / IN-01**: plazo (7 días) vs. alcance de 8 épicas; confirmar el corte real (prioridad: épicas 1-4, luego 5-7, luego 8).
-> - **PA-02**: anti-abuso de la página pública (token por email + TTL 30 min + rate limit + honeypot) vs. exigir CAPTCHA/OTP.
+> ✅ Decisiones del equipo (2026-11-19) que resuelven las preguntas de prioridad **Alta** de `10_preguntas_abiertas.md`:
+> - **PA-01 / IN-01 (resuelto, DD-16)**: **corte por valor**. Obligatorio para el 25/11: los 11 changes core (C-01, C-02, C-03, C-04, C-06 a C-12). **`C-05` historia clínica es stretch ("si llega")**: si no se entrega queda como etapa posterior; C-12 no depende de C-05.
+> - **PA-02 (resuelto, DD-14)**: **anti-abuso confirmado**: `PENDIENTE_CONFIRMACION` con hueco retenido 30 min, confirmación por token de un solo uso enviado por email, 5 solicitudes/h por IP y máx. 2 pendientes por DNI/email (429), honeypot, validación estricta y respuestas sin enumeración. CAPTCHA/OTP queda como mejora posterior (US-113).
 > - Inconsistencias a tener presentes: IN-02 (HC editable vs. Ley 26.529) e IN-03 (identidad sin login vs. Ley 25.326) se mitigan usando **solo datos ficticios**.
 
 ---
@@ -80,7 +80,8 @@ El plan completo está en [CHANGES.md](CHANGES.md). Resumen:
 
 - **Total**: 12 changes en 6 fases (F1 fundación/acceso/config · F2 pacientes, notificaciones/tokens, historia clínica · F3 agenda y turnos · F4 página pública y acciones por token · F5 lista de espera y recordatorios · F6 cierre y demo local).
 - **Camino crítico** (7): `C-01 → C-02 → C-06 → C-07 → C-09 → C-10 → C-12`.
-- **Carril paralelo**: historia clínica (`C-05`) arranca al cerrar `C-04` y no bloquea la agenda.
+- **Corte por valor (DD-16)**: obligatorios 11 changes (todos salvo C-05).
+- **Carril paralelo (stretch, "si llega")**: historia clínica (`C-05`) arranca al cerrar `C-04` y no bloquea la agenda ni C-12; si no se entrega, queda como etapa posterior.
 - **Primer change**: `C-01` (`foundation-setup`, governance BAJO).
 - **Equipo de 6 por carriles**: P1 backend crítico (agenda/público) · P2 backend crítico 2 (seguridad, concurrencia, acciones) · P3 backend infra (notificaciones, tokens, schedulers) · P4 backend pacientes + HC · P5 frontend A (shell, config, agenda, público) · P6 frontend B (registro de envíos, HC, lista de espera).
 - Cada change backend + frontend: el backend publica primero el contrato y el frontend avanza contra mocks; ambos cierran juntos.

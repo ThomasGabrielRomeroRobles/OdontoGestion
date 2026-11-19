@@ -157,7 +157,7 @@ Organizadas por **épica** y luego por **historia de usuario** (formato US-NNN).
 - [ ] Solo se muestran horarios realmente libres.
 - [ ] La solicitud queda `PENDIENTE_CONFIRMACION`, retiene el hueco y envía un email con enlace de confirmación.
 - [ ] Si otro toma el horario antes, se informa y se ofrecen alternativas (`409`).
-- [ ] Se aplican limitación de tasa y campo señuelo (**Suposición** anti-abuso).
+- [ ] Se aplican limitación de tasa y campo señuelo (anti-abuso decidido, DD-14).
 - [ ] La respuesta no revela si el DNI o email ya existían.
 
 **Reglas relacionadas**: RN-PU-01, RN-PU-02, RN-PU-03, RN-PU-06, RN-PU-07, RN-AG-12
@@ -273,9 +273,11 @@ Organizadas por **épica** y luego por **historia de usuario** (formato US-NNN).
 
 **Reglas relacionadas**: RN-AS-02, RN-AS-05
 
-## Épica 8: Historia clínica y odontograma (M)
+## Épica 8: Historia clínica y odontograma (M) — Si llega (stretch)
 
-### US-070 — Ficha y anamnesis
+> **Si llega (stretch)** para la entrega del 2026-11-25 (DD-16): US-070, US-071 y US-072 no están comprometidas; si no se entregan quedan como etapa posterior.
+
+### US-070 — Ficha y anamnesis (si llega, stretch)
 **Como** odontólogo
 **Quiero** registrar la anamnesis básica del paciente
 **Para** conocer alergias, medicación y antecedentes
@@ -286,7 +288,7 @@ Organizadas por **épica** y luego por **historia de usuario** (formato US-NNN).
 
 **Reglas relacionadas**: RN-HC-01, RN-HC-02
 
-### US-071 — Odontograma FDI
+### US-071 — Odontograma FDI (si llega, stretch)
 **Como** odontólogo
 **Quiero** registrar el estado de cada pieza dental en un odontograma
 **Para** reflejar la condición bucal del paciente
@@ -298,7 +300,7 @@ Organizadas por **épica** y luego por **historia de usuario** (formato US-NNN).
 
 **Reglas relacionadas**: RN-HC-03
 
-### US-072 — Notas de evolución
+### US-072 — Notas de evolución (si llega, stretch)
 **Como** odontólogo
 **Quiero** registrar una nota de evolución por consulta
 **Para** dejar constancia del tratamiento realizado
