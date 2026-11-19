@@ -2,8 +2,61 @@
 
 > Este archivo (y su copia `CLAUDE.md`) es lo PRIMERO que todo agente lee al entrar al repo.
 > Generado a partir de `knowledge-base/` y `CHANGES.md`. No editar a mano sin re-sincronizar ambos archivos.
+> Setup de máquina, reparto P1–P6 y flujo de ramas/PRs: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 OdontoGestión: aplicación web de turnos e historia clínica para un consultorio con **un único odontólogo** (único usuario con login). Los pacientes no tienen cuenta: piden turno por una página pública y actúan por enlaces de email con token de un solo uso. Ataca el ausentismo y los huecos de agenda (lista de espera + recordatorios). Trabajo académico, equipo de 6, entrega 2026-11-25.
+
+---
+
+## Protocolo de inicio: guía de entrada por integrante (OBLIGATORIO)
+
+Al empezar cada sesión de trabajo, **antes de proponer, implementar o revisar nada**, el agente ejecuta este protocolo. El objetivo es que la persona sepa en qué posición está, qué tiene que hacer, por qué y cómo.
+
+### Paso 1 — Identificar a la persona
+
+Si en la sesión todavía no se sabe quién está trabajando, el agente **pregunta** (con `AskUserQuestion` si está disponible): "¿Quién está trabajando ahora?". Las opciones salen de la tabla de integrantes de [CONTRIBUTING.md](CONTRIBUTING.md) §4 (nombre + carril P1–P6). No adivines por el usuario de git ni por el nombre de la rama: preguntá. Si la persona pide algo puntual que no es un change (una duda, un fix chico), igual identificala, pero no hace falta la guía completa.
+
+### Paso 2 — Ubicar su bloque de trabajo
+
+Con el carril de la persona:
+
+1. Leé en [CHANGES.md](CHANGES.md) el "Plan de trabajo para 6 personas" y el **Estado** (`[x]` / `[ ]`) de cada change.
+2. Mirá el estado real: `git fetch` y qué hay en `origin/main`, ramas `feat/c-NN-*` existentes, `openspec list --json` (changes abiertos) y `openspec/changes/archive/` (changes cerrados).
+3. Determiná **el siguiente bloque que le toca**: el primer change (o parte de change) asignado a su carril que no esté cerrado. Si ya hay un change suyo abierto, ese es el bloque (retomar, no empezar otro).
+4. Si comparte el change con otra persona (ej. C-02 = P1 + P2), identificá qué parte le toca a cada uno según el plan y quién es su par.
+
+### Paso 3 — Verificar que todo lo previo esté vigente
+
+Para el bloque detectado, revisá **cada dependencia** listada en su bloque de `CHANGES.md`:
+
+| Qué verificar | Cómo |
+|---|---|
+| La dependencia está terminada | Marcada `[x]` en `CHANGES.md` **y** archivada en `openspec/changes/archive/` |
+| La dependencia está integrada | Su código está en `origin/main` (no solo en la rama de otro) |
+| Las specs que necesita existen | Las capabilities correspondientes están en `openspec/specs/` |
+| El entorno de la persona está listo | Docker responde, existen las skills del stack y `.atl/skill-registry.md` (ver CONTRIBUTING §1–3) |
+| No hay trabajo pisado | Nadie más tiene abierto el mismo change (`openspec list`, ramas remotas) |
+
+**Si falta algo, el agente NO arranca el change.** Avisa, con este formato:
+
+> ⛔ Todavía no podés empezar **C-NN `nombre`**. Falta: **C-MM `nombre`** (a cargo de **Px — Nombre**), estado: _no empezado / en curso en la rama X / terminado pero sin mergear_.
+> Mientras tanto podés: _lo que el plan de CHANGES.md indica para tu carril en esta etapa (proponer, preparar fixtures, avanzar contra mocks, ayudar en el bloqueante)_.
+
+Si lo que falta es del entorno (Docker, skills, registry), indicá el paso exacto de CONTRIBUTING.md para resolverlo.
+
+### Paso 4 — Dar la guía de entrada
+
+Si todo lo previo está vigente, el agente da una guía breve y concreta (en español, sin copiar la KB entera; enlazando los archivos):
+
+1. **Dónde estás parado**: etapa (gate) actual del plan, qué está terminado, qué está en curso y por quién, si tu change está en el camino crítico y qué changes dependen de vos.
+2. **El sistema en dos párrafos**: qué es OdontoGestión, el problema (ausentismo y huecos) y cómo encaja tu bloque en esa solución.
+3. **Tu bloque**: qué hace el change, **por qué existe** (qué historia de usuario, regla de negocio `RN-XX` y decisión `DD-XX` lo motivan) y **para qué sirve** (qué habilita después y para quién).
+4. **Cómo hacerlo**: el flujo OPSX (`/opsx:propose c-NN-nombre` → revisión → `/opsx:apply` → tests → `/opsx:archive` → `[x]` en CHANGES.md → PR), la rama a usar (`feat/c-NN-nombre`), el nivel de **Governance** y qué implica (CRITICO/ALTO: plan aprobado por una persona antes de escribir código), y que se trabaja con **TDD estricto** (CONTRIBUTING §3.3).
+5. **Qué leer antes**: los archivos de "Leer antes" del bloque en CHANGES.md, con el motivo de cada uno.
+6. **Qué revisar / cuidar**: las reglas duras de este archivo que más aplican a ese bloque, contratos que tiene que respetar (endpoints, migraciones con el próximo número Flyway libre, eventos), y con quién coordinar (par del mismo change, quien consume su API).
+7. **Cuándo está terminado**: escenarios de la spec cubiertos por tests, todos los tests del repo en verde, change archivado, `[x]` en CHANGES.md y PR revisado por otra persona.
+
+Cerrá preguntando si arranca con el `/opsx:propose` (o con lo que corresponda) y **esperá la confirmación** antes de hacer cambios.
 
 ---
 
