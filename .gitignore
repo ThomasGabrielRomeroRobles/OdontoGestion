@@ -1,0 +1,22 @@
+# Variables de entorno y secretos
+.env
+*.env.local
+*.env.*.local
+
+# Backend (Gradle / Java / Spring)
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+out/
+
+# Frontend (Vite / Node)
+node_modules/
+dist/
+.vite/
+
+# IDEs y SO
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
