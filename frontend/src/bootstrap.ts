@@ -1,4 +1,5 @@
 import { login, logout, me, type SessionUser } from './features/auth/auth-api';
+import { createConfigRoutes, createDefaultConfigSections, type ConfigSections } from './features/config';
 import { createLoginPage } from './pages/login-page';
 import { placeholderRoute, renderNotFound } from './pages/placeholder-pages';
 import { configureHttpClient } from './shared/http/client';
@@ -12,6 +13,8 @@ export interface BootstrapDeps {
   readonly me: () => Promise<SessionUser | null>;
   readonly login: (email: string, password: string) => Promise<SessionUser>;
   readonly logout: () => Promise<void>;
+  /** Secciones de `/configuracion`; los tests inyectan dobles. Por defecto, las conectadas a la API. */
+  readonly configSections?: ConfigSections;
 }
 
 export interface App {
@@ -45,6 +48,7 @@ export async function bootstrap(deps: BootstrapDeps): Promise<App> {
     placeholderRoute('/publico', 'public', 'Solicitud de turno'),
     placeholderRoute('/agenda', 'private', 'Agenda'),
     placeholderRoute('/pacientes', 'private', 'Pacientes'),
+    ...createConfigRoutes(deps.configSections ?? createDefaultConfigSections()),
   ];
 
   const router: Router = createRouter({
