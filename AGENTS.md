@@ -182,9 +182,9 @@ Son contrato; romperlas es un defecto.
 ```
 1. Leer la KB relevante (knowledge-base/)        → entender el dominio
 2. Identificar el change en CHANGES.md           → respetar dependencias y governance
-3. /opsx:propose C-NN-nombre                     → proposal + design + specs + tasks
-4. /opsx:apply (cargando skills del rol)         → respetando las reglas duras
-5. /opsx:archive C-NN-nombre + marcar [x]        → cerrar el change y tildarlo en CHANGES.md
+3. /opsx:propose c-NN-nombre                     → proposal + design + specs + tasks
+4. /opsx:apply c-NN-nombre (skills del rol)      → respetando las reglas duras
+5. /opsx:archive c-NN-nombre + marcar [x]        → cerrar el change y tildarlo en CHANGES.md
 ```
 
 El TDD estricto (RED → GREEN → TRIANGULATE → REFACTOR) se **hereda del `~/.claude/CLAUDE.md` global**; no se redefine acá. Ante conflicto entre la KB y este archivo, las reglas duras prevalecen.

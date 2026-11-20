@@ -31,8 +31,8 @@ Mapa de consolidación (IDs viejos → nuevos): C-01+C-04 → **C-01**; C-02+C-0
 
 1. Identificá el próximo change cuyo estado sea `[ ]` y cuyas dependencias estén todas en `[x]`.
 2. Leé los archivos de la sección **Leer antes** de ese change (KB en `knowledge-base/`).
-3. Ejecutá `/opsx:propose C-NN-nombre` y luego `/opsx:apply` (TDD estricto: RED → GREEN → TRIANGULATE → REFACTOR).
-4. Al terminar, `/opsx:archive C-NN-nombre` para sincronizar specs y cerrar el change.
+3. Ejecutá `/opsx:propose c-NN-nombre` y luego `/opsx:apply` (TDD estricto: RED → GREEN → TRIANGULATE → REFACTOR).
+4. Al terminar, `/opsx:archive c-NN-nombre` para sincronizar specs y cerrar el change.
 5. Marcá el checkbox del change (`[ ]` → `[x]`) en este archivo.
 
 Respetá el nivel de **Governance**: CRITICO = analizar y esperar aprobación humana antes de escribir; ALTO = proponer y esperar revisión; MEDIO = implementar con checkpoints; BAJO = autonomía si pasan los tests.
@@ -374,4 +374,4 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 | C-11 | recordatorios-scheduler | 5 | C-07, C-03 | ALTO | P3 |
 | C-12 | demo-hardening | 6 | C-01 … C-04, C-06 … C-11 (C-05 opcional) | MEDIO | Todos |
 
-**Primer change recomendado**: `C-01` (foundation-setup). Para arrancar: `/opsx:propose C-01-foundation-setup`
+**Primer change recomendado**: `C-01` (foundation-setup). Para arrancar: `/opsx:propose c-01-foundation-setup`

@@ -161,6 +161,8 @@ El reparto completo por persona y fecha está en [CHANGES.md](CHANGES.md) §"Pla
 
 Antes de proponer, revisá con `openspec list` que nadie tenga abierto el mismo change.
 
+Los comandos `/opsx:explore`, `/opsx:propose`, `/opsx:apply` y `/opsx:archive` vienen en el repo (`.claude/commands/opsx/`) y llaman a las skills de OpenSpec. Equivalen a `/openspec-explore`, `/openspec-propose`, `/openspec-apply-change` y `/openspec-archive-change`, y también podés pedirlo en lenguaje natural ("proponé el change c-04-pacientes-core"). El nombre del change va **en minúsculas**.
+
 ### Al abrir Claude Code: la guía de entrada
 
 No hace falta que sepas de memoria en qué bloque estás. Al empezar la sesión, el agente sigue el **Protocolo de inicio** de [CLAUDE.md](CLAUDE.md):
