@@ -5,6 +5,7 @@ import ar.edu.odontogestion.domain.error.DemasiadosIntentosException;
 import ar.edu.odontogestion.domain.error.ErrorCampo;
 import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
 import ar.edu.odontogestion.domain.error.ReglaNegocioException;
+import ar.edu.odontogestion.domain.error.TokenInvalidoException;
 import ar.edu.odontogestion.domain.error.ValidacionDominioException;
 import java.util.List;
 import jakarta.validation.Valid;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Controlador solo de pruebas: ejercita cada ruta de error. No existe en el artefacto de producción. */
@@ -65,5 +67,11 @@ class ErrorTestController {
     @GetMapping("/{id}/demasiados-intentos")
     String demasiadosIntentos(@PathVariable long id) {
         throw new DemasiadosIntentosException(59.2);
+    }
+
+    /** Simula un caso de uso que informa un token inválido; la causa nunca llega al cliente. */
+    @GetMapping("/token/{valor}")
+    String tokenInvalido(@PathVariable String valor, @RequestParam(defaultValue = "inexistente") String causa) {
+        throw new TokenInvalidoException();
     }
 }

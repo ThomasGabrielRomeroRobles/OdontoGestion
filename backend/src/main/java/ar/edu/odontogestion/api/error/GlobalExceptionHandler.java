@@ -6,6 +6,7 @@ import ar.edu.odontogestion.domain.error.DomainException;
 import ar.edu.odontogestion.domain.error.DemasiadosIntentosException;
 import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
 import ar.edu.odontogestion.domain.error.ReglaNegocioException;
+import ar.edu.odontogestion.domain.error.TokenInvalidoException;
 import ar.edu.odontogestion.domain.error.ValidacionDominioException;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     static final String DETALLE_GENERICO = "Ocurrió un error inesperado. Intente nuevamente más tarde.";
     static final String DETALLE_VALIDACION = "La solicitud contiene datos inválidos.";
     static final String DETALLE_CUERPO_ILEGIBLE = "El cuerpo de la solicitud no es un JSON válido.";
+
+    static final String INSTANCE_TOKEN_INVALIDO = "urn:odontogestion:enlace-no-disponible";
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
@@ -85,6 +88,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.retryAfterSegundos()))
                 .body(dominio(HttpStatus.TOO_MANY_REQUESTS, "Demasiados intentos", ex));
+    }
+
+    /**
+     * 410 uniforme para todo token inválido. {@code instance} se fija a un valor constante: por defecto Spring
+     * lo completa con la ruta de la solicitud, que contiene el valor del token ({@code /acciones/{token}}).
+     */
+    @ExceptionHandler(TokenInvalidoException.class)
+    ProblemDetail handleTokenInvalido(TokenInvalidoException ex) {
+        return ProblemDetails.crear(HttpStatus.GONE, "Enlace no disponible", ex.codigo(), ex.getMessage(),
+                INSTANCE_TOKEN_INVALIDO);
     }
 
     private static ProblemDetail dominio(HttpStatus status, String titulo, DomainException ex) {
