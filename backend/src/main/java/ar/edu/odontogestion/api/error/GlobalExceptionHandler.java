@@ -1,10 +1,12 @@
 package ar.edu.odontogestion.api.error;
 
 import ar.edu.odontogestion.domain.error.ConflictoException;
+import ar.edu.odontogestion.domain.error.CredencialesInvalidasException;
 import ar.edu.odontogestion.domain.error.DomainException;
+import ar.edu.odontogestion.domain.error.DemasiadosIntentosException;
 import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
 import ar.edu.odontogestion.domain.error.ReglaNegocioException;
-import java.net.URI;
+import ar.edu.odontogestion.domain.error.ValidacionDominioException;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -28,8 +30,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     static final String DETALLE_GENERICO = "Ocurrió un error inesperado. Intente nuevamente más tarde.";
     static final String DETALLE_VALIDACION = "La solicitud contiene datos inválidos.";
     static final String DETALLE_CUERPO_ILEGIBLE = "El cuerpo de la solicitud no es un JSON válido.";
-
-    private static final String BASE_TIPO = "https://odontogestion.example/problemas/";
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
@@ -68,11 +68,27 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return dominio(HttpStatus.UNPROCESSABLE_ENTITY, "Regla de negocio incumplida", ex);
     }
 
-    private static ProblemDetail dominio(HttpStatus status, String titulo, DomainException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
-        problem.setTitle(titulo);
-        problem.setType(URI.create(BASE_TIPO + ex.codigo()));
+    @ExceptionHandler(ValidacionDominioException.class)
+    ProblemDetail handleValidacionDominio(ValidacionDominioException ex) {
+        ProblemDetail problem = dominio(HttpStatus.UNPROCESSABLE_ENTITY, "Regla de negocio incumplida", ex);
+        problem.setProperty("errors", ex.errores());
         return problem;
+    }
+
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    ProblemDetail handleCredencialesInvalidas(CredencialesInvalidasException ex) {
+        return dominio(HttpStatus.UNAUTHORIZED, "Credenciales inválidas", ex);
+    }
+
+    @ExceptionHandler(DemasiadosIntentosException.class)
+    ResponseEntity<ProblemDetail> handleDemasiadosIntentos(DemasiadosIntentosException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.retryAfterSegundos()))
+                .body(dominio(HttpStatus.TOO_MANY_REQUESTS, "Demasiados intentos", ex));
+    }
+
+    private static ProblemDetail dominio(HttpStatus status, String titulo, DomainException ex) {
+        return ProblemDetails.crear(status, titulo, ex.codigo(), ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
