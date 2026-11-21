@@ -50,11 +50,17 @@
   - `BloqueoDto = {id, desde, hasta, motivo|null}`, con instantes ISO-8601 en UTC con `Z`.
 - **Por qué `/desactivar` y `/activar` en vez de `PATCH {activa}` o `DELETE`**: el `DELETE` sugiere un borrado que la regla prohíbe, y la acción explícita es más clara para auditar. Es el mismo estilo que `C-07` usa en `/turnos/{id}/cancelar`.
 - Errores de validación: `422` con `errors: [{field, message}]`, el formato que ya parsea `shared/http/problem.ts`. Un recurso inexistente o de otro consultorio responde `404`.
-- **Contrato asumido de C-02**, que el frontend consume:
-  - `GET/PUT /consultorio` con `{nombre, direccion, telefono, emailContacto, granularidadMin, anticipacionMinReservaMin, limiteCancelacionHoras, recordatorioHorasAntes, vencimientoAvisoMin, vencimientoPendienteMin}`. `zonaHoraria` se muestra y no se edita.
+- **Contrato real de C-02** (implementado en `main`, spec `consultorio-config`), que el frontend consume:
+  - `GET /consultorio` → `200 {nombre, direccion, telefono, emailContacto, zonaHoraria, parametros}`.
+  - `PUT /consultorio` con `{nombre, direccion, telefono, emailContacto, parametros}` → `200` con la misma forma del `GET`. `zonaHoraria` se muestra y no se edita: el `PUT` la ignora y el frontend no la envía.
+  - `parametros` es un objeto anidado con 7 enteros obligatorios: `granularidadMin`, `anticipacionMinReservaMin`, `limiteCancelacionHoras`, `recordatorioHorasAntes`, `vencimientoAvisoMin`, `vencimientoPendienteMin` y `toleranciaAusenteMin`. Valores por defecto: 15, 120, 2, 24, 60, 30 y 15.
+  - Errores del `PUT /consultorio`:
+    - `400` con `errors: [{field, message}]` si falta un dato o un parámetro, o si el formato es inválido.
+    - `422` si un parámetro es cero o negativo. Se informan todos juntos y no se aplica ningún cambio.
+    - Los campos de `parametros` llegan con prefijo (p. ej. `parametros.granularidadMin`). El frontend quita el prefijo `parametros.` para mostrar cada error junto a su input (ver D10).
   - `GET/PUT /perfil` con `{email, nombre, apellido, matricula}`. `email` es de solo lectura.
   - `POST /perfil/password` con `{passwordActual, passwordNueva}` → `204`.
-  - Si `C-02` define otra cosa, se ajusta solo `features/config/*-api.ts` (ver D5).
+  - Si el contrato de `C-02` cambia, se ajusta solo `features/config/*-api.ts` (ver D5).
 
 ### D2. Esquema: migración `V4__agenda_configuracion.sql`
 
@@ -111,13 +117,20 @@ features/config/
 
 ### D8. Granularidad en el cliente
 
-- La sección Prestaciones (y Horarios) obtiene `granularidadMin` con `GET /consultorio` al montarse, para validar.
+- La sección Prestaciones obtiene `parametros.granularidadMin` con `GET /consultorio` al montarse, para validar.
 - Si esa llamada falla, la validación de cliente cae a lo mínimo (entero positivo) y deja que el `422` del servidor decida. La validación de cliente nunca es la autoridad.
 
 ### D9. Mocks mientras no hay backend
 
 - Los tests de Vitest usan dobles inyectados (D5) y `fetch` mockeado. No se agrega MSW ni ninguna otra dependencia.
 - Para probar en el navegador antes de `C-02`, se puede usar un modo opcional de desarrollo con `VITE_CONFIG_MOCKS=true`, que inyecta implementaciones en memoria de las funciones de API. Ese modo nunca entra en el build de producción, porque `import.meta.env.DEV` lo elimina por tree-shaking.
+
+### D10. Errores de campos anidados en `parametros`
+
+- C-02 informa los errores de los parámetros con la ruta completa del campo (`parametros.granularidadMin`), mientras que el formulario identifica cada input por el nombre plano (`granularidadMin`).
+- La sección Consultorio quita el prefijo `parametros.` antes de ubicar cada error. Así el mensaje aparece junto a su input y no termina en la alerta general.
+- La normalización vive en `form-errors.ts` como función pura, y la sección la usa al mostrar errores de la API. El resto de las secciones no tiene campos anidados y no la usa.
+- Alternativa descartada: nombrar los inputs `parametros.granularidadMin`. Acopla el DOM a la forma del JSON y complica los selectores.
 
 ## Risks / Trade-offs
 

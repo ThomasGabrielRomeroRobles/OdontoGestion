@@ -33,7 +33,11 @@ const PARAMETROS: readonly [CampoParametro, string][] = [
   ['recordatorioHorasAntes', 'Recordatorio (horas antes del turno)'],
   ['vencimientoAvisoMin', 'Vencimiento de avisos de hueco (min)'],
   ['vencimientoPendienteMin', 'Vencimiento de solicitudes pendientes (min)'],
+  ['toleranciaAusenteMin', 'Tolerancia de ausente (min)'],
 ];
+
+/** Prefijo con el que C-02 informa los errores de los parámetros anidados (design.md D10). */
+const PREFIJO_PARAMETROS = 'parametros.';
 
 export function createConsultorioSection(deps: ConsultorioSectionDeps): SectionRenderer {
   return (container) => {
@@ -81,7 +85,7 @@ export function createConsultorioSection(deps: ConsultorioSectionDeps): SectionR
       }
       for (const [name] of PARAMETROS) {
         const campo = campos[name];
-        if (campo !== undefined) campo.input.value = String(consultorio[name]);
+        if (campo !== undefined) campo.input.value = String(consultorio.parametros[name]);
       }
       zona.textContent = `Zona horaria: ${consultorio.zonaHoraria}`;
       guardar.disabled = false;
@@ -111,12 +115,15 @@ export function createConsultorioSection(deps: ConsultorioSectionDeps): SectionR
         direccion: valor('direccion').trim(),
         telefono: valor('telefono').trim(),
         emailContacto: valor('emailContacto').trim(),
-        granularidadMin: numeros.granularidadMin ?? 0,
-        anticipacionMinReservaMin: numeros.anticipacionMinReservaMin ?? 0,
-        limiteCancelacionHoras: numeros.limiteCancelacionHoras ?? 0,
-        recordatorioHorasAntes: numeros.recordatorioHorasAntes ?? 0,
-        vencimientoAvisoMin: numeros.vencimientoAvisoMin ?? 0,
-        vencimientoPendienteMin: numeros.vencimientoPendienteMin ?? 0,
+        parametros: {
+          granularidadMin: numeros.granularidadMin ?? 0,
+          anticipacionMinReservaMin: numeros.anticipacionMinReservaMin ?? 0,
+          limiteCancelacionHoras: numeros.limiteCancelacionHoras ?? 0,
+          recordatorioHorasAntes: numeros.recordatorioHorasAntes ?? 0,
+          vencimientoAvisoMin: numeros.vencimientoAvisoMin ?? 0,
+          vencimientoPendienteMin: numeros.vencimientoPendienteMin ?? 0,
+          toleranciaAusenteMin: numeros.toleranciaAusenteMin ?? 0,
+        },
       };
     }
 
@@ -131,7 +138,7 @@ export function createConsultorioSection(deps: ConsultorioSectionDeps): SectionR
           cargar(actualizado);
           estado.textContent = 'Cambios guardados.';
         })
-        .catch((error: unknown) => mostrarErrorApi(error, campos, alerta));
+        .catch((error: unknown) => mostrarErrorApi(error, campos, alerta, PREFIJO_PARAMETROS));
     });
 
     deps

@@ -36,18 +36,22 @@ export function crearMocksDesarrollo(): MocksDesarrollo {
   let siguienteId = 100;
   const nuevoId = (): number => (siguienteId += 1);
 
+  // Forma y valores por defecto reales de C-02 (`parametros` anidado).
   let consultorio: Consultorio = {
     nombre: 'Consultorio Demo',
     direccion: 'Calle Falsa 123',
     telefono: '011 5555-0000',
     emailContacto: 'contacto@consultorio.example',
     zonaHoraria: 'America/Argentina/Buenos_Aires',
-    granularidadMin: 15,
-    anticipacionMinReservaMin: 120,
-    limiteCancelacionHoras: 24,
-    recordatorioHorasAntes: 24,
-    vencimientoAvisoMin: 60,
-    vencimientoPendienteMin: 30,
+    parametros: {
+      granularidadMin: 15,
+      anticipacionMinReservaMin: 120,
+      limiteCancelacionHoras: 2,
+      recordatorioHorasAntes: 24,
+      vencimientoAvisoMin: 60,
+      vencimientoPendienteMin: 30,
+      toleranciaAusenteMin: 15,
+    },
   };
   let perfil: Perfil = { email: 'odontologo@consultorio.example', nombre: 'Ana', apellido: 'Pérez', matricula: 'MN 0000' };
 
@@ -72,7 +76,7 @@ export function crearMocksDesarrollo(): MocksDesarrollo {
   const falla = (error: ApiError): Promise<never> => Promise.reject(error);
 
   function guardarPrestacion(id: number | null, nombre: string, duracionMin: number): Promise<Prestacion> {
-    const duracion = validarDuracion(String(duracionMin), consultorio.granularidadMin);
+    const duracion = validarDuracion(String(duracionMin), consultorio.parametros.granularidadMin);
     if (!duracion.ok) return falla(error422('duracionMin', duracion.error));
     const repetida = prestaciones.some((p) => p.id !== id && p.nombre.toLowerCase() === nombre.toLowerCase());
     if (repetida) return falla(error422('nombre', 'Ya existe una prestación con ese nombre.'));
@@ -130,7 +134,14 @@ export function crearMocksDesarrollo(): MocksDesarrollo {
     config: {
       obtenerConsultorio: () => ok(consultorio),
       actualizarConsultorio: (input) => {
-        consultorio = { ...consultorio, ...input };
+        // Igual que C-02: parámetros no positivos → 422 con `parametros.<campo>`, todos juntos y sin cambios.
+        const errores = Object.entries(input.parametros)
+          .filter(([, valor]) => valor <= 0)
+          .map(([campo]) => ({ field: `parametros.${campo}`, message: 'Debe ser mayor que cero.' }));
+        if (errores.length > 0) {
+          return falla({ kind: 'http', status: 422, title: 'Regla de negocio incumplida', fieldErrors: errores });
+        }
+        consultorio = { ...input, zonaHoraria: consultorio.zonaHoraria };
         return ok(consultorio);
       },
       obtenerPerfil: () => ok(perfil),

@@ -3,6 +3,7 @@ import type { Prestacion, PrestacionInput } from '../agenda-config-api';
 import type { Consultorio } from '../config-api';
 import {
   boton,
+  consultorioCon,
   consultorioFicticio,
   enviar,
   error422,
@@ -81,7 +82,7 @@ describe('sección Prestaciones (9.1)', () => {
   });
 
   it('valida la duración con la granularidad del consultorio', async () => {
-    deps.obtenerConsultorio.mockResolvedValue({ ...consultorioFicticio, granularidadMin: 30 });
+    deps.obtenerConsultorio.mockResolvedValue(consultorioCon({ granularidadMin: 30 }));
     await montar();
     escribir(container, 'nombre', 'Limpieza');
     escribir(container, 'duracionMin', '45');

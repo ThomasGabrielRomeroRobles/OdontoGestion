@@ -1,6 +1,39 @@
 import { describe, expect, it } from 'vitest';
 import type { ApiError } from '../../shared/http/client';
-import { toFormErrors, NETWORK_MESSAGE } from './form-errors';
+import { quitarPrefijoCampos, toFormErrors, NETWORK_MESSAGE } from './form-errors';
+
+describe('quitarPrefijoCampos (D10)', () => {
+  it('quita el prefijo de los campos anidados y conserva los planos', () => {
+    const errores = toFormErrors({
+      kind: 'http',
+      status: 422,
+      title: 'Regla de negocio incumplida',
+      fieldErrors: [
+        { field: 'parametros.granularidadMin', message: 'Debe ser mayor que cero.' },
+        { field: 'parametros.toleranciaAusenteMin', message: 'Debe ser mayor que cero.' },
+        { field: 'nombre', message: 'Es obligatorio.' },
+      ],
+    });
+    expect(quitarPrefijoCampos(errores, 'parametros.')).toEqual({
+      byField: {
+        granularidadMin: 'Debe ser mayor que cero.',
+        toleranciaAusenteMin: 'Debe ser mayor que cero.',
+        nombre: 'Es obligatorio.',
+      },
+      general: null,
+    });
+  });
+
+  it('solo quita el prefijo al inicio y deja intacto el error general', () => {
+    const errores = { byField: { 'otro.parametros.x': 'm' }, general: 'g' };
+    expect(quitarPrefijoCampos(errores, 'parametros.')).toEqual(errores);
+  });
+
+  it('si el campo plano ya tiene error, ese mensaje gana', () => {
+    const errores = { byField: { granularidadMin: 'plano', 'parametros.granularidadMin': 'anidado' }, general: null };
+    expect(quitarPrefijoCampos(errores, 'parametros.').byField).toEqual({ granularidadMin: 'plano' });
+  });
+});
 
 describe('toFormErrors', () => {
   it('422 con errores de campo: los agrupa por campo y no hay error general', () => {

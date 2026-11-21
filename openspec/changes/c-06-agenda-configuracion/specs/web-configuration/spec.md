@@ -50,20 +50,33 @@ Todo formulario de configuración SHALL mostrar los errores por campo de un `422
 - **THEN** el botón de envío está deshabilitado hasta que llegue la respuesta
 
 ### Requirement: Datos y parámetros del consultorio
-La sección Consultorio SHALL mostrar y permitir editar nombre, dirección, teléfono, email de contacto y los parámetros (granularidad, anticipación mínima, límite de cancelación, recordatorio, vencimiento de avisos y de solicitudes pendientes) con `GET/PUT /api/v1/consultorio`.
+La sección Consultorio SHALL mostrar y permitir editar nombre, dirección, teléfono, email de contacto y los siete parámetros (granularidad, anticipación mínima, límite de cancelación, recordatorio, vencimiento de avisos, vencimiento de solicitudes pendientes y tolerancia de ausente) con `GET/PUT /api/v1/consultorio`, que los envía y recibe anidados en `parametros`.
 
 #### Scenario: Carga inicial
-- **GIVEN** `GET /api/v1/consultorio` responde con nombre "Consultorio Demo" y granularidad 15
+- **GIVEN** `GET /api/v1/consultorio` responde con nombre "Consultorio Demo" y `parametros.granularidadMin` 15
 - **WHEN** se abre la sección Consultorio
 - **THEN** los campos muestran esos valores
 
+#### Scenario: Tolerancia de ausente visible
+- **GIVEN** `GET /api/v1/consultorio` responde con `parametros.toleranciaAusenteMin` 20
+- **WHEN** se abre la sección Consultorio
+- **THEN** el campo "Tolerancia de ausente (min)" muestra 20
+
 #### Scenario: Guardado exitoso
 - **WHEN** el usuario cambia el recordatorio a 48 h y guarda, y la API responde `200`
-- **THEN** se envía `PUT /api/v1/consultorio` con el valor 48 y se muestra una confirmación de guardado
+- **THEN** se envía `PUT /api/v1/consultorio` con `parametros.recordatorioHorasAntes` 48 junto a los otros seis parámetros dentro de `parametros`, y se muestra una confirmación de guardado
 
 #### Scenario: Parámetro no positivo
 - **WHEN** el usuario ingresa granularidad 0 y guarda
 - **THEN** no se envía la solicitud y se indica que el valor debe ser mayor que cero
+
+#### Scenario: Tolerancia de ausente no positiva
+- **WHEN** el usuario ingresa tolerancia de ausente 0 y guarda
+- **THEN** no se envía la solicitud y se indica que el valor debe ser mayor que cero
+
+#### Scenario: Error de parámetro anidado del servidor
+- **WHEN** la API responde `422` con error en el campo `parametros.granularidadMin`
+- **THEN** el mensaje aparece junto al campo de granularidad y no como error general
 
 #### Scenario: Aviso de alcance de los cambios
 - **WHEN** se muestra la sección Consultorio

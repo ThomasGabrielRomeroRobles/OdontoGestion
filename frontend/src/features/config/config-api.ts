@@ -1,7 +1,8 @@
 import { apiRequest } from '../../shared/http/client';
 
 /**
- * Contrato asumido de C-02 (design.md D1). Si C-02 publica otro, solo se ajusta este módulo.
+ * Contrato real de C-02 (spec `consultorio-config`, design.md D1): los parámetros viajan anidados
+ * en `parametros`, siempre los siete. Si C-02 cambia el contrato, solo se ajusta este módulo.
  */
 export interface ParametrosConsultorio {
   readonly granularidadMin: number;
@@ -10,13 +11,16 @@ export interface ParametrosConsultorio {
   readonly recordatorioHorasAntes: number;
   readonly vencimientoAvisoMin: number;
   readonly vencimientoPendienteMin: number;
+  readonly toleranciaAusenteMin: number;
 }
 
-export interface ConsultorioEditable extends ParametrosConsultorio {
+/** Cuerpo de `PUT /consultorio` (sin `zonaHoraria`, que no se edita). */
+export interface ConsultorioEditable {
   readonly nombre: string;
   readonly direccion: string;
   readonly telefono: string;
   readonly emailContacto: string;
+  readonly parametros: ParametrosConsultorio;
 }
 
 export interface Consultorio extends ConsultorioEditable {

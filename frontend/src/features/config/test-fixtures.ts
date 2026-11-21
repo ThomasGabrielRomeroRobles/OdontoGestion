@@ -2,19 +2,33 @@
 import type { Bloqueo, Horario, Prestacion } from './agenda-config-api';
 import type { Consultorio, Perfil } from './config-api';
 
+/** Forma real de C-02: `parametros` anidado con sus 7 valores por defecto. */
 export const consultorioFicticio: Consultorio = {
   nombre: 'Consultorio Demo',
   direccion: 'Calle Falsa 123',
   telefono: '011 5555-0000',
   emailContacto: 'contacto@consultorio.example',
   zonaHoraria: 'America/Argentina/Buenos_Aires',
-  granularidadMin: 15,
-  anticipacionMinReservaMin: 120,
-  limiteCancelacionHoras: 24,
-  recordatorioHorasAntes: 24,
-  vencimientoAvisoMin: 60,
-  vencimientoPendienteMin: 30,
+  parametros: {
+    granularidadMin: 15,
+    anticipacionMinReservaMin: 120,
+    limiteCancelacionHoras: 2,
+    recordatorioHorasAntes: 24,
+    vencimientoAvisoMin: 60,
+    vencimientoPendienteMin: 30,
+    toleranciaAusenteMin: 15,
+  },
 };
+
+/** El consultorio ficticio con algunos parámetros cambiados. */
+export function consultorioCon(parametros: Partial<Consultorio['parametros']>): Consultorio {
+  return { ...consultorioFicticio, parametros: { ...consultorioFicticio.parametros, ...parametros } };
+}
+
+/** Error 400 de Bean Validation con un campo, como lo entrega `apiRequest`. */
+export function error400(field: string, message: string): unknown {
+  return { kind: 'http', status: 400, title: 'Bad Request', fieldErrors: [{ field, message }] };
+}
 
 export const perfilFicticio: Perfil = {
   email: 'odontologo@consultorio.example',

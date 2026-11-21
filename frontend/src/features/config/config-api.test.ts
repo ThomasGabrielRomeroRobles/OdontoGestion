@@ -5,9 +5,9 @@ import {
   cambiarPassword,
   obtenerConsultorio,
   obtenerPerfil,
-  type Consultorio,
   type Perfil,
 } from './config-api';
+import { consultorioFicticio } from './test-fixtures';
 
 type FetchMock = ReturnType<typeof vi.fn<typeof fetch>>;
 
@@ -33,19 +33,6 @@ function lastCall(fn: FetchMock): { url: string; method: string | undefined; bod
   };
 }
 
-const consultorioFicticio: Consultorio = {
-  nombre: 'Consultorio Demo',
-  direccion: 'Calle Falsa 123',
-  telefono: '011 5555-0000',
-  emailContacto: 'contacto@consultorio.example',
-  zonaHoraria: 'America/Argentina/Buenos_Aires',
-  granularidadMin: 15,
-  anticipacionMinReservaMin: 120,
-  limiteCancelacionHoras: 24,
-  recordatorioHorasAntes: 24,
-  vencimientoAvisoMin: 60,
-  vencimientoPendienteMin: 30,
-};
 
 const perfil: Perfil = { email: 'odontologo@consultorio.example', nombre: 'Ana', apellido: 'Pérez', matricula: 'MN 0000' };
 
@@ -64,11 +51,35 @@ describe('config-api', () => {
     expect(lastCall(fn)).toMatchObject({ url: '/api/v1/consultorio', method: 'GET', csrf: null });
   });
 
-  it('actualiza el consultorio con PUT sin enviar la zona horaria', async () => {
+  it('actualiza el consultorio con PUT: parámetros anidados (7 campos) y sin zona horaria', async () => {
     const fn = mockFetch(json(consultorioFicticio));
-    const { zonaHoraria: _zona, ...editable } = consultorioFicticio;
-    await actualizarConsultorio(editable);
-    expect(lastCall(fn)).toEqual({ url: '/api/v1/consultorio', method: 'PUT', body: editable, csrf: 'tok' });
+    await actualizarConsultorio({
+      nombre: 'Consultorio Demo',
+      direccion: 'Calle Falsa 123',
+      telefono: '011 5555-0000',
+      emailContacto: 'contacto@consultorio.example',
+      parametros: { ...consultorioFicticio.parametros, toleranciaAusenteMin: 20 },
+    });
+    expect(lastCall(fn)).toEqual({
+      url: '/api/v1/consultorio',
+      method: 'PUT',
+      body: {
+        nombre: 'Consultorio Demo',
+        direccion: 'Calle Falsa 123',
+        telefono: '011 5555-0000',
+        emailContacto: 'contacto@consultorio.example',
+        parametros: {
+          granularidadMin: 15,
+          anticipacionMinReservaMin: 120,
+          limiteCancelacionHoras: 2,
+          recordatorioHorasAntes: 24,
+          vencimientoAvisoMin: 60,
+          vencimientoPendienteMin: 30,
+          toleranciaAusenteMin: 20,
+        },
+      },
+      csrf: 'tok',
+    });
   });
 
   it('obtiene y actualiza el perfil sin enviar el email', async () => {

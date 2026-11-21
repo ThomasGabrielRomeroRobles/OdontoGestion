@@ -14,7 +14,25 @@ function isApiError(value: unknown): value is ApiError {
   return kind === 'network' || (kind === 'http' && 'status' in value && 'fieldErrors' in value);
 }
 
-/** Traduce un error de la API a mensajes por campo (422) o a un mensaje general. */
+/**
+ * Quita `prefijo` de los nombres de campo (p. ej. `parametros.granularidadMin` → `granularidadMin`)
+ * para ubicar los errores de objetos anidados junto a su input plano (design.md D10).
+ * Si el campo plano ya tenía su propio error, ese mensaje gana.
+ */
+export function quitarPrefijoCampos(errores: FormErrors, prefijo: string): FormErrors {
+  const byField: Record<string, string> = {};
+  for (const [campo, mensaje] of Object.entries(errores.byField)) {
+    if (!campo.startsWith(prefijo)) byField[campo] = mensaje;
+  }
+  for (const [campo, mensaje] of Object.entries(errores.byField)) {
+    if (!campo.startsWith(prefijo)) continue;
+    const plano = campo.slice(prefijo.length);
+    if (!(plano in byField)) byField[plano] = mensaje;
+  }
+  return { byField, general: errores.general };
+}
+
+/** Traduce un error de la API a mensajes por campo (400/422) o a un mensaje general. */
 export function toFormErrors(error: unknown): FormErrors {
   if (!isApiError(error)) return { byField: {}, general: UNEXPECTED_MESSAGE };
   if (error.kind === 'network') return { byField: {}, general: NETWORK_MESSAGE };

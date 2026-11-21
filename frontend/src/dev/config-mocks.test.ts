@@ -41,14 +41,46 @@ describe('mocks de desarrollo (9.4)', () => {
     expect((await agenda.listarHorarios()).some((h) => h.id === sabado.id)).toBe(false);
   });
 
+  it('consultorio en memoria: forma real de C-02 con `parametros` anidado y sus 7 valores por defecto', async () => {
+    const { config } = crearMocksDesarrollo();
+    const actual = await config.obtenerConsultorio();
+    expect(actual.parametros).toEqual({
+      granularidadMin: 15,
+      anticipacionMinReservaMin: 120,
+      limiteCancelacionHoras: 2,
+      recordatorioHorasAntes: 24,
+      vencimientoAvisoMin: 60,
+      vencimientoPendienteMin: 30,
+      toleranciaAusenteMin: 15,
+    });
+  });
+
   it('consultorio en memoria: actualizar cambia la granularidad que usan las prestaciones', async () => {
     const { config, agenda } = crearMocksDesarrollo();
-    const actual = await config.obtenerConsultorio();
-    const { zonaHoraria: _z, ...editable } = actual;
-    await config.actualizarConsultorio({ ...editable, granularidadMin: 30 });
+    const { zonaHoraria: _z, ...editable } = await config.obtenerConsultorio();
+    await config.actualizarConsultorio({ ...editable, parametros: { ...editable.parametros, granularidadMin: 30 } });
     await expect(agenda.crearPrestacion({ nombre: 'Media hora y cuarto', duracionMin: 45 })).rejects.toMatchObject({
       status: 422,
     });
+  });
+
+  it('consultorio en memoria: parámetros no positivos → 422 con `parametros.<campo>` y sin cambios', async () => {
+    const { config } = crearMocksDesarrollo();
+    const { zonaHoraria: _z, ...editable } = await config.obtenerConsultorio();
+    await expect(
+      config.actualizarConsultorio({
+        ...editable,
+        nombre: 'No debería guardarse',
+        parametros: { ...editable.parametros, granularidadMin: 0, toleranciaAusenteMin: -1 },
+      }),
+    ).rejects.toMatchObject({
+      status: 422,
+      fieldErrors: [
+        { field: 'parametros.granularidadMin', message: 'Debe ser mayor que cero.' },
+        { field: 'parametros.toleranciaAusenteMin', message: 'Debe ser mayor que cero.' },
+      ],
+    });
+    expect((await config.obtenerConsultorio()).nombre).toBe('Consultorio Demo');
   });
 
   it('bloqueos y contraseña en memoria', async () => {

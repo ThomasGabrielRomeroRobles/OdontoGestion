@@ -1,4 +1,4 @@
-import { toFormErrors } from '../form-errors';
+import { quitarPrefijoCampos, toFormErrors } from '../form-errors';
 
 /** Piezas DOM compartidas por los formularios de configuración. Nunca usa innerHTML con datos. */
 export interface Campo {
@@ -73,9 +73,16 @@ export function limpiarErrores(campos: Iterable<Campo>, alerta: HTMLElement): vo
 /**
  * Muestra un error de la API: mensajes de 422 junto a cada campo conocido; si no hay campos
  * (o ninguno es de este formulario), un mensaje general en la alerta.
+ * `prefijoCampos` (p. ej. `parametros.`) se quita de los campos anidados antes de ubicarlos (D10).
  */
-export function mostrarErrorApi(error: unknown, campos: Readonly<Record<string, Campo>>, alerta: HTMLElement): void {
-  const { byField, general } = toFormErrors(error);
+export function mostrarErrorApi(
+  error: unknown,
+  campos: Readonly<Record<string, Campo>>,
+  alerta: HTMLElement,
+  prefijoCampos?: string,
+): void {
+  const errores = toFormErrors(error);
+  const { byField, general } = prefijoCampos === undefined ? errores : quitarPrefijoCampos(errores, prefijoCampos);
   let alguno = false;
   for (const [nombre, mensaje] of Object.entries(byField)) {
     const campo = campos[nombre];

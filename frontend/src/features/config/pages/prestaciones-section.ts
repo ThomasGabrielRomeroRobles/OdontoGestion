@@ -137,7 +137,7 @@ export function createPrestacionesSection(deps: PrestacionesSectionDeps): Sectio
     deps
       .obtenerConsultorio()
       .then((consultorio) => {
-        granularidad = consultorio.granularidadMin;
+        granularidad = consultorio.parametros.granularidadMin;
       })
       .catch(() => {
         granularidad = null;
