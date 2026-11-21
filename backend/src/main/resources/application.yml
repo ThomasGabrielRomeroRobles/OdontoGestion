@@ -30,6 +30,12 @@ server:
   servlet:
     session:
       timeout: ${SESSION_TIMEOUT_MIN:30}m
+      cookie:
+        name: JSESSIONID
+        http-only: true
+        same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false}
+      tracking-modes: cookie
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
@@ -39,3 +45,6 @@ app:
   public-rate-limit-per-hour: ${PUBLIC_RATE_LIMIT_PER_HOUR:5}
   notification-channels: ${NOTIFICATION_CHANNELS:EMAIL}
   mail-from: ${MAIL_FROM:no-reply@consultorio.example}
+  bootstrap:
+    odontologo-email: ${BOOTSTRAP_ODONTOLOGO_EMAIL:odontologo@consultorio.example}
+    odontologo-password: ${BOOTSTRAP_ODONTOLOGO_PASSWORD:}

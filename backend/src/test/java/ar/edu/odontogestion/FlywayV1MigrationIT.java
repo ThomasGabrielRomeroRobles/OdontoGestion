@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ar.edu.odontogestion.support.AbstractIntegrationTest;
 import java.util.List;
+import java.util.UUID;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -70,11 +72,27 @@ class FlywayV1MigrationIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void soloExisteLaTablaDeHistorialDeMigraciones() {
+    void versionUnoSoloCreaExtensionesYNingunaTablaDeDominio() {
+        String schema = "chk_" + UUID.randomUUID().toString().replace("-", "");
+        Flyway.configure()
+                .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                .schemas(schema)
+                .createSchemas(true)
+                .target("1")
+                .load()
+                .migrate();
+
         List<String> tablas = jdbc.queryForList(
                 "SELECT table_name FROM information_schema.tables "
-                        + "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'",
-                String.class);
+                        + "WHERE table_schema = ? AND table_type = 'BASE TABLE'", String.class, schema);
         assertThat(tablas).containsExactly("flyway_schema_history");
+    }
+
+    @Test
+    void elHistorialRegistraLasVersionesAplicadasEnOrden() {
+        List<String> versiones = jdbc.queryForList(
+                "SELECT version FROM flyway_schema_history WHERE version IS NOT NULL "
+                        + "ORDER BY installed_rank", String.class);
+        assertThat(versiones).containsExactly("1", "2", "3");
     }
 }

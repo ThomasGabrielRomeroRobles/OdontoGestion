@@ -61,4 +61,16 @@ class ConfiguracionSinSecretosTest {
             infractoras.add(prefijo);
         }
     }
+
+    @Test
+    void laPlantillaDeEntornoDeclaraLasClavesDeBootstrapYSesionConLasContrasenasVacias() throws Exception {
+        List<String> lineas = java.nio.file.Files.readAllLines(java.nio.file.Path.of("..", ".env.example"));
+
+        assertThat(lineas).contains("BOOTSTRAP_ODONTOLOGO_PASSWORD=",
+                "SESSION_TIMEOUT_MIN=30");
+        assertThat(lineas).anyMatch(l -> l.startsWith("SESSION_COOKIE_SECURE="));
+        assertThat(lineas).anyMatch(l -> l.startsWith("BOOTSTRAP_ODONTOLOGO_EMAIL="));
+        assertThat(lineas).filteredOn(l -> l.toUpperCase().contains("PASSWORD="))
+                .allMatch(l -> l.endsWith("="), "las contraseñas de la plantilla deben estar vacías");
+    }
 }
