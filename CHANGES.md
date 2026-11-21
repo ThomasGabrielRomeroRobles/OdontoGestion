@@ -199,7 +199,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
   - `knowledge-base/09_decisiones_y_supuestos.md` §DD-07, §DD-08, §DD-13, §SU-10
 
 ### [C-04] `pacientes-core`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado 2026-11-21 en `openspec/changes/archive/2026-11-21-c-04-pacientes-core/`)
 - **Scope**:
   - Migración V5: tabla `paciente` (único `consultorio_id + dni`, índices por dni, email, apellido+nombre, `cantidad_ausencias`)
   - Modelo `Paciente` (sin cuenta); servicio `buscarOCrearPorDni`

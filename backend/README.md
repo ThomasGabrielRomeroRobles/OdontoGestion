@@ -30,11 +30,45 @@ Spring no lee `.env`: exportar las variables de `.env.example` en la shell (o en
 El consultorio demo lo inserta la migración Flyway V2. Si **no existe ningún usuario**, el arranque crea al
 odontólogo inicial. La contraseña de ese usuario sale de `BOOTSTRAP_ODONTOLOGO_PASSWORD` y es **obligatoria** (entre 8 caracteres y 72 bytes): si falta,
 el arranque falla con un mensaje que nombra la variable. Si ya existe algún usuario, la variable (y el email) se
-ignoran: el seed no crea otro usuario ni cambia contraseñas ni parámetros editados. La próxima migración libre es V4. El email sale de `BOOTSTRAP_ODONTOLOGO_EMAIL`
+ignoran: el seed no crea otro usuario ni cambia contraseñas ni parámetros editados (numeración de migraciones: ver "Migraciones"). El email sale de `BOOTSTRAP_ODONTOLOGO_EMAIL`
 (por defecto `odontologo@consultorio.example`). Usar solo datos y contraseñas ficticias.
 
 Variables de sesión: `SESSION_TIMEOUT_MIN` (por defecto 30) y `SESSION_COOKIE_SECURE` (por defecto `false`;
 poner `true` solo si se sirve por HTTPS).
+
+## Migraciones
+
+Números asignados por `CHANGES.md`: V1–V3 (C-01/C-02, en `main`), **V4 = C-06**, **V5 = C-04** (`paciente`),
+V6/V7 = C-03. Antes de numerar una migración nueva, revisá también las ramas abiertas (`git branch -r`), no solo
+`main`. La próxima libre después de esas es **V8** (reservada para C-05 en el plan).
+
+**Orden de merge V4/V5** (acordado P1–P4, 2026-11-21): C-06 (V4) se mergea **antes** que C-04 (V5). En general,
+una migración de número menor que llega después de una mayor ya aplicada hace fallar `validate` en las bases
+locales existentes (Flyway la marca como *ignored*). Las bases de los tests arrancan vacías y no tienen el problema.
+Si pasa, en desarrollo se recrea la base local (`DROP SCHEMA public CASCADE; CREATE SCHEMA public;` y arrancar).
+
+## Pacientes (C-04)
+
+Endpoints con sesión del odontólogo (escrituras con `X-XSRF-TOKEN`). Ejemplos con datos ficticios:
+
+| Método y ruta | Uso | Errores |
+|---|---|---|
+| `GET /api/v1/pacientes?dni=30.123.456` | Búsqueda exacta por DNI (lista de 0 o 1) | `400` DNI inválido |
+| `GET /api/v1/pacientes?q=pér` | Texto en apellido, nombre o email, o prefijo de DNI (máx. 20, por apellido y nombre) | `400` `q` > 100 |
+| `GET /api/v1/pacientes/{id}` | Ficha administrativa | `404` |
+| `POST /api/v1/pacientes` | Alta → `201` + `Location` | `400` por campo, `409` DNI duplicado |
+| `PUT /api/v1/pacientes/{id}` | Edición (no cambia `cantidadAusencias` ni `activo`) | `400`, `404`, `409` |
+
+```json
+POST /api/v1/pacientes
+{ "nombre": "Ana", "apellido": "Pérez", "dni": "30.123.456", "telefono": "+54 11 5555-0001",
+  "email": "ana.perez@ejemplo.test", "fechaNacimiento": "1990-05-01", "direccion": "Calle Ficticia 1" }
+```
+
+El DNI se guarda sin puntos (7 u 8 dígitos) y el email en minúsculas. Para otros changes, `PacienteService
+.buscarOCrearPorDni(DatosPaciente)` reutiliza al paciente con ese DNI **sin pisar sus datos** (RN-PU-04) o lo crea;
+es seguro ante pedidos concurrentes y se suma a la transacción de quien lo llama. Nunca se loguean DNI, email ni
+teléfono.
 
 ## Frontend empaquetado
 
