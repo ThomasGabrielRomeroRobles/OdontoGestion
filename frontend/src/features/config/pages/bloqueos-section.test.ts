@@ -36,6 +36,34 @@ describe('sección Bloqueos (9.3)', () => {
     expect(filas()[0]?.textContent).toContain('Fiestas');
   });
 
+  it('con motivo muestra el separador " · " antes del motivo', () => {
+    expect(filas()[0]?.textContent).toContain('26/12/2026 00:00 · Fiestas');
+  });
+
+  it.each([
+    ['""', ''],
+    ['null', null],
+  ])('motivo %s se trata como "sin motivo": no muestra el separador', async (_caso, motivo) => {
+    const otro = document.createElement('div');
+    deps.listarBloqueos.mockResolvedValue([{ ...bloqueosFicticios[0]!, motivo }]);
+    createBloqueosSection(deps)(otro);
+    await vi.waitFor(() => expect(otro.querySelectorAll('li[data-id]')).toHaveLength(1));
+
+    const texto = otro.querySelector('li[data-id] span')?.textContent;
+    expect(texto).toBe('24/12/2026 00:00 → 26/12/2026 00:00');
+    expect(otro.querySelector('li[data-id]')?.textContent).not.toContain('·');
+  });
+
+  it('editar un bloqueo sin motivo ("") deja el campo motivo vacío', async () => {
+    const otro = document.createElement('div');
+    deps.listarBloqueos.mockResolvedValue([{ ...bloqueosFicticios[0]!, motivo: '' }]);
+    createBloqueosSection(deps)(otro);
+    await vi.waitFor(() => expect(otro.querySelectorAll('li[data-id]')).toHaveLength(1));
+
+    boton(otro.querySelector<HTMLElement>('li[data-id]')!, 'Editar').click();
+    expect(input(otro, 'motivo').value).toBe('');
+  });
+
   it('alta: convierte la hora local a instantes UTC', async () => {
     deps.crearBloqueo.mockResolvedValue({ id: 21, desde: '2027-01-10T12:00:00Z', hasta: '2027-01-10T15:00:00Z', motivo: null });
     cargar('2027-01-10T09:00', '2027-01-10T12:00');

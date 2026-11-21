@@ -87,7 +87,9 @@ export function createBloqueosSection(deps: BloqueosSectionDeps): SectionRendere
       const li = document.createElement('li');
       li.dataset['id'] = String(bloqueo.id);
       const texto = document.createElement('span');
-      texto.textContent = bloqueo.motivo === null ? describir(bloqueo) : `${describir(bloqueo)} · ${bloqueo.motivo}`;
+      // Sin motivo puede llegar como "" (el backend nunca devuelve null, D12) o null: ambos son "sin motivo".
+      const motivoTexto = bloqueo.motivo ?? '';
+      texto.textContent = motivoTexto === '' ? describir(bloqueo) : `${describir(bloqueo)} · ${motivoTexto}`;
       const editar = crearBoton('Editar');
       editar.addEventListener('click', () => modoEdicion(bloqueo));
       const borrar = crearBoton('Eliminar');
