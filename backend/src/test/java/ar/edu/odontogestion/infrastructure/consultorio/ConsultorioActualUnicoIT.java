@@ -29,6 +29,10 @@ class ConsultorioActualUnicoIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void vaciarConsultorios() {
+        // Desde V4 (C-06) la agenda referencia al consultorio con ON DELETE RESTRICT; se revierte igual que el resto.
+        em.createNativeQuery("DELETE FROM bloqueo_agenda").executeUpdate();
+        em.createNativeQuery("DELETE FROM horario_trabajo").executeUpdate();
+        em.createNativeQuery("DELETE FROM prestacion").executeUpdate();
         usuarios.deleteAll();
         consultorios.deleteAll();
         consultorios.flush();

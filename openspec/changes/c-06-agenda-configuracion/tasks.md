@@ -2,64 +2,78 @@
 
 > TDD estricto: en cada tarea "RED → GREEN", primero se escribe el test, se ejecuta y se confirma que falla por la razón esperada. Recién después se implementa lo mínimo para que pase, y se triangula.
 >
-> Reparto: grupos 1–4 backend (P1: grupos 1 y 2; P2: grupos 3 y 4), grupos 5–10 frontend (P5).
+> Reparto original: grupos 1–4 backend (P1: grupos 1 y 2; P2: grupos 3 y 4), grupos 5–10 frontend (P5). Implementación de los grupos 1–4: Juan Ignacio (P5) junto con Thomas (P1) y Martina (P2).
 >
 > **Precondición del backend**: `C-02` mergeado en `main`.
 >
 > **El frontend (5–9) puede avanzar contra dobles y `fetch` mockeado antes de eso**. El grupo 10 requiere backend real.
 >
 > Comandos:
-> - Backend: `./gradlew test` en `backend/`.
+> - Backend: `./gradlew test` en `backend/` (requiere Docker para Testcontainers).
 > - Frontend: `npm test` y `npm run typecheck` en `frontend/`.
 
-## 1. Backend: esquema V4 y seed (P1, con P2 para horarios y bloqueos)
+## 1. Backend: esquema V4, seed y mapeo JPA (P1 + P2)
 
-- [ ] 1.1 Confirmar en `origin/main` el próximo número Flyway libre (esperado `V4`, después de los `V2`/`V3` de `C-02`), y anotarlo en `design.md` D2 si difiere
-- [ ] 1.2 RED: `FlywayV4MigrationIT` con los siguientes casos; confirmar que fallan:
-  - Las tablas `prestacion`, `horario_trabajo` y `bloqueo_agenda` existen con `consultorio_id` NOT NULL.
-  - `UNIQUE (consultorio_id, nombre)` rechaza "Consulta" y "consulta".
-  - `CHECK duracion_min > 0`.
-  - `CHECK hora_desde < hora_hasta`.
-  - `EXCLUDE` rechaza lunes 09-13 contra lunes 12-15 y acepta 13-14 contiguo y martes 09-13.
-  - `CHECK desde < hasta` en bloqueos.
-- [ ] 1.3 GREEN: crear `V4__agenda_configuracion.sql` según D2 (con un comentario que explique el `tsrange` con fecha ancla y el rollback); verificar que `FlywayV4MigrationIT` pasa
-- [ ] 1.4 RED → GREEN: entidades JPA `Prestacion`, `HorarioTrabajo` y `BloqueoAgenda` (con `consultorio_id`, sobre la base de entidad de `C-02`) y sus repositorios; verificar que el contexto arranca con `ddl-auto=validate` y que un test de repositorio guarda y lee cada entidad
-- [ ] 1.5 RED → GREEN: `AgendaConfigSeeder`, que corre después del seed de `C-02`; verificar con IT los escenarios "Seed aplicado" (6 prestaciones, 10 horarios) y "Segundo arranque" (no duplica ni reactiva "Control")
+- [x] 1.1 Confirmar en `origin/main` el próximo número Flyway libre (`V4`, después de los `V2`/`V3` de `C-02`); verificar con `ls backend/src/main/resources/db/migration`
+- [x] 1.2 RED: `FlywayV4MigrationIT`, con datos de prueba en transacciones revertidas. Casos:
+  - Las tablas `prestacion`, `horario_trabajo` y `bloqueo_agenda` existen con `consultorio_id`, `creado_en` y `actualizado_en` NOT NULL.
+  - `dia_semana` es `int2`, `nombre` es `citext` y `desde`/`hasta` son `timestamptz`.
+  - Cada restricción con nombre rechaza su caso: `uq_prestacion_consultorio_nombre` ("Consulta" vs "consulta"), `ck_prestacion_duracion_positiva`, `ck_horario_dia_semana`, `ck_horario_rango`, `ex_horario_trabajo_sin_solapamiento` (lunes 09-13 vs 12-15) y `ck_bloqueo_rango`.
+  - Se aceptan la franja contigua (13-14) y el mismo rango en otro día.
+  - `motivo` toma `''` por defecto.
+  - Seed: 6 prestaciones activas con sus duraciones y 10 horarios L-V.
+  - Ampliar `FlywayV1MigrationIT` para que las versiones aplicadas sean `1, 2, 3, 4`.
+  - Confirmar que fallan.
+- [x] 1.3 GREEN: crear `V4__agenda_configuracion.sql` según D2 y D4: restricciones con nombre, comentario del `tsrange` con fecha ancla, rollback comentado y seed con `INSERT … SELECT` desde `consultorio` al final. Verificar que `FlywayV4MigrationIT` y `FlywayV1MigrationIT` pasan
+- [x] 1.4 RED → GREEN: entidades `Prestacion`, `HorarioTrabajo` y `BloqueoAgenda` (extienden `AuditableEntity`, `@ManyToOne` LAZY a `Consultorio`, `citext`, `short` para `dia_semana`) y sus repositorios. Verificar con `AgendaConfigRepositoriesIT`:
+  - El contexto arranca con `ddl-auto=validate`.
+  - Cada entidad se guarda y se relee con `creadoEn`/`actualizadoEn` completos.
+  - Las consultas derivadas filtran por consultorio y ordenan (prestaciones por nombre, horarios por día y hora, bloqueos por intersección de rango).
 
 ## 2. Backend: prestaciones (P1)
 
-- [ ] 2.1 RED: unit tests de `PrestacionService` con estos casos; confirmar que fallan:
-  - Duración múltiplo de la granularidad vigente: 40 con 15 → error, y 45 con 30 → error.
-  - Duración ≤ 0 → error.
-  - Nombre vacío → error.
-  - Desactivar y activar son idempotentes.
-- [ ] 2.2 GREEN: implementar `PrestacionService` (`@Transactional`, granularidad leída del consultorio, `23505` traducido a error de campo `nombre`); verificar que 2.1 pasa
-- [ ] 2.3 RED → GREEN: `PrestacionController` con DTOs/records (sin exponer entidades) para `GET`, `POST` (con `201` + `Location`), `PUT`, `POST /{id}/desactivar` y `POST /{id}/activar`. Verificar con IT (MockMvc + sesión + CSRF) los escenarios de `agenda-configuration`:
+- [x] 2.1 RED: unit tests de `PrestacionService` (Mockito, sin Spring), con la granularidad leída de `ConsultorioService.parametrosVigentes()`. Casos:
+  - 40 con 15 → `422` en `duracionMin`; 45 con 30 → `422`; 0 o negativa → `422`.
+  - Nombre vacío o en blanco → `422` en `nombre`; más de 80 caracteres → `422`.
+  - Nombre repetido (chequeo previo) → `422` en `nombre`.
+  - `DataIntegrityViolationException` de `uq_prestacion_consultorio_nombre` en `saveAndFlush` → `422` en `nombre`; otra restricción → se relanza.
+  - Desactivar y activar son idempotentes y **no** validan la duración aunque ya no sea múltiplo.
+  - Id inexistente → `RecursoNoEncontradoException`.
+  - Confirmar que fallan.
+- [x] 2.2 GREEN: implementar `PrestacionService` (`@Transactional`, todos los errores juntos en una `ValidacionDominioException`, `saveAndFlush` en `try`) y el traductor de restricciones por nombre (D3); verificar que 2.1 pasa
+- [x] 2.3 RED → GREEN: `PrestacionController` con records de request (solo `@NotNull`) y response (sin entidades), para `GET`, `POST` (`201` + `Location`), `PUT`, `POST /{id}/desactivar` y `POST /{id}/activar`. Verificar con `PrestacionApiIT` (MockMvc, sesión y CSRF reales, cada test limpia lo que crea):
   - Alta válida.
   - Duración no múltiplo, cero y con granularidad distinta.
-  - Nombre duplicado y vacío.
-  - Listado con inactivas.
+  - Nombre duplicado (`422` real desde la restricción, incluido "consulta") y vacío.
+  - Campo ausente → `400`.
+  - Listado con inactivas ordenado por nombre.
   - Edición.
   - `404`.
-  - Desactivar y reactivar.
+  - Desactivar y reactivar, también con duración "no múltiplo" tras subir la granularidad.
   - `DELETE` → `405`.
   - Cambio de granularidad no retroactivo.
-- [ ] 2.4 RED → GREEN: IT de acceso: sin sesión → `401`, y escritura sin CSRF → `403`, para `/prestaciones`
+  - Seed visible por API.
+- [x] 2.4 RED → GREEN: IT de acceso: sin sesión → `401`, y escritura sin CSRF → `403`, para `/prestaciones`
 
 ## 3. Backend: horarios (P2)
 
-- [ ] 3.1 RED: unit tests de `HorarioService` con estos casos; confirmar que fallan:
-  - `horaDesde < horaHasta`.
-  - `diaSemana` entre 1 y 7.
-  - Horas alineadas a la granularidad ("09:10" con 15 → error).
-- [ ] 3.2 GREEN: implementar `HorarioService` (`@Transactional`, `23P01` → `422` con campo `horaDesde`); verificar que 3.1 pasa
-- [ ] 3.3 RED → GREEN: `HorarioController` (`GET` ordenado, `POST`, `PUT`, `DELETE` → `204`). Verificar con IT:
-  - Alta válida.
+- [x] 3.1 RED: unit tests de `HorarioService`. Casos:
+  - `horaDesde`/`horaHasta` mal formadas ("9", "25:00", "ab") → `422` en su campo.
+  - `horaDesde >= horaHasta` → `422` en `horaHasta`.
+  - `diaSemana` fuera de 1–7 → `422` en `diaSemana`.
+  - Hora no alineada a la granularidad ("09:10" con 15) → `422`.
+  - Solapamiento previo en Java (sin contar la propia franja al editar) → `422` en `horaDesde`.
+  - `DataIntegrityViolationException` de `ex_horario_trabajo_sin_solapamiento` → `422` en `horaDesde`.
+  - Confirmar que fallan.
+- [x] 3.2 GREEN: implementar `HorarioService` (`@Transactional`, `String` → `LocalTime`, `saveAndFlush` en `try`); verificar que 3.1 pasa
+- [x] 3.3 RED → GREEN: `HorarioController` (`GET` ordenado, `POST`, `PUT`, `DELETE` → `204`), con requests de solo `@NotNull` y horas como `String`. Verificar con `HorarioApiIT`:
+  - Alta válida (sábado 09-12).
   - Rango invertido.
   - Día fuera de rango.
   - Hora no alineada.
-  - Solapamiento rechazado.
-  - Contiguos permitidos.
+  - Hora mal formada → `422` (no `400`).
+  - Solapamiento rechazado contra el seed.
+  - Contigua permitida.
   - Otro día permitido.
   - Edición que solapa no modifica.
   - Listado ordenado.
@@ -69,18 +83,25 @@
 
 ## 4. Backend: bloqueos (P2)
 
-- [ ] 4.1 RED: unit tests de `BloqueoService` con estos casos; confirmar que fallan:
-  - `desde < hasta`.
-  - Motivo de hasta 200 caracteres.
-  - Instante sin zona rechazado (por deserialización a `Instant` → `422` con campo).
-- [ ] 4.2 GREEN: implementar `BloqueoService` y la consulta por intersección de rango (`desde < :hasta AND hasta > :desde`; sin rango, `hasta > now` usando `Clock`); verificar que 4.1 pasa
-- [ ] 4.3 RED → GREEN: `BloqueoController` (`GET ?desde&hasta`, `POST`, `PUT`, `DELETE`). Verificar con IT:
-  - Alta válida en UTC.
+- [x] 4.1 RED: unit tests de `BloqueoService` con `Clock` fijo. Casos:
+  - `desde`/`hasta` sin zona o mal formados → `422` en su campo.
+  - `desde >= hasta` → `422` en `hasta`.
+  - Motivo de más de 200 caracteres → `422`.
+  - Motivo `null`, ausente o en blanco → se guarda `""`; con texto → recortado.
+  - Filtros de listado según la tabla de D12: ninguno, solo `desde`, solo `hasta`, ambos; filtro mal formado → `422`; `hasta <= desde` → `422` en `hasta`.
+  - Confirmar que fallan.
+- [x] 4.2 GREEN: implementar `BloqueoService` (parseo con `OffsetDateTime`, consulta por intersección `hasta > :inicio [AND desde < :fin]` usando `Clock`); verificar que 4.1 pasa
+- [x] 4.3 RED → GREEN: `BloqueoController` (`GET ?desde&hasta` como `String` opcionales, `POST`, `PUT`, `DELETE`). Verificar con `BloqueoApiIT`:
+  - Alta válida en UTC, con `motivo` y sin él (`""`).
   - Rango invertido.
   - Sin zona.
-  - Filtro por rango.
-  - Sin rango excluye pasados (con `Clock` fijo).
+  - Fecha mal formada → `422` en `desde` (no `400`).
+  - Campo ausente → `400`.
+  - Filtro por rango, solo `desde`, solo `hasta` y sin rango (con el `Clock` fijo de los ITs).
+  - Filtro mal formado → `422`.
+  - Edición.
   - Baja.
+  - `404`.
   - `401` sin sesión.
 
 ## 5. Frontend: APIs tipadas de configuración (P5, contra `fetch` mockeado)

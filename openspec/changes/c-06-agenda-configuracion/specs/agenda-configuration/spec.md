@@ -156,7 +156,7 @@ Dos horarios de trabajo del mismo consultorio y el mismo día MUST NOT solaparse
 - **THEN** la API responde `404`
 
 ### Requirement: Bloqueo de agenda válido
-Un bloqueo SHALL tener instantes `desde` y `hasta` con zona horaria explícita (se almacenan en UTC), `desde` menor que `hasta`, y un `motivo` opcional de hasta 200 caracteres; si no, la API MUST responder `422` con error de campo.
+Un bloqueo SHALL tener instantes `desde` y `hasta` con zona horaria explícita (se almacenan en UTC), `desde` menor que `hasta`, y un `motivo` opcional de hasta 200 caracteres que sin valor se guarda y devuelve como `""`; si no, la API MUST responder `422` con error de campo, incluso ante fechas mal formadas.
 
 #### Scenario: Alta válida
 - **WHEN** se envía `POST /api/v1/bloqueos` con `{"desde":"2026-12-24T03:00:00Z","hasta":"2026-12-26T03:00:00Z","motivo":"Fiestas"}`
@@ -170,8 +170,20 @@ Un bloqueo SHALL tener instantes `desde` y `hasta` con zona horaria explícita (
 - **WHEN** se crea un bloqueo con `desde` "2026-12-24T00:00:00" (sin zona)
 - **THEN** la API responde `422` con un error de campo `desde`
 
+#### Scenario: Fecha mal formada
+- **WHEN** se crea un bloqueo con `desde` "no-es-fecha"
+- **THEN** la API responde `422` (no `400`) con un error de campo `desde`
+
+#### Scenario: Sin motivo
+- **WHEN** se crea un bloqueo sin `motivo` o con `motivo` `null`
+- **THEN** la API responde `201` con `motivo` `""`
+
+#### Scenario: Campo obligatorio ausente
+- **WHEN** se crea un bloqueo sin `hasta`
+- **THEN** la API responde `400` con un error de campo `hasta`
+
 ### Requirement: Listado, edición y baja de bloqueos
-`GET /api/v1/bloqueos?desde=&hasta=` SHALL devolver los bloqueos que se intersecan con el rango, ordenados por `desde`; sin rango devuelve los que terminan desde ahora. `PUT /api/v1/bloqueos/{id}` SHALL editarlos y `DELETE /api/v1/bloqueos/{id}` SHALL eliminarlos con `204`.
+`GET /api/v1/bloqueos` SHALL devolver, ordenados por `desde`, los bloqueos que se intersecan con `[desde, hasta)`; ambos filtros son opcionales e independientes: sin `desde` el inicio es ahora y sin `hasta` no hay límite superior. `PUT /api/v1/bloqueos/{id}` SHALL editarlos y `DELETE /api/v1/bloqueos/{id}` SHALL eliminarlos con `204`.
 
 #### Scenario: Filtro por rango
 - **GIVEN** existen bloqueos en diciembre y en enero
@@ -183,16 +195,30 @@ Un bloqueo SHALL tener instantes `desde` y `hasta` con zona horaria explícita (
 - **WHEN** se envía `GET /api/v1/bloqueos`
 - **THEN** la respuesta incluye solo el que termina mañana
 
+#### Scenario: Solo desde
+- **GIVEN** existe un bloqueo que terminó ayer y otro que termina mañana
+- **WHEN** se envía `GET /api/v1/bloqueos` solo con `desde` igual a hace una semana
+- **THEN** la respuesta incluye ambos
+
+#### Scenario: Solo hasta
+- **GIVEN** existe un bloqueo que terminó ayer, otro de la semana próxima y otro del año próximo
+- **WHEN** se envía `GET /api/v1/bloqueos` solo con `hasta` igual a dentro de un mes
+- **THEN** la respuesta incluye solo el de la semana próxima
+
+#### Scenario: Filtro mal formado
+- **WHEN** se envía `GET /api/v1/bloqueos?desde=ayer`
+- **THEN** la API responde `422` con un error de campo `desde`
+
 #### Scenario: Baja
 - **GIVEN** existe un bloqueo
 - **WHEN** se envía `DELETE /api/v1/bloqueos/{id}`
 - **THEN** la API responde `204`
 
 ### Requirement: Datos iniciales de configuración de agenda
-Al arrancar con un consultorio sin prestaciones ni horarios, el sistema SHALL crear las prestaciones ficticias Consulta (30), Limpieza (45), Obturación (60), Endodoncia (90), Extracción (45) y Control (15), activas, y horarios L-V 09:00-13:00 y 14:00-18:00. El seed MUST ser idempotente.
+Al aplicar las migraciones sobre una base vacía, el consultorio SHALL quedar con las prestaciones ficticias Consulta (30), Limpieza (45), Obturación (60), Endodoncia (90), Extracción (45) y Control (15), activas, y horarios L-V 09:00-13:00 y 14:00-18:00. Los arranques posteriores MUST NOT volver a sembrar.
 
 #### Scenario: Seed aplicado
-- **GIVEN** una base recién migrada y el consultorio creado por el seed de arranque
+- **GIVEN** una base recién migrada (el consultorio lo crea la migración `V2`)
 - **WHEN** se lista `GET /api/v1/prestaciones` y `GET /api/v1/horarios`
 - **THEN** hay 6 prestaciones activas con esas duraciones y 10 horarios (2 por día de lunes a viernes)
 

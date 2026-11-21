@@ -93,6 +93,6 @@ class FlywayV1MigrationIT extends AbstractIntegrationTest {
         List<String> versiones = jdbc.queryForList(
                 "SELECT version FROM flyway_schema_history WHERE version IS NOT NULL "
                         + "ORDER BY installed_rank", String.class);
-        assertThat(versiones).containsExactly("1", "2", "3");
+        assertThat(versiones).containsExactly("1", "2", "3", "4");
     }
 }
