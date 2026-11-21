@@ -197,9 +197,9 @@
 
 ## 10. Verificación integral (requiere C-02 y grupos 1–4 en la rama)
 
-- [ ] 10.1 Contrastar los DTOs reales del backend con los tipos del frontend (`agenda-config-api.ts`, `config-api.ts`) y corregir diferencias; verificar con `npm run typecheck` y los tests de API
-- [ ] 10.2 Correr todos los tests del repo: `./gradlew test` en `backend/`, y `npm test` y `npm run typecheck` en `frontend/`, todo en verde
-- [ ] 10.3 Prueba manual del Flujo 8 contra el backend real (`bootRun` + Vite):
+- [x] 10.1 Contrastar los DTOs reales del backend con los tipos del frontend (`agenda-config-api.ts`, `config-api.ts`) y corregir diferencias; verificar con `npm run typecheck` y los tests de API
+- [x] 10.2 Correr todos los tests del repo: `./gradlew test` en `backend/`, y `npm test` y `npm run typecheck` en `frontend/`, todo en verde
+- [x] 10.3 Prueba manual del Flujo 8 contra el backend real (`bootRun` + Vite):
   - Login.
   - Crear una prestación de 40 min (rechazada), crear una de 60 min.
   - Desactivar una prestación.
@@ -207,6 +207,7 @@
   - Crear un bloqueo y verlo en hora local.
   - Cambiar la granularidad.
   - Anotar el resultado en el PR.
+  - Resultado 2026-11-21 (P1, commit `255dd65`, PostgreSQL 16 descartable): `gradlew clean test` 369/369, `npm test` 206/206, `typecheck` limpio. En vivo: `/configuracion` carga los 7 parámetros y guardar da 200 "Cambios guardados."; prestación de 40 min → 422 (múltiplo de 15), de 60 min → 201; desactivar y reactivar "Control" → 200; horario solapado → 422, sábado 09-12 → 201; bloqueo 12:00Z se muestra 09:00 (Buenos Aires), fechas invertidas o sin zona → 422; granularidad 15 → 10 aceptada y luego 40 min → 201. No se probó editar/eliminar desde la UI ni la sección Perfil.
 
 ## Workflow follow-up
 
