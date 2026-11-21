@@ -1,13 +1,14 @@
 package ar.edu.odontogestion.support;
 
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 
-/** Reloj fijo compartido (única variante, para no multiplicar contextos de Spring). */
+/**
+ * Reloj compartido (única variante, para no multiplicar contextos de Spring). Arranca fijo en
+ * {@link #AHORA}; los tests que lo avanzan deben restaurarlo con {@link MutableClock#set(Instant)}.
+ */
 @TestConfiguration(proxyBeanMethods = false)
 public class FixedClockTestConfig {
 
@@ -15,7 +16,7 @@ public class FixedClockTestConfig {
 
     @Bean
     @Primary
-    public Clock relojFijo() {
-        return Clock.fixed(AHORA, ZoneOffset.UTC);
+    public MutableClock relojFijo() {
+        return new MutableClock(AHORA);
     }
 }

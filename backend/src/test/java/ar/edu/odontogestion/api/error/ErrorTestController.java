@@ -1,8 +1,12 @@
 package ar.edu.odontogestion.api.error;
 
 import ar.edu.odontogestion.domain.error.ConflictoException;
+import ar.edu.odontogestion.domain.error.DemasiadosIntentosException;
+import ar.edu.odontogestion.domain.error.ErrorCampo;
 import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
 import ar.edu.odontogestion.domain.error.ReglaNegocioException;
+import ar.edu.odontogestion.domain.error.ValidacionDominioException;
+import java.util.List;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -49,5 +53,17 @@ class ErrorTestController {
     @GetMapping("/{id}/regla")
     String regla(@PathVariable long id) {
         throw new ReglaNegocioException("La duración debe ser múltiplo de 15 minutos");
+    }
+
+    @GetMapping("/{id}/validacion-dominio")
+    String validacionDominio(@PathVariable long id) {
+        throw new ValidacionDominioException(List.of(
+                new ErrorCampo("granularidadMin", "Debe ser mayor que cero"),
+                new ErrorCampo("recordatorioHorasAntes", "Debe ser mayor que cero")));
+    }
+
+    @GetMapping("/{id}/demasiados-intentos")
+    String demasiadosIntentos(@PathVariable long id) {
+        throw new DemasiadosIntentosException(59.2);
     }
 }

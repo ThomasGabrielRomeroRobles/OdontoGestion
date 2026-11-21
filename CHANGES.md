@@ -139,7 +139,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
   - `knowledge-base/01_vision_y_objetivos.md`
 
 ### [C-02] `core-auth-config`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado 2026-11-20 en `openspec/changes/archive/2026-11-20-c-02-core-auth-config/`)
 - **Scope**:
   - Migración V2: tablas `consultorio` y `usuario` (email `citext` único, `password_hash`, `consultorio_id`, timestamps); modelos `Consultorio`, `Usuario`, base `AuditableEntity` (id BIGINT), repositorios; provider de `consultorio_id` único (sin multi-tenant)
   - Seed de arranque (US-003): "Consultorio Demo" y odontólogo ficticio con contraseña desde `BOOTSTRAP_ODONTOLOGO_PASSWORD` (BCrypt); sin endpoint de registro

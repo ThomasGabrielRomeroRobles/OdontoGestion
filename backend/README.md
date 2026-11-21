@@ -24,6 +24,18 @@ Para reutilizar el contenedor entre ejecuciones, agregar `testcontainers.reuse.e
 Spring no lee `.env`: exportar las variables de `.env.example` en la shell (o en la run configuration del IDE).
 `DB_PASSWORD` es obligatoria (no tiene valor por defecto). Las máquinas de demo necesitan PostgreSQL 15 o superior.
 
+
+## Contraseña de bootstrap (C-02)
+
+El consultorio demo lo inserta la migración Flyway V2. Si **no existe ningún usuario**, el arranque crea al
+odontólogo inicial. La contraseña de ese usuario sale de `BOOTSTRAP_ODONTOLOGO_PASSWORD` y es **obligatoria** (entre 8 caracteres y 72 bytes): si falta,
+el arranque falla con un mensaje que nombra la variable. Si ya existe algún usuario, la variable (y el email) se
+ignoran: el seed no crea otro usuario ni cambia contraseñas ni parámetros editados. La próxima migración libre es V4. El email sale de `BOOTSTRAP_ODONTOLOGO_EMAIL`
+(por defecto `odontologo@consultorio.example`). Usar solo datos y contraseñas ficticias.
+
+Variables de sesión: `SESSION_TIMEOUT_MIN` (por defecto 30) y `SESSION_COOKIE_SECURE` (por defecto `false`;
+poner `true` solo si se sirve por HTTPS).
+
 ## Frontend empaquetado
 
 `-PwithFrontend` ejecuta `npm ci` y `npm run build` en `../frontend` y copia `dist/` a `static/` dentro del jar

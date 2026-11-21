@@ -9,7 +9,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * compartido por todo el JVM de tests para maximizar el cache de contextos de Spring.
  * Prohibido @DirtiesContext y variantes de @MockBean aquí.
  */
-@SpringBootTest
+@SpringBootTest(properties = "app.bootstrap.odontologo-password=Ficticia-Test-123")
 public abstract class AbstractIntegrationTest {
 
     @ServiceConnection

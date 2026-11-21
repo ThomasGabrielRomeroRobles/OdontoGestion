@@ -1,9 +1,11 @@
 package ar.edu.odontogestion.api.error;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -12,14 +14,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import ar.edu.odontogestion.infrastructure.security.ProblemDetailAccessDeniedHandler;
+import ar.edu.odontogestion.infrastructure.security.ProblemDetailAuthenticationEntryPoint;
+import ar.edu.odontogestion.infrastructure.security.SecurityConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ExtendWith(OutputCaptureExtension.class)
 @WebMvcTest(ErrorTestController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@Import({SecurityConfig.class, ProblemDetailAuthenticationEntryPoint.class, ProblemDetailAccessDeniedHandler.class})
+@WithMockUser
 class GlobalExceptionHandlerWebMvcTest {
 
     @Autowired
@@ -53,7 +60,7 @@ class GlobalExceptionHandlerWebMvcTest {
 
     @Test
     void errorDeRutaInexistenteTambienEsProblemDetail() throws Exception {
-        mockMvc.perform(post("/api/v1/recurso-de-prueba/99/explota"))
+        mockMvc.perform(post("/api/v1/recurso-de-prueba/99/explota").with(csrf()))
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(405))
@@ -62,7 +69,7 @@ class GlobalExceptionHandlerWebMvcTest {
 
     @Test
     void campoObligatorioAusenteDevuelve400ConErrorDelCampo() throws Exception {
-        mockMvc.perform(post("/api/v1/recurso-de-prueba").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/v1/recurso-de-prueba").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"a@b.com\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
@@ -73,7 +80,7 @@ class GlobalExceptionHandlerWebMvcTest {
 
     @Test
     void variosCamposInvalidosGeneranUnaEntradaCadaUno() throws Exception {
-        mockMvc.perform(post("/api/v1/recurso-de-prueba").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/v1/recurso-de-prueba").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nombre\":\"\",\"email\":\"no-es-email\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.length()").value(2))
@@ -83,7 +90,7 @@ class GlobalExceptionHandlerWebMvcTest {
 
     @Test
     void jsonMalFormadoDevuelve400SinTextoDelParser() throws Exception {
-        var respuesta = mockMvc.perform(post("/api/v1/recurso-de-prueba").contentType(MediaType.APPLICATION_JSON)
+        var respuesta = mockMvc.perform(post("/api/v1/recurso-de-prueba").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{nombre: sin-comillas"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
@@ -95,7 +102,7 @@ class GlobalExceptionHandlerWebMvcTest {
 
     @Test
     void cuerpoAusenteDevuelve400() throws Exception {
-        mockMvc.perform(post("/api/v1/recurso-de-prueba").contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(post("/api/v1/recurso-de-prueba").with(csrf()).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -144,16 +151,46 @@ class GlobalExceptionHandlerWebMvcTest {
     void errorInesperadoUsaDetalleGenericoFijo() throws Exception {
         mockMvc.perform(get("/api/v1/recurso-de-prueba/1/explota"))
                 .andExpect(jsonPath("$.detail").value("Ocurrió un error inesperado. Intente nuevamente más tarde."));
-        mockMvc.perform(post("/api/v1/recurso-de-prueba/explota-con-cuerpo").content("x"))
+        mockMvc.perform(post("/api/v1/recurso-de-prueba/explota-con-cuerpo").with(csrf()).content("x"))
                 .andExpect(jsonPath("$.detail").value("Ocurrió un error inesperado. Intente nuevamente más tarde."));
     }
 
     @Test
     void errorInesperadoSeRegistraSinElCuerpoDeLaSolicitud(CapturedOutput output) throws Exception {
-        mockMvc.perform(post("/api/v1/recurso-de-prueba/explota-con-cuerpo").content("cuerpo-sensible-123"))
+        mockMvc.perform(post("/api/v1/recurso-de-prueba/explota-con-cuerpo").with(csrf()).content("cuerpo-sensible-123"))
                 .andExpect(status().isInternalServerError());
 
         assertThat(output.getAll()).contains("Error no controlado").contains("fallo-interno")
                 .doesNotContain("cuerpo-sensible-123");
+    }
+
+    @Test
+    void validacionDeDominioDevuelve422ConUnaEntradaPorCampo() throws Exception {
+        mockMvc.perform(get("/api/v1/recurso-de-prueba/1/validacion-dominio"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.errors.length()").value(2))
+                .andExpect(jsonPath("$.errors[0].field").value("granularidadMin"))
+                .andExpect(jsonPath("$.errors[0].message").value("Debe ser mayor que cero"))
+                .andExpect(jsonPath("$.errors[1].field").value("recordatorioHorasAntes"));
+    }
+
+    @Test
+    void reglaDeNegocioSinCamposNoIncluyeErrors() throws Exception {
+        mockMvc.perform(get("/api/v1/recurso-de-prueba/5/regla"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.errors").doesNotExist());
+    }
+
+    @Test
+    void demasiadosIntentosDevuelve429ConRetryAfterRedondeadoHaciaArriba() throws Exception {
+        mockMvc.perform(get("/api/v1/recurso-de-prueba/1/demasiados-intentos"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "60"))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(429))
+                .andExpect(jsonPath("$.type").value("https://odontogestion.example/problemas/demasiados-intentos"))
+                .andExpect(jsonPath("$.instance").value("/api/v1/recurso-de-prueba/1/demasiados-intentos"));
     }
 }
