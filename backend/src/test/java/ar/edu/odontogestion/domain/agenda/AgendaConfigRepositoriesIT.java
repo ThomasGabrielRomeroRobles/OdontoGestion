@@ -8,9 +8,12 @@ import ar.edu.odontogestion.support.AbstractIntegrationTest;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
+import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -21,6 +24,12 @@ class AgendaConfigRepositoriesIT extends AbstractIntegrationTest {
 
     @Autowired
     private TransactionTemplate tx;
+
+    @Autowired
+    private JdbcTemplate jdbc;
+
+    @Autowired
+    private EntityManager em;
 
     @Autowired
     private ConsultorioRepository consultorios;
@@ -91,6 +100,34 @@ class AgendaConfigRepositoriesIT extends AbstractIntegrationTest {
 
             assertThat(horarios.findByConsultorio_IdAndDiaSemana(consultorio.getId(), (short) 1)).hasSize(2);
         });
+    }
+
+    /**
+     * Las horas de un horario son hora local del consultorio sin zona: deben guardarse y leerse tal cual, sin
+     * importar la zona de la JVM (en Windows suele ser America/Argentina/Buenos_Aires y no UTC).
+     */
+    @Test
+    void lasHorasNoSeCorrenConLaZonaHorariaDeLaJvm() {
+        TimeZone original = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone("America/Argentina/Buenos_Aires"));
+        try {
+            revertida(consultorio -> {
+                HorarioTrabajo sabado = horarios.saveAndFlush(
+                        HorarioTrabajo.nuevo(consultorio, 6, LocalTime.of(9, 0), LocalTime.of(12, 0)));
+
+                String enLaBase = jdbc.queryForObject("SELECT to_char(hora_desde, 'HH24:MI') || '-' || "
+                        + "to_char(hora_hasta, 'HH24:MI') FROM horario_trabajo WHERE id = ?", String.class,
+                        sabado.getId());
+                assertThat(enLaBase).isEqualTo("09:00-12:00");
+
+                em.clear();
+                List<String> lunes = horarios.findByConsultorio_IdAndDiaSemana(consultorio.getId(), (short) 1)
+                        .stream().map(h -> h.getHoraDesde() + "-" + h.getHoraHasta()).sorted().toList();
+                assertThat(lunes).containsExactly("09:00-13:00", "14:00-18:00");
+            });
+        } finally {
+            TimeZone.setDefault(original);
+        }
     }
 
     @Test

@@ -9,6 +9,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalTime;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.type.descriptor.jdbc.LocalTimeJdbcType;
 
 /**
  * Franja semanal de atención, en hora local del consultorio. Que no se solape con otra del mismo día lo garantiza
@@ -26,9 +28,16 @@ public class HorarioTrabajo extends AuditableEntity {
     @Column(name = "dia_semana", nullable = false)
     private short diaSemana;
 
+    /*
+     * Hora local del consultorio, sin zona. LocalTimeJdbcType la envía tal cual al driver (setObject): el mapeo por
+     * defecto pasa por java.sql.Time con la zona de la JVM y, con hibernate.jdbc.time_zone=UTC, corría las horas
+     * (09:00 se guardaba como 12:00 en una JVM en UTC-3, p. ej. Windows en Argentina).
+     */
+    @JdbcType(LocalTimeJdbcType.class)
     @Column(name = "hora_desde", nullable = false)
     private LocalTime horaDesde;
 
+    @JdbcType(LocalTimeJdbcType.class)
     @Column(name = "hora_hasta", nullable = false)
     private LocalTime horaHasta;
 

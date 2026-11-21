@@ -97,7 +97,7 @@ Mismas convenciones que `V2`: `bigint GENERATED ALWAYS AS IDENTITY`, `creado_en`
 - La relación con el consultorio es `@ManyToOne(fetch = LAZY, optional = false) @JoinColumn(name = "consultorio_id", nullable = false, updatable = false) Consultorio consultorio`, igual que `Usuario`.
 - `nombre`: `@Column(nullable = false, columnDefinition = "citext") String`, como `Usuario.email`.
 - `dia_semana`: `@Column(name = "dia_semana", nullable = false) short`. `short` mapea a `smallint`; un `int` o `Integer` haría fallar la validación (`int2` vs `int4`).
-- `hora_desde` / `hora_hasta`: `LocalTime` → `time`. `desde` / `hasta`: `Instant` → `timestamptz`, igual que las fechas de auditoría.
+- `hora_desde` / `hora_hasta`: `LocalTime` → `time`, con `@JdbcType(LocalTimeJdbcType.class)`. Así la hora local viaja tal cual al driver. El mapeo por defecto pasa por `java.sql.Time` con la zona de la JVM y, con `hibernate.jdbc.time_zone=UTC` (C-02), corría las horas en JVMs que no están en UTC: en Windows en Argentina, 09:00 se guardaba como 12:00. Un IT fija la zona de la JVM para cubrirlo. `desde` / `hasta`: `Instant` → `timestamptz`, igual que las fechas de auditoría.
 - `duracion_min`: `int` → `integer`. `activa`: `boolean`. `motivo`: `String` → `text`.
 
 ### D3. Reglas en el servicio, contra los parámetros vigentes, y traducción de restricciones
