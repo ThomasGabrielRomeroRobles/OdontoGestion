@@ -13,11 +13,11 @@ import type { ApiError } from '../shared/http/client';
 const PASSWORD_DEMO = 'demo';
 
 function error422(field: string, message: string): ApiError {
-  return { kind: 'http', status: 422, title: 'Datos inválidos', fieldErrors: [{ field, message }] };
+  return { kind: 'http', status: 422, title: 'Datos inválidos', fieldErrors: [{ field, message }], extensions: {} };
 }
 
 function error404(): ApiError {
-  return { kind: 'http', status: 404, title: 'Recurso inexistente', fieldErrors: [] };
+  return { kind: 'http', status: 404, title: 'Recurso inexistente', fieldErrors: [], extensions: {} };
 }
 
 export interface MocksDesarrollo {
@@ -122,7 +122,9 @@ export function crearMocksDesarrollo(): MocksDesarrollo {
     auth: {
       me: () => ok(sesion),
       login: (email, pass) => {
-        if (pass !== password) return falla({ kind: 'http', status: 401, title: 'No autenticado', fieldErrors: [] });
+        if (pass !== password) {
+          return falla({ kind: 'http', status: 401, title: 'No autenticado', fieldErrors: [], extensions: {} });
+        }
         sesion = { email };
         return ok(sesion);
       },
@@ -139,7 +141,13 @@ export function crearMocksDesarrollo(): MocksDesarrollo {
           .filter(([, valor]) => valor <= 0)
           .map(([campo]) => ({ field: `parametros.${campo}`, message: 'Debe ser mayor que cero.' }));
         if (errores.length > 0) {
-          return falla({ kind: 'http', status: 422, title: 'Regla de negocio incumplida', fieldErrors: errores });
+          return falla({
+            kind: 'http',
+            status: 422,
+            title: 'Regla de negocio incumplida',
+            fieldErrors: errores,
+            extensions: {},
+          });
         }
         consultorio = { ...input, zonaHoraria: consultorio.zonaHoraria };
         return ok(consultorio);

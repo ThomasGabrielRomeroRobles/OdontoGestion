@@ -1,3 +1,4 @@
+import { createAgendaRoutes, createDefaultAgendaDeps, type AgendaDeps } from './features/agenda';
 import { login, logout, me, type SessionUser } from './features/auth/auth-api';
 import { createConfigRoutes, createDefaultConfigSections, type ConfigSections } from './features/config';
 import { createLoginPage } from './pages/login-page';
@@ -15,6 +16,8 @@ export interface BootstrapDeps {
   readonly logout: () => Promise<void>;
   /** Secciones de `/configuracion`; los tests inyectan dobles. Por defecto, las conectadas a la API. */
   readonly configSections?: ConfigSections;
+  /** Dependencias de la agenda; por defecto, la API real (C-08, design D2). */
+  readonly agenda?: AgendaDeps;
 }
 
 export interface App {
@@ -46,7 +49,7 @@ export async function bootstrap(deps: BootstrapDeps): Promise<App> {
     },
     { path: '/login', access: 'public', render: createLoginPage({ session, login: deps.login }) },
     placeholderRoute('/publico', 'public', 'Solicitud de turno'),
-    placeholderRoute('/agenda', 'private', 'Agenda'),
+    ...createAgendaRoutes(deps.agenda ?? createDefaultAgendaDeps()),
     placeholderRoute('/pacientes', 'private', 'Pacientes'),
     ...createConfigRoutes(deps.configSections ?? createDefaultConfigSections()),
   ];

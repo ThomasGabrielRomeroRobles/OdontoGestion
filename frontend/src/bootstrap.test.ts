@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { bootstrap, type BootstrapDeps } from './bootstrap';
+import { crearAgendaDepsDoble } from './features/agenda/deps-test-helpers';
+import { turnoFicticio } from './features/agenda/test-fixtures';
 import { apiRequest, configureHttpClient } from './shared/http/client';
 import { createSessionStore, type SessionStore } from './shared/state/session';
 
@@ -10,7 +12,7 @@ describe('bootstrap', () => {
   let stop: (() => void) | undefined;
 
   function deps(): BootstrapDeps {
-    return { root, session, me, login: vi.fn(), logout: vi.fn() };
+    return { root, session, me, login: vi.fn(), logout: vi.fn(), agenda: crearAgendaDepsDoble(new Date('2026-11-25T13:00:00Z')) };
   }
 
   beforeEach(() => {
@@ -112,9 +114,44 @@ describe('bootstrap', () => {
     expect(root.textContent?.toLowerCase()).toContain('página no encontrada');
   });
 
+  it('con sesión, /agenda renderiza la agenda real con las deps inyectadas', async () => {
+    me.mockResolvedValue({ email: 'odontologo@consultorio.example' });
+    history.replaceState(null, '', '/agenda?vista=dia&fecha=2026-11-24');
+    const agenda = crearAgendaDepsDoble(new Date('2026-11-25T13:00:00Z'));
+    agenda.api.listarAgenda.mockResolvedValue([turnoFicticio()]);
+
+    stop = (await bootstrap({ ...deps(), agenda })).stop;
+    await vi.waitFor(() => expect(root.querySelector('[data-turno-id="41"]')).not.toBeNull());
+
+    expect(agenda.api.listarAgenda).toHaveBeenCalledWith('2026-11-24T03:00:00Z', '2026-11-25T03:00:00Z');
+    expect(root.querySelector('main')?.textContent).toContain('Gómez, Lucía');
+  });
+
+  it('con sesión, /agenda/hoy lista los turnos del día', async () => {
+    me.mockResolvedValue({ email: 'odontologo@consultorio.example' });
+    history.replaceState(null, '', '/agenda/hoy');
+    const agenda = crearAgendaDepsDoble(new Date('2026-11-24T13:00:00Z'));
+    agenda.api.turnosHoy.mockResolvedValue([turnoFicticio()]);
+
+    stop = (await bootstrap({ ...deps(), agenda })).stop;
+    await vi.waitFor(() => expect(root.querySelector('[data-turno-id="41"]')).not.toBeNull());
+
+    expect(root.querySelector('main h1')?.textContent).toBe('Turnos de hoy');
+  });
+
+  it('sin sesión, /agenda con parámetros redirige a login con la ruta completa en next', async () => {
+    me.mockResolvedValue(null);
+    history.replaceState(null, '', '/agenda?vista=dia&fecha=2026-11-24');
+
+    stop = (await bootstrap(deps())).stop;
+
+    expect(location.pathname).toBe('/login');
+    expect(location.search).toBe('?next=%2Fagenda%3Fvista%3Ddia%26fecha%3D2026-11-24');
+  });
+
   it('un 401 posterior de la API limpia la sesión y navega a login conservando la ruta', async () => {
     me.mockResolvedValue({ email: 'a@b.c' });
-    history.replaceState(null, '', '/agenda');
+    history.replaceState(null, '', '/pacientes');
     stop = (await bootstrap(deps())).stop;
     vi.stubGlobal(
       'fetch',
@@ -130,6 +167,6 @@ describe('bootstrap', () => {
 
     expect(session.get()).toEqual({ status: 'anonymous' });
     expect(location.pathname).toBe('/login');
-    expect(location.search).toBe('?next=%2Fagenda');
+    expect(location.search).toBe('?next=%2Fpacientes');
   });
 });

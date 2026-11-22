@@ -133,7 +133,26 @@ describe('apiRequest: errores tipados', () => {
       title: 'Regla incumplida',
       detail: 'Duración inválida',
       fieldErrors: [],
+      extensions: {},
     });
+  });
+
+  it('409 conserva los miembros de extensión sin repetir los estándar', async () => {
+    const alternativas = [{ inicio: '2026-11-24T13:00:00Z', fin: '2026-11-24T13:45:00Z' }];
+    mockFetch(problemResponse({ title: 'Conflicto de agenda', status: 409, alternativas }, 409));
+    const error = await rejection(apiRequest('POST', 'turnos', {}));
+    expect(error.kind === 'http' && error.extensions).toEqual({ alternativas });
+  });
+
+  it('un ProblemDetail sin extensiones entrega extensiones vacías', async () => {
+    mockFetch(
+      problemResponse(
+        { type: 'about:blank', title: 'X', status: 422, detail: 'Y', instance: '/api/v1/turnos', errors: [] },
+        422,
+      ),
+    );
+    const error = await rejection(apiRequest('POST', 'turnos', {}));
+    expect(error.kind === 'http' && error.extensions).toEqual({});
   });
 
   it('400 con errors expone los errores por campo', async () => {
@@ -151,7 +170,7 @@ describe('apiRequest: errores tipados', () => {
   it('502 con cuerpo HTML devuelve status y título genérico', async () => {
     mockFetch(new Response('<html>Bad Gateway</html>', { status: 502, headers: { 'Content-Type': 'text/html' } }));
     const error = await rejection(apiRequest('GET', 'pacientes'));
-    expect(error).toEqual({ kind: 'http', status: 502, title: 'Error en la solicitud', fieldErrors: [] });
+    expect(error).toEqual({ kind: 'http', status: 502, title: 'Error en la solicitud', fieldErrors: [], extensions: {} });
   });
 
   it('JSON de error que no es ProblemDetail también cae al título genérico', async () => {

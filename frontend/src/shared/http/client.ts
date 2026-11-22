@@ -1,5 +1,5 @@
 import { readCsrfToken } from './csrf';
-import { isProblemDetail, type FieldError } from './problem';
+import { extensionMembers, isProblemDetail, type FieldError } from './problem';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 type WriteMethod = Exclude<HttpMethod, 'GET'>;
@@ -11,6 +11,8 @@ export type ApiError =
       readonly title: string;
       readonly detail?: string;
       readonly fieldErrors: readonly FieldError[];
+      /** Miembros del ProblemDetail que no son estándar (p. ej. `alternativas` en un 409). `{}` si no hay. */
+      readonly extensions: Readonly<Record<string, unknown>>;
     }
   | { readonly kind: 'network' };
 
@@ -93,13 +95,14 @@ async function toHttpError(response: Response): Promise<ApiError> {
     body = undefined;
   }
   if (!isProblemDetail(body)) {
-    return { kind: 'http', status: response.status, title: GENERIC_TITLE, fieldErrors: [] };
+    return { kind: 'http', status: response.status, title: GENERIC_TITLE, fieldErrors: [], extensions: {} };
   }
   const base = {
     kind: 'http',
     status: response.status,
     title: body.title ?? GENERIC_TITLE,
     fieldErrors: body.errors ?? [],
+    extensions: extensionMembers(body),
   } as const;
   return body.detail === undefined ? base : { ...base, detail: body.detail };
 }

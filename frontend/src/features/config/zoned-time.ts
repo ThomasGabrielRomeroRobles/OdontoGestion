@@ -26,7 +26,7 @@ const formateador = new Intl.DateTimeFormat('en-US', {
   second: '2-digit',
 });
 
-function partesEnZona(ms: number): Partes & { readonly second: number } {
+export function partesEnZona(ms: number): Partes & { readonly second: number } {
   const valores: Record<string, number> = {};
   for (const parte of formateador.formatToParts(new Date(ms))) {
     if (parte.type !== 'literal') valores[parte.type] = Number(parte.value);
