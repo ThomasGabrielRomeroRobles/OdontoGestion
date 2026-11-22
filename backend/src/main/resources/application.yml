@@ -19,6 +19,9 @@ spring:
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
+      # Sin STARTTLS válido no se envía (evita degradar a texto plano) y se verifica el certificado del servidor.
+      mail.smtp.starttls.required: true
+      mail.smtp.ssl.checkserveridentity: true
   mvc:
     problemdetails:
       enabled: true

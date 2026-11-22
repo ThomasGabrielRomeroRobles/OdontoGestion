@@ -97,6 +97,12 @@
 - [ ] 11.1 Verificar contra el backend real que el fixture del frontend coincide con el contrato (P6 + P3): levantar la app en perfil `dev`, abrir `/notificaciones` con sesión y ver el listado y un reintento con datos ficticios
 - [ ] 11.2 Suite completa en verde: `cd backend && ./gradlew test` y `cd frontend && npm test && npm run build`; comparar con el baseline de 0.4 (sin tests rotos)
 - [x] 11.3 Revisión de seguridad del diff (P2 revisa P3 y viceversa): sin tokens ni hashes en logs, URLs fuera de `/acciones|/avisos/{token}`, respuestas, `notificacion` ni emails; sin datos clínicos en plantillas; credenciales SMTP solo por entorno; verificar con el checklist anotado en el PR. Hecha por Martina (P2) el 2026-11-22 sobre `main` (PR #4): sin hallazgos críticos ni altos; 2 observaciones bajas (email del destinatario en el log `WARN` de `EmailChannel`; tokens de intentos fallidos vigentes hasta vencer) y la recomendación de `Referrer-Policy: no-referrer` para C-09
+  - Hallazgos de la revisión de seguridad de la mitad V6 (notificaciones), aprobados y corregidos con TDD el 2026-11-22 (pendiente: revisión de la mitad V7 por Jeremías, por eso 11.3 sigue abierto):
+    1. MEDIA: `application.yml` solo tenía `starttls.enable`; ahora también `mail.smtp.starttls.required=true` y `mail.smtp.ssl.checkserveridentity=true` (test `MailSmtpConfigTest`; los tests con GreenMail arman su propio sender, no se vieron afectados).
+    2. BAJA: `EmailChannel` ya no loguea el mensaje de la excepción SMTP (solo clases) y `notificacion.error` guarda el mensaje con los emails enmascarados (`***@***`) y acotado a 300 (test `EmailChannelMotivoTest`).
+    3. BAJA: `PlantillaNotificacion.validarDatos` rechaza caracteres de control (CR/LF incluidos) y valores de más de 200 caracteres en las variables de texto libre (asunto/cuerpo; tests en `PlantillaNotificacionTest`).
+    4. BAJA: si el envío resulta `Fallido`, los tokens emitidos en ese intento se revocan en la misma transacción, uno por uno por hash (`TokenAccesoService.revocarToken`, `EmisorEnlaces.revocar`), sin revocar por referencia+propósito para no invalidar tokens ya entregados (tests `TokenAccesoServiceIT`, `NotificationServiceEnlacesIT`, `EmisorEnlacesConTokensTest`). Reemplaza lo dicho en design D8 ("vencen solos").
+  - ✅ 2026-11-22: P2 revisó la mitad V6 (hallazgos 1–4 corregidos) y P3 (Jeremías) aprobó en persona la mitad V7.
 
 ## Workflow follow-up
 

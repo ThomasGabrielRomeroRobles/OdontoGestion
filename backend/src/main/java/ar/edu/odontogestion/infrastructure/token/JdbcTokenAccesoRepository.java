@@ -99,6 +99,18 @@ public class JdbcTokenAccesoRepository implements TokenAccesoRepository {
                 .update();
     }
 
+    @Override
+    public int revocarPorHash(byte[] hash, Instant ahora) {
+        return jdbc.sql("""
+                UPDATE token_acceso
+                   SET vence_en = :ahora, actualizado_en = :ahora
+                 WHERE token_hash = :hash AND usado_en IS NULL AND vence_en > :ahora
+                """)
+                .param("hash", hash)
+                .param("ahora", utc(ahora))
+                .update();
+    }
+
     private static ReferenciaToken referencia(ResultSet rs) throws SQLException {
         long turno = rs.getLong("turno_id");
         if (!rs.wasNull()) {

@@ -3,6 +3,7 @@ package ar.edu.odontogestion.application.notificacion;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ar.edu.odontogestion.domain.error.ErrorCampo;
 import ar.edu.odontogestion.domain.error.ValidacionDominioException;
 import ar.edu.odontogestion.domain.notificacion.TipoNotificacion;
 import ar.edu.odontogestion.domain.token.PropositoToken;
@@ -16,6 +17,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /** Plantillas por tipo (design D11). Datos ficticios. */
 class PlantillaNotificacionTest {
@@ -131,5 +133,46 @@ class PlantillaNotificacionTest {
                 .isInstanceOf(ValidacionDominioException.class);
         recordatorio.validarEnlaces(EnumSet.of(PropositoToken.CONFIRMAR_TURNO, PropositoToken.CANCELAR_TURNO));
         confirmacion.validarEnlaces(Set.of());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Consultorio\r\nBcc: victima@ejemplo.test", "Consultorio\nOtra línea", "Con\rsultorio",
+            "Consul\ttorio", "Consul\u0000torio"})
+    void valoresConCaracteresDeControlSonRechazadosEnConsultorioYPrestacion(String valorMalo) {
+        PlantillaNotificacion plantilla = PlantillaNotificacion.de(TipoNotificacion.RECORDATORIO);
+        for (String variable : List.of("consultorio", "prestacion")) {
+            Map<String, String> datos = datosPara(plantilla);
+            datos.put(variable, valorMalo);
+
+            assertThatThrownBy(() -> plantilla.validarDatos(datos)).isInstanceOf(ValidacionDominioException.class)
+                    .satisfies(e -> assertThat(((ValidacionDominioException) e).errores())
+                            .extracting(ErrorCampo::field).containsExactly("datos." + variable));
+            assertThatThrownBy(() -> plantilla.renderizar(datos, enlacesPara(plantilla), BASE, ZONA))
+                    .isInstanceOf(ValidacionDominioException.class);
+        }
+    }
+
+    @Test
+    void valoresMasLargosQueElTopeSonRechazadosYElTopeExactoPasa() {
+        PlantillaNotificacion plantilla = PlantillaNotificacion.de(TipoNotificacion.RECORDATORIO);
+        Map<String, String> enElTope = datosPara(plantilla);
+        enElTope.put("consultorio", "C".repeat(PlantillaNotificacion.MAX_LONGITUD_VALOR));
+        Map<String, String> excedido = datosPara(plantilla);
+        excedido.put("prestacion", "P".repeat(PlantillaNotificacion.MAX_LONGITUD_VALOR + 1));
+
+        plantilla.validarDatos(enElTope);
+        assertThatThrownBy(() -> plantilla.validarDatos(excedido)).isInstanceOf(ValidacionDominioException.class);
+    }
+
+    @Test
+    void valoresNormalesConAcentosYSignosPasan() {
+        PlantillaNotificacion plantilla = PlantillaNotificacion.de(TipoNotificacion.RECORDATORIO);
+        Map<String, String> datos = datosPara(plantilla);
+        datos.put("consultorio", "Consultorio Ñandú & Hijos - Sonrisa «Ficticia»");
+        datos.put("prestacion", "Limpieza y control (niños)");
+
+        plantilla.validarDatos(datos);
+        assertThat(plantilla.renderizar(datos, enlacesPara(plantilla), BASE, ZONA).asunto())
+                .contains("Consultorio Ñandú");
     }
 }
