@@ -94,7 +94,7 @@
 
 ## 11. Integración y cierre (todos)
 
-- [ ] 11.1 Verificar contra el backend real que el fixture del frontend coincide con el contrato (P6 + P3): levantar la app en perfil `dev`, abrir `/notificaciones` con sesión y ver el listado y un reintento con datos ficticios
+- [x] 11.1 Verificar contra el backend real que el fixture del frontend coincide con el contrato (P6 + P3): levantar la app en perfil `dev`, abrir `/notificaciones` con sesión y ver el listado y un reintento con datos ficticios — Omitida por decisión de P2 (Martina) el 2026-11-22; cubierta por los tests automáticos (frontend con fixture del contrato y `NotificacionApiIT` en backend).
 - [x] 11.2 Suite completa en verde: `cd backend && ./gradlew test` y `cd frontend && npm test && npm run build`; comparar con el baseline de 0.4 (sin tests rotos) — 2026-11-22 en `feat/c-03-cierre`: backend 614 tests y frontend 225 tests en verde, `npm run build` OK.
 - [x] 11.3 Revisión de seguridad del diff (P2 revisa P3 y viceversa): sin tokens ni hashes en logs, URLs fuera de `/acciones|/avisos/{token}`, respuestas, `notificacion` ni emails; sin datos clínicos en plantillas; credenciales SMTP solo por entorno; verificar con el checklist anotado en el PR. Hecha por Martina (P2) el 2026-11-22 sobre `main` (PR #4): sin hallazgos críticos ni altos; 2 observaciones bajas (email del destinatario en el log `WARN` de `EmailChannel`; tokens de intentos fallidos vigentes hasta vencer) y la recomendación de `Referrer-Policy: no-referrer` para C-09
   - Hallazgos de la revisión de seguridad de la mitad V6 (notificaciones), aprobados y corregidos con TDD el 2026-11-22 (pendiente: revisión de la mitad V7 por Jeremías, por eso 11.3 sigue abierto):
