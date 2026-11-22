@@ -9,7 +9,7 @@
 - **Instantes** (`inicio`, `fin`, `venceEn`, `limiteCancelacion`, `alternativas[]`): ISO-8601 en UTC con `Z`. Mostrarlos en `America/Argentina/Buenos_Aires`.
 - **Fechas de consulta** (`desde`, `hasta`): `YYYY-MM-DD` inclusivas, en la zona del consultorio; rango de hasta 31 días.
 - **Errores**: `application/problem+json`, `type` = `https://odontogestion.example/problemas/<codigo>`. Los errores por campo traen `errors: [{field, message}]`.
-- **Rutas por token** (`/acciones/{token}`): el `instance` de todo error es la constante `urn:odontogestion:ruta-por-token` y ningún cuerpo contiene el token. Toda respuesta lleva `Referrer-Policy: no-referrer`.
+- **Rutas por token** (`/acciones/{token}`): el `instance` de todo error es una constante (`urn:odontogestion:enlace-no-disponible` en el `410`, `urn:odontogestion:ruta-por-token` en los demás errores) y ningún cuerpo contiene el token. Toda respuesta (API, `index.html`, rutas de la SPA) lleva `Referrer-Policy: no-referrer`.
 - **Enlaces de email**: `APP_BASE_URL/acciones/{token}`. En desarrollo hay que arrancar el backend con `APP_BASE_URL=http://localhost:5173` (Vite) porque el backend en `:8080` no sirve rutas de la SPA hasta C-12 (SPA fallback).
 - IP de origen de la limitación de tasa: `getRemoteAddr()`; `X-Forwarded-For` se ignora.
 
@@ -114,7 +114,7 @@ Muestra la acción **sin consumir** el token (puede abrirse varias veces; los es
   "title": "Enlace no disponible",
   "status": 410,
   "detail": "El enlace no es válido o ya fue utilizado.",
-  "instance": "urn:odontogestion:ruta-por-token"
+  "instance": "urn:odontogestion:enlace-no-disponible"
 }
 ```
 
@@ -140,6 +140,10 @@ Acción y consumo del token son atómicos: si la acción falla, el token **sigue
 | 410 | `token-invalido` | token usado/vencido/inexistente, **o `accion` distinta del propósito** (sin consumirlo), o solicitud vencida. Mismo cuerpo que en el `GET` |
 | 422 | `transicion-invalida` | el estado actual no admite la acción (turno `CANCELADO`, `ATENDIDO`, …); token vigente |
 | 422 | `limite-cancelacion` | `CANCELAR_TURNO` pasado el límite (`inicio − limite_cancelacion_horas`); token vigente |
+
+## Decisión: CSRF se mantiene en los `POST` públicos (D7)
+
+`POST /publico/solicitudes-turno` y `POST /acciones/{token}` **exigen** `X-XSRF-TOKEN` (cookie `XSRF-TOKEN`), igual que el resto de la API; no se agrega ninguna excepción en `SecurityConfig`. La cookie la entrega toda respuesta del backend, así que el flujo de la SPA ya la tiene (`GET /auth/me` al arrancar, `GET /publico/prestaciones`, `GET /acciones/{token}`). Sin CSRF, cualquier sitio podría disparar solicitudes públicas desde el navegador de una víctima (emails a terceros, retención de huecos, consumo de su cupo por IP) o ejecutar una acción si conoce el token; con CSRF solo el origen propio puede escribir. Consecuencia para clientes no-SPA (p. ej. `curl`): primero un `GET` para obtener la cookie y luego el `POST` con la cabecera. Riesgo residual: un `403` si el usuario bloquea las cookies; la página muestra un error genérico.
 
 ## Valores de `motivo` y qué muestra la página
 

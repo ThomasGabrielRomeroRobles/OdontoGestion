@@ -30,6 +30,6 @@ public class ProblemDetailAuthenticationEntryPoint implements AuthenticationEntr
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
         objectMapper.writeValue(response.getWriter(), ProblemDetails.crear(HttpStatus.UNAUTHORIZED,
-                "No autenticado", "no-autenticado", DETALLE, request.getRequestURI()));
+                "No autenticado", "no-autenticado", DETALLE, ProblemDetails.instanceDe(request.getRequestURI())));
     }
 }

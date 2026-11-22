@@ -96,11 +96,11 @@
 
 ## 10. [P2 Martina] No filtrar el token (D7, D8)
 
-- [ ] 10.1 RED → GREEN: `Referrer-Policy: no-referrer` global en `SecurityConfig`; IT que lo verifica en `GET /api/v1/acciones/{token}` (`200` y `410`), `GET /` (perfil con frontend o recurso estático de prueba) y una ruta privada con sesión [api-access-control › Cabecera en la API por token, Cabecera en la página del enlace, Cabecera en rutas privadas]
-- [ ] 10.2 RED → GREEN: `instance` constante para todo `ProblemDetail` de `/api/v1/acciones/**` y `/api/v1/avisos/**` (advice del handler + handlers de seguridad 401/403); IT: `422` y `403` de un `POST` por token no contienen el token; `409` de `POST /api/v1/turnos` conserva su `instance` [api-error-handling › Regla de negocio en una acción por token, CSRF rechazado en una acción por token, Otras rutas conservan su instance]
-- [ ] 10.3 RED → GREEN: test de configuración: perfiles `dev` y `demo` sin `DEBUG`/`TRACE` en `org.springframework.web`, sin `server.tomcat.accesslog.enabled` y sin `spring.mvc.log-request-details`; verificar que pasa
-- [ ] 10.4 RED → GREEN: `OutputCaptureExtension` en `GET`/`POST` exitosos y con token inválido: los logs no contienen el valor del token [token-actions › Acción registrada sin token]
-- [ ] 10.5 Documentar la decisión de CSRF (D7) en el contrato (grupo 1) y en `knowledge-base/10_preguntas_abiertas.md` (PA-02, nota de implementación); verificar que el contrato y la KB mencionan que los `POST` públicos exigen `X-XSRF-TOKEN`
+- [x] 10.1 RED → GREEN: `Referrer-Policy: no-referrer` global en `SecurityConfig`; IT que lo verifica en `GET /api/v1/acciones/{token}` (`200` y `410`), `GET /` (perfil con frontend o recurso estático de prueba) y una ruta privada con sesión [api-access-control › Cabecera en la API por token, Cabecera en la página del enlace, Cabecera en rutas privadas]
+- [x] 10.2 RED → GREEN: `instance` constante para todo `ProblemDetail` de `/api/v1/acciones/**` y `/api/v1/avisos/**` (advice del handler + handlers de seguridad 401/403); IT: `422` y `403` de un `POST` por token no contienen el token; `409` de `POST /api/v1/turnos` conserva su `instance` [api-error-handling › Regla de negocio en una acción por token, CSRF rechazado en una acción por token, Otras rutas conservan su instance]
+- [x] 10.3 RED → GREEN: test de configuración: perfiles `dev` y `demo` sin `DEBUG`/`TRACE` en `org.springframework.web`, sin `server.tomcat.accesslog.enabled` y sin `spring.mvc.log-request-details`; verificar que pasa
+- [x] 10.4 RED → GREEN: `OutputCaptureExtension` en `GET`/`POST` exitosos y con token inválido: los logs no contienen el valor del token [token-actions › Acción registrada sin token]
+- [x] 10.5 Documentar la decisión de CSRF (D7) en el contrato (grupo 1) y en `knowledge-base/10_preguntas_abiertas.md` (PA-02, nota de implementación); verificar que el contrato y la KB mencionan que los `POST` públicos exigen `X-XSRF-TOKEN`
 
 ## 11. [P5 Juan Ignacio] Router con parámetros y cliente HTTP
 
