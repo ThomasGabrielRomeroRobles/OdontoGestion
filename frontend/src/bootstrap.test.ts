@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { bootstrap, type BootstrapDeps } from './bootstrap';
+import type { NotificacionesApi } from './features/notificaciones/notificaciones-api';
 import { apiRequest, configureHttpClient } from './shared/http/client';
 import { createSessionStore, type SessionStore } from './shared/state/session';
 
@@ -92,6 +93,39 @@ describe('bootstrap', () => {
     expect(location.pathname).toBe('/configuracion/horarios');
     expect(root.textContent).toContain('seccion-horarios');
     expect(root.textContent).toContain('odontologo@consultorio.example');
+  });
+
+  it('sin sesión, /notificaciones redirige a login con next', async () => {
+    me.mockResolvedValue(null);
+    history.replaceState(null, '', '/notificaciones');
+
+    stop = (await bootstrap(deps())).stop;
+
+    expect(location.pathname).toBe('/login');
+    expect(location.search).toBe('?next=%2Fnotificaciones');
+  });
+
+  it('con sesión, /notificaciones renderiza el registro de envíos dentro del layout', async () => {
+    me.mockResolvedValue({ email: 'odontologo@consultorio.example' });
+    history.replaceState(null, '', '/notificaciones');
+    const notificacionesApi = {
+      listar: vi.fn<NotificacionesApi['listar']>().mockResolvedValue({
+        contenido: [],
+        pagina: 0,
+        tamanio: 20,
+        totalElementos: 0,
+        totalPaginas: 0,
+      }),
+      reintentar: vi.fn<NotificacionesApi['reintentar']>(),
+    };
+
+    stop = (await bootstrap({ ...deps(), notificacionesApi })).stop;
+
+    expect(location.pathname).toBe('/notificaciones');
+    expect(root.querySelector('main h1')?.textContent).toBe('Registro de envíos');
+    expect(root.textContent).toContain('odontologo@consultorio.example');
+    await vi.waitFor(() => expect(root.textContent).toContain('No hay envíos registrados'));
+    expect(notificacionesApi.listar).toHaveBeenCalledWith({ page: 0, size: 20 });
   });
 
   it('una ruta pública se renderiza sin sesión y sin redirigir', async () => {
