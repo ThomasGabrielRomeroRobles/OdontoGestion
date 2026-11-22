@@ -70,7 +70,7 @@ describe('layout autenticado', () => {
   });
 
   it('logout con error 500 igualmente deja la sesión anónima y navega a /login', async () => {
-    logout.mockRejectedValue({ kind: 'http', status: 500, title: 'Error interno', fieldErrors: [] });
+    logout.mockRejectedValue({ kind: 'http', status: 500, title: 'Error interno', fieldErrors: [], extensions: {} });
     logoutButton().click();
 
     await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith('/login'));

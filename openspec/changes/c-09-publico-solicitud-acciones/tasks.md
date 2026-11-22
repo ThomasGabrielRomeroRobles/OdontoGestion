@@ -104,9 +104,9 @@
 
 ## 11. [P5 Juan Ignacio] Router con parámetros y cliente HTTP
 
-- [ ] 11.1 RED: `router.test.ts`: `/acciones/:token` resuelve `/acciones/abc123` con `params.token = 'abc123'` sin sesión ni layout autenticado; `/acciones/` → no encontrada; las rutas exactas existentes siguen igual [web-app-shell › Ruta pública con segmento variable, Segmento variable vacío, Ruta pública sin sesión]; GREEN; verificar con `npm test`
-- [ ] 11.2 RED → GREEN: `client.test.ts`: `ApiError` expone `code` (último segmento de `type`), `extensions` (`unknown`) con `alternativas`, y `retryAfterSeconds` en `429` (ausente/no numérico → indefinido); los tests existentes siguen en verde (coordinar con C-08) [web-http-client › Código y propiedades adicionales, Retry-After en un 429, Retry-After ausente o inválido]
-- [ ] 11.3 Agregar `<meta name="referrer" content="no-referrer">` a `index.html` con un test que lo lea [web-token-actions › Política de referer en el documento]; verificar con `npm test && npm run typecheck`
+- [x] 11.1 RED: `router.test.ts`: `/acciones/:token` resuelve `/acciones/abc123` con `params.token = 'abc123'` sin sesión ni layout autenticado; `/acciones/` → no encontrada; las rutas exactas existentes siguen igual [web-app-shell › Ruta pública con segmento variable, Segmento variable vacío, Ruta pública sin sesión]; GREEN; verificar con `npm test`
+- [x] 11.2 RED → GREEN: `client.test.ts`: `ApiError` expone `code` (último segmento de `type`), `extensions` (`unknown`) con `alternativas`, y `retryAfterSeconds` en `429` (ausente/no numérico → indefinido); los tests existentes siguen en verde (coordinar con C-08) [web-http-client › Código y propiedades adicionales, Retry-After en un 429, Retry-After ausente o inválido]
+- [x] 11.3 Agregar `<meta name="referrer" content="no-referrer">` a `index.html` con un test que lo lea [web-token-actions › Política de referer en el documento]; verificar con `npm test && npm run typecheck`
 
 ## 12. [P5 Juan Ignacio] Feature `publico`
 

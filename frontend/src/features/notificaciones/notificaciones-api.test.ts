@@ -72,6 +72,7 @@ describe('notificaciones-api', () => {
         title: 'Regla de negocio',
         detail: 'La notificación ya se reintentó 3 veces manualmente.',
         fieldErrors: [],
+        extensions: {},
       });
     });
   });

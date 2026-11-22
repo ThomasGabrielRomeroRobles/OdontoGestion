@@ -19,7 +19,7 @@ function seccionesDobles(): ConfigSections & Record<SeccionId, ReturnType<typeof
 }
 
 function ctx(path: string): RouteContext {
-  return { url: new URL(`http://localhost${path}`), navigate: vi.fn() };
+  return { url: new URL(`http://localhost${path}`), params: {}, navigate: vi.fn() };
 }
 
 describe('página de configuración (7.1)', () => {

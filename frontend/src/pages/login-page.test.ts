@@ -13,7 +13,7 @@ describe('pantalla /login', () => {
   let login: ReturnType<typeof vi.fn<LoginFn>>;
 
   function show(search = ''): void {
-    const context: RouteContext = { url: new URL(`http://localhost/login${search}`), navigate };
+    const context: RouteContext = { url: new URL(`http://localhost/login${search}`), params: {}, navigate };
     createLoginPage({ session, login })(container, context);
   }
 
@@ -96,7 +96,7 @@ describe('pantalla /login', () => {
   });
 
   it('401 muestra mensaje genérico, vacía la contraseña y no navega', async () => {
-    const error: ApiError = { kind: 'http', status: 401, title: 'Credenciales inválidas', fieldErrors: [] };
+    const error: ApiError = { kind: 'http', status: 401, title: 'Credenciales inválidas', fieldErrors: [], extensions: {} };
     login.mockRejectedValue(error);
     show();
     submit('a@b.c', 'mala');
@@ -108,7 +108,7 @@ describe('pantalla /login', () => {
   });
 
   it('el mensaje de 401 no revela si falló el email o la contraseña', async () => {
-    login.mockRejectedValue({ kind: 'http', status: 401, title: 'x', fieldErrors: [] } satisfies ApiError);
+    login.mockRejectedValue({ kind: 'http', status: 401, title: 'x', fieldErrors: [], extensions: {} } satisfies ApiError);
     show();
     submit('nadie@b.c', 'mala');
     await vi.waitFor(() => expect(message()).not.toBe(''));
