@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.application.token;
 
+import ar.edu.odontogestion.support.TurnosFicticios;
 import static ar.edu.odontogestion.support.FixedClockTestConfig.AHORA;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,6 +31,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Import(FixedClockTestConfig.class)
+@TurnosFicticios
 class TokenAccesoServiceIT extends AbstractIntegrationTest {
 
     private static final ReferenciaToken.Turno TURNO = new ReferenciaToken.Turno(900101);

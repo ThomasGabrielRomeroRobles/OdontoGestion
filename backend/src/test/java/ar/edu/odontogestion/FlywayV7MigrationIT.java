@@ -1,5 +1,6 @@
 package ar.edu.odontogestion;
 
+import ar.edu.odontogestion.support.TurnosFicticios;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -15,6 +16,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /** V7 (C-03): token_acceso. Ids de referencia ficticios >= 900000 y limpieza al final (sin FK hasta C-07/C-10). */
+@TurnosFicticios
 class FlywayV7MigrationIT extends AbstractIntegrationTest {
 
     private static final String INSERT = "INSERT INTO token_acceso (consultorio_id, token_hash, proposito, "
@@ -61,7 +63,7 @@ class FlywayV7MigrationIT extends AbstractIntegrationTest {
                 .containsEntry("is_nullable", "YES");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM information_schema.table_constraints "
                 + "WHERE table_name = 'token_acceso' AND constraint_type = 'FOREIGN KEY'", Integer.class))
-                .as("solo la FK a consultorio; las de turno/aviso/entrada llegan con C-07/C-10").isEqualTo(1);
+                .as("FK a consultorio y a turno (V9, C-07); las de aviso/entrada llegan con C-10").isEqualTo(2);
     }
 
     @Test

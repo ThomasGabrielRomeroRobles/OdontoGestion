@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.infrastructure.notificacion;
 
+import ar.edu.odontogestion.support.TurnosFicticios;
 import static ar.edu.odontogestion.support.FixedClockTestConfig.AHORA;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,6 +19,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 /** Pendientes persistidos antes de un reinicio se envían cuando corre el procesamiento periódico. */
 @Import(FixedClockTestConfig.class)
+@TurnosFicticios
 class ProcesadorNotificacionesJobIT extends AbstractIntegrationTest {
 
     private static final String DATOS = "{\"consultorio\": \"Consultorio Ficticio Sonrisa\", "

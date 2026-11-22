@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.application.notificacion;
 
+import ar.edu.odontogestion.support.TurnosFicticios;
 import static ar.edu.odontogestion.application.notificacion.NotificationServiceEncolarIT.DATOS_TURNO;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -23,6 +24,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /** Dos procesamientos superpuestos no envían dos veces la misma notificación (FOR UPDATE SKIP LOCKED). */
 @Import(FixedClockTestConfig.class)
+@TurnosFicticios
 class NotificationServiceConcurrenciaIT extends AbstractIntegrationTest {
 
     private static final int RONDAS = 5;

@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.application.notificacion;
 
+import ar.edu.odontogestion.support.TurnosFicticios;
 import static ar.edu.odontogestion.application.notificacion.NotificationServiceEncolarIT.DATOS_TURNO;
 import static ar.edu.odontogestion.support.FixedClockTestConfig.AHORA;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,6 +33,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /** Enlaces con tokens emitidos al enviar con el adaptador real (design D8, RN-TK-02). Ids ficticios. */
 @Import(FixedClockTestConfig.class)
+@TurnosFicticios
 class NotificationServiceEnlacesIT extends AbstractIntegrationTest {
 
     private static final Pattern TOKEN = Pattern.compile("/(acciones|avisos)/([A-Za-z0-9_-]{43})");
