@@ -226,4 +226,25 @@ class GlobalExceptionHandlerWebMvcTest {
         assertThat(cuerpo).doesNotContain(valor).doesNotContain("token/");
         assertThat(output.getAll()).doesNotContain(valor);
     }
+
+    @Test
+    void huecoNoDisponibleDevuelve409ConLasAlternativas() throws Exception {
+        mockMvc.perform(get("/api/v1/recurso-de-prueba/1/hueco-no-disponible"))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("https://odontogestion.example/problemas/hueco-no-disponible"))
+                .andExpect(jsonPath("$.detail").isNotEmpty())
+                .andExpect(jsonPath("$.alternativas.length()").value(2))
+                .andExpect(jsonPath("$.alternativas[0].inicio").value("2026-11-23T13:30:00Z"))
+                .andExpect(jsonPath("$.alternativas[0].fin").value("2026-11-23T14:00:00Z"))
+                .andExpect(jsonPath("$.alternativas[1].inicio").value("2026-11-23T13:45:00Z"));
+    }
+
+    @Test
+    void huecoNoDisponibleSinAlternativasDevuelveLaListaVacia() throws Exception {
+        mockMvc.perform(get("/api/v1/recurso-de-prueba/1/hueco-no-disponible?alternativas=0"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.alternativas").isArray())
+                .andExpect(jsonPath("$.alternativas.length()").value(0));
+    }
 }

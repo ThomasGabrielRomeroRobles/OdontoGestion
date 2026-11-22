@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.api.error;
 
+import ar.edu.odontogestion.application.turno.HuecoDto;
 import ar.edu.odontogestion.domain.error.ConflictoException;
 import ar.edu.odontogestion.domain.error.CredencialesInvalidasException;
 import ar.edu.odontogestion.domain.error.DomainException;
@@ -8,6 +9,7 @@ import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
 import ar.edu.odontogestion.domain.error.ReglaNegocioException;
 import ar.edu.odontogestion.domain.error.TokenInvalidoException;
 import ar.edu.odontogestion.domain.error.ValidacionDominioException;
+import ar.edu.odontogestion.domain.turno.HuecoNoDisponibleException;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -59,6 +61,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(RecursoNoEncontradoException.class)
     ProblemDetail handleNoEncontrado(RecursoNoEncontradoException ex) {
         return dominio(HttpStatus.NOT_FOUND, "Recurso no encontrado", ex);
+    }
+
+    /** Conflicto de agenda: 409 con hasta 3 {@code alternativas} libres (C-07 D6). Antes del handler genérico. */
+    @ExceptionHandler(HuecoNoDisponibleException.class)
+    ProblemDetail handleHuecoNoDisponible(HuecoNoDisponibleException ex) {
+        ProblemDetail problem = dominio(HttpStatus.CONFLICT, "Horario no disponible", ex);
+        problem.setProperty("alternativas", ex.alternativas().stream().map(HuecoDto::de).toList());
+        return problem;
     }
 
     @ExceptionHandler(ConflictoException.class)

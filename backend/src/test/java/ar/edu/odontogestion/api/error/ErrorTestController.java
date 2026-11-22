@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.api.error;
 
+import ar.edu.odontogestion.domain.agenda.Hueco;
 import ar.edu.odontogestion.domain.error.ConflictoException;
 import ar.edu.odontogestion.domain.error.DemasiadosIntentosException;
 import ar.edu.odontogestion.domain.error.ErrorCampo;
@@ -7,6 +8,8 @@ import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
 import ar.edu.odontogestion.domain.error.ReglaNegocioException;
 import ar.edu.odontogestion.domain.error.TokenInvalidoException;
 import ar.edu.odontogestion.domain.error.ValidacionDominioException;
+import ar.edu.odontogestion.domain.turno.HuecoNoDisponibleException;
+import java.time.Instant;
 import java.util.List;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -73,5 +76,14 @@ class ErrorTestController {
     @GetMapping("/token/{valor}")
     String tokenInvalido(@PathVariable String valor, @RequestParam(defaultValue = "inexistente") String causa) {
         throw new TokenInvalidoException();
+    }
+
+    /** Conflicto de agenda con 0 a 2 alternativas (C-07 D6). */
+    @GetMapping("/{id}/hueco-no-disponible")
+    String huecoNoDisponible(@PathVariable long id, @RequestParam(defaultValue = "2") int alternativas) {
+        List<Hueco> todas = List.of(
+                new Hueco(Instant.parse("2026-11-23T13:30:00Z"), Instant.parse("2026-11-23T14:00:00Z")),
+                new Hueco(Instant.parse("2026-11-23T13:45:00Z"), Instant.parse("2026-11-23T14:15:00Z")));
+        throw new HuecoNoDisponibleException(todas.subList(0, alternativas));
     }
 }
