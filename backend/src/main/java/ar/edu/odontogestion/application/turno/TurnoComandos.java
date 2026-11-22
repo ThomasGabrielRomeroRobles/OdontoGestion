@@ -17,10 +17,13 @@ public class TurnoComandos {
     static final int MAX_ALTERNATIVAS = 3;
 
     private final ReservaTurnoService reservas;
+    private final GestionTurnoService gestion;
     private final DisponibilidadService disponibilidad;
 
-    public TurnoComandos(ReservaTurnoService reservas, DisponibilidadService disponibilidad) {
+    public TurnoComandos(ReservaTurnoService reservas, GestionTurnoService gestion,
+            DisponibilidadService disponibilidad) {
         this.reservas = reservas;
+        this.gestion = gestion;
         this.disponibilidad = disponibilidad;
     }
 
@@ -30,5 +33,22 @@ public class TurnoComandos {
         } catch (HuecoNoDisponibleException e) {
             throw e.conAlternativas(disponibilidad.alternativas(prestacionId, inicio, MAX_ALTERNATIVAS));
         }
+    }
+
+    public TurnoDto mover(Long turnoId, Instant nuevoInicio) {
+        try {
+            return gestion.mover(turnoId, nuevoInicio);
+        } catch (HuecoNoDisponibleException e) {
+            Long prestacionId = gestion.prestacionDe(turnoId);
+            throw e.conAlternativas(disponibilidad.alternativas(prestacionId, nuevoInicio, MAX_ALTERNATIVAS));
+        }
+    }
+
+    public TurnoDto cancelar(Long turnoId, String motivo) {
+        return gestion.cancelar(turnoId, motivo);
+    }
+
+    public TurnoDto marcarAtendido(Long turnoId) {
+        return gestion.marcarAtendido(turnoId);
     }
 }

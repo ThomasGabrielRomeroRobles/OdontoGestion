@@ -89,10 +89,10 @@
 
 ## 9. [P2 Martina] Mover, cancelar y atender (bloqueado por grupos 3, 4 y 7)
 
-- [ ] 9.1 RED: IT de `GestionTurnoService.mover`: a hueco libre → nuevo rango, mismo estado; parcialmente sobre su propio rango → ok; a hueco ocupado → `HuecoNoDisponibleException` y horario original intacto; fuera de horario/bloqueo → 422 (reutiliza `ValidadorHorarioTurno`); expira pendientes antes de mover; turno de otro consultorio → 404; confirmar que falla [turno-lifecycle › Movimiento exitoso, Movimiento parcialmente solapado consigo mismo, Movimiento a un hueco ocupado, Turno inexistente]
-- [ ] 9.2 GREEN: implementar `mover` con `TraductorViolacionAgenda` (D9); verificar que 9.1 pasa
-- [ ] 9.3 RED → GREEN: `cancelar` y `marcarAtendido` en `GestionTurnoService`; IT: cancelar libera el hueco (nuevo `reservar` en el mismo rango → ok); atender un `CANCELADO` → 422 [turno-lifecycle › Hueco reutilizable tras cancelar, Turno atendido, Transición desde un estado final]
-- [ ] 9.4 RED → GREEN: `TurnoApiIT` amplía: `PUT /turnos/{id}/mover` (`200`, `409` con alternativas vía `TurnoComandos`, `422`), `POST /turnos/{id}/cancelar` con y sin cuerpo (`200`, motivo > 200 → `400`), `POST /turnos/{id}/atendido` (`200`, `422`), id inexistente → `404`, sin sesión → `401`, sin CSRF → `403` [turno-lifecycle › Atender sin sesión, Turno inexistente, Movimiento a un hueco ocupado]
+- [x] 9.1 RED: IT de `GestionTurnoService.mover`: a hueco libre → nuevo rango, mismo estado; parcialmente sobre su propio rango → ok; a hueco ocupado → `HuecoNoDisponibleException` y horario original intacto; fuera de horario/bloqueo → 422 (reutiliza `ValidadorHorarioTurno`); expira pendientes antes de mover; turno de otro consultorio → 404; confirmar que falla [turno-lifecycle › Movimiento exitoso, Movimiento parcialmente solapado consigo mismo, Movimiento a un hueco ocupado, Turno inexistente]
+- [x] 9.2 GREEN: implementar `mover` con `TraductorViolacionAgenda` (D9); verificar que 9.1 pasa
+- [x] 9.3 RED → GREEN: `cancelar` y `marcarAtendido` en `GestionTurnoService`; IT: cancelar libera el hueco (nuevo `reservar` en el mismo rango → ok); atender un `CANCELADO` → 422 [turno-lifecycle › Hueco reutilizable tras cancelar, Turno atendido, Transición desde un estado final]
+- [x] 9.4 RED → GREEN: `TurnoApiIT` amplía: `PUT /turnos/{id}/mover` (`200`, `409` con alternativas vía `TurnoComandos`, `422`), `POST /turnos/{id}/cancelar` con y sin cuerpo (`200`, motivo > 200 → `400`), `POST /turnos/{id}/atendido` (`200`, `422`), id inexistente → `404`, sin sesión → `401`, sin CSRF → `403` [turno-lifecycle › Atender sin sesión, Turno inexistente, Movimiento a un hueco ocupado]
 
 ## 10. [P2 Martina] Eventos, concurrencia optimista y turnos de hoy (bloqueado por grupo 9)
 

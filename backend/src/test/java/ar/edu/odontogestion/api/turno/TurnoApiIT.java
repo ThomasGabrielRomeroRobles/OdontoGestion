@@ -2,6 +2,7 @@ package ar.edu.odontogestion.api.turno;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -128,5 +129,150 @@ class TurnoApiIT extends AbstractTurnoIT {
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.errors[?(@.field=='pacienteId')]").exists());
         assertThat(contarTurnos()).isZero();
+    }
+
+    // ---- mover / cancelar / atendido ----
+
+    private Long turnoExistente(EstadoTurno estado, String inicio, String fin) {
+        return insertarTurno(crearPaciente(), crearPrestacion(30), estado, lunes(inicio), lunes(fin));
+    }
+
+    private ResultActions mover(Long id, String cuerpo) throws Exception {
+        return mockMvc.perform(c.firmar(put(URL + "/" + id + "/mover")).contentType("application/json")
+                .content(cuerpo));
+    }
+
+    private static String inicio(Instant inicio) {
+        return "{\"inicio\":\"" + inicio + "\"}";
+    }
+
+    @Test
+    void moverDevuelve200ConElNuevoRangoYElMismoEstado() throws Exception {
+        Long id = turnoExistente(EstadoTurno.CONFIRMADO, "10:00", "10:30");
+
+        mover(id, inicio(lunes("11:00")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.estado").value("CONFIRMADO"))
+                .andExpect(jsonPath("$.inicio").value("2026-11-23T14:00:00Z"))
+                .andExpect(jsonPath("$.fin").value("2026-11-23T14:30:00Z"))
+                .andExpect(jsonPath("$.version").value(1))
+                .andExpect(jsonPath("$.paciente.dni").doesNotExist());
+    }
+
+    @Test
+    void moverAUnHuecoOcupadoDa409ConAlternativasYElTurnoNoCambia() throws Exception {
+        Long id = turnoExistente(EstadoTurno.RESERVADO, "10:00", "10:30");
+        insertarTurno(crearPaciente(), crearPrestacion(30), EstadoTurno.RESERVADO, lunes("11:00"), lunes("11:30"));
+
+        mover(id, inicio(lunes("11:00")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value("https://odontogestion.example/problemas/hueco-no-disponible"))
+                .andExpect(jsonPath("$.alternativas.length()").value(3))
+                .andExpect(jsonPath("$.alternativas[0].inicio").value("2026-11-23T14:30:00Z"));
+        assertThat(jdbc.queryForObject("SELECT inicio = ?::timestamptz FROM turno WHERE id = ?", Boolean.class,
+                lunes("10:00").toString(), id)).isTrue();
+    }
+
+    @Test
+    void moverConHorarioInvalidoOEstadoNoMovibleDa422() throws Exception {
+        Long reservado = turnoExistente(EstadoTurno.RESERVADO, "10:00", "10:30");
+        Long atendido = turnoExistente(EstadoTurno.ATENDIDO, "11:00", "11:30");
+
+        mover(reservado, inicio(lunes("12:45"))).andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.errors[?(@.field=='inicio')]").exists());
+        mover(atendido, inicio(lunes("15:00"))).andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.type").value("https://odontogestion.example/problemas/transicion-invalida"));
+    }
+
+    @Test
+    void moverConIdInexistenteSinSesionSinCsrfOCuerpoInvalido() throws Exception {
+        Long id = turnoExistente(EstadoTurno.RESERVADO, "10:00", "10:30");
+
+        mover(999_999_999L, inicio(lunes("11:00"))).andExpect(status().isNotFound());
+        mover(id, "{}").andExpect(status().isBadRequest());
+        mover(id, "{\"inicio\":\"nunca\"}").andExpect(status().isBadRequest());
+        mockMvc.perform(clienteAnonimo().firmar(put(URL + "/" + id + "/mover")).contentType("application/json")
+                .content(inicio(lunes("11:00")))).andExpect(status().isUnauthorized());
+        mockMvc.perform(put(URL + "/" + id + "/mover").session(c.session()).contentType("application/json")
+                .content(inicio(lunes("11:00")))).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void cancelarConMotivoDevuelve200ConLosDatosDeLaCancelacion() throws Exception {
+        Long id = turnoExistente(EstadoTurno.RESERVADO, "10:00", "10:30");
+
+        mockMvc.perform(c.firmar(post(URL + "/" + id + "/cancelar")).contentType("application/json")
+                        .content("{\"motivo\":\"Imprevisto del consultorio\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("CANCELADO"))
+                .andExpect(jsonPath("$.canceladoPor").value("ODONTOLOGO"))
+                .andExpect(jsonPath("$.motivoCancelacion").value("Imprevisto del consultorio"));
+    }
+
+    @Test
+    void cancelarSinCuerpoOConCuerpoVacioDejaElMotivoNulo() throws Exception {
+        Long sinCuerpo = turnoExistente(EstadoTurno.CONFIRMADO, "10:00", "10:30");
+        Long cuerpoVacio = turnoExistente(EstadoTurno.RESERVADO, "11:00", "11:30");
+
+        mockMvc.perform(c.firmar(post(URL + "/" + sinCuerpo + "/cancelar")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("CANCELADO"))
+                .andExpect(jsonPath("$.motivoCancelacion").value(Matchers.nullValue()));
+        mockMvc.perform(c.firmar(post(URL + "/" + cuerpoVacio + "/cancelar")).contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("CANCELADO"));
+    }
+
+    @Test
+    void cancelarConMotivoDeMasDe200Da400YUnoDe200Da200() throws Exception {
+        Long id = turnoExistente(EstadoTurno.RESERVADO, "10:00", "10:30");
+
+        mockMvc.perform(c.firmar(post(URL + "/" + id + "/cancelar")).contentType("application/json")
+                        .content("{\"motivo\":\"" + "x".repeat(201) + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[?(@.field=='motivo')]").exists());
+        assertThat(estadoDe(id)).isEqualTo("RESERVADO");
+        mockMvc.perform(c.firmar(post(URL + "/" + id + "/cancelar")).contentType("application/json")
+                        .content("{\"motivo\":\"" + "x".repeat(200) + "\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void cancelarUnTurnoAtendidoDa422YUnoInexistenteDa404() throws Exception {
+        Long atendido = turnoExistente(EstadoTurno.ATENDIDO, "10:00", "10:30");
+
+        mockMvc.perform(c.firmar(post(URL + "/" + atendido + "/cancelar"))).andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(c.firmar(post(URL + "/999999999/cancelar"))).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void atendidoDevuelve200Y422DesdeUnEstadoFinalY404() throws Exception {
+        Long confirmado = turnoExistente(EstadoTurno.CONFIRMADO, "10:00", "10:30");
+        Long cancelado = turnoExistente(EstadoTurno.CANCELADO, "11:00", "11:30");
+
+        mockMvc.perform(c.firmar(post(URL + "/" + confirmado + "/atendido")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("ATENDIDO"));
+        mockMvc.perform(c.firmar(post(URL + "/" + cancelado + "/atendido")))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.type").value("https://odontogestion.example/problemas/transicion-invalida"));
+        assertThat(estadoDe(cancelado)).isEqualTo("CANCELADO");
+        mockMvc.perform(c.firmar(post(URL + "/999999999/atendido"))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void cancelarYAtenderSinSesionDan401YSinCsrfDan403() throws Exception {
+        Long id = turnoExistente(EstadoTurno.RESERVADO, "10:00", "10:30");
+        Cliente anonimo = clienteAnonimo();
+
+        for (String accion : new String[] {"cancelar", "atendido"}) {
+            mockMvc.perform(anonimo.firmar(post(URL + "/" + id + "/" + accion))).andExpect(status().isUnauthorized());
+            mockMvc.perform(post(URL + "/" + id + "/" + accion).session(c.session()))
+                    .andExpect(status().isForbidden());
+        }
+        assertThat(estadoDe(id)).isEqualTo("RESERVADO");
     }
 }
