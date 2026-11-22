@@ -50,6 +50,9 @@ app:
     max-intentos: 3
     esperas: PT1M,PT5M
     lote: 50
+  turnos:
+    # Cada cuánto corre el job que expira solicitudes pendientes vencidas (C-07 D8).
+    expiracion-intervalo: PT1M
   bootstrap:
     odontologo-email: ${BOOTSTRAP_ODONTOLOGO_EMAIL:odontologo@consultorio.example}
     odontologo-password: ${BOOTSTRAP_ODONTOLOGO_PASSWORD:}

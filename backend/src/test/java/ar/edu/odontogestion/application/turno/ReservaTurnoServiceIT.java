@@ -131,4 +131,46 @@ class ReservaTurnoServiceIT extends AbstractTurnoIT {
 
         assertThat(reservar(paciente, prestacion, lunes("10:00")).estado()).isEqualTo(EstadoTurno.RESERVADO);
     }
+
+    @Test
+    void unaPendienteVigenteRetieneElHuecoYDa409() {
+        Long paciente = crearPaciente();
+        Long prestacion = crearPrestacion(30);
+        Long pendiente = insertarTurno(paciente, prestacion, EstadoTurno.PENDIENTE_CONFIRMACION, lunes("10:00"),
+                lunes("10:30"), reloj.instant().plusSeconds(600));
+
+        assertThatThrownBy(() -> reservar(paciente, prestacion, lunes("10:00")))
+                .isInstanceOf(HuecoNoDisponibleException.class);
+
+        assertThat(estadoDe(pendiente)).isEqualTo("PENDIENTE_CONFIRMACION");
+        assertThat(contarTurnos()).isEqualTo(1);
+    }
+
+    @Test
+    void unaPendienteVencidaSeExpiraAntesDeReservarYLiberaElHueco() {
+        Long paciente = crearPaciente();
+        Long prestacion = crearPrestacion(30);
+        Long pendiente = insertarTurno(paciente, prestacion, EstadoTurno.PENDIENTE_CONFIRMACION, lunes("10:00"),
+                lunes("10:30"), reloj.instant().minusSeconds(1));
+
+        TurnoDto nuevo = reservar(paciente, prestacion, lunes("10:00"));
+
+        assertThat(nuevo.estado()).isEqualTo(EstadoTurno.RESERVADO);
+        assertThat(estadoDe(pendiente)).isEqualTo("EXPIRADO");
+    }
+
+    @Test
+    void siLaReservaFallaLaExpiracionDeOtrasPendientesTambienSeRevierteConLaTransaccion() {
+        Long paciente = crearPaciente();
+        Long prestacion = crearPrestacion(30);
+        insertarTurno(paciente, prestacion, EstadoTurno.RESERVADO, lunes("10:00"), lunes("10:30"));
+        Long vencida = insertarTurno(paciente, prestacion, EstadoTurno.PENDIENTE_CONFIRMACION, lunes("11:00"),
+                lunes("11:30"), reloj.instant().minusSeconds(1));
+
+        assertThatThrownBy(() -> reservar(paciente, prestacion, lunes("10:00")))
+                .isInstanceOf(HuecoNoDisponibleException.class);
+
+        // El 409 deja la transacción sin efectos; la pendiente vencida se expirará en la próxima operación o job.
+        assertThat(estadoDe(vencida)).isEqualTo("PENDIENTE_CONFIRMACION");
+    }
 }

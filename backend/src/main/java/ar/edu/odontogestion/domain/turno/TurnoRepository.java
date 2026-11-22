@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -60,4 +61,21 @@ public interface TurnoRepository extends JpaRepository<Turno, Long> {
             """)
     List<Hueco> intervalosOcupados(@Param("consultorioId") Long consultorioId, @Param("desde") Instant desde,
             @Param("hasta") Instant hasta, @Param("ahora") Instant ahora);
+
+    /**
+     * Expira en masa las pendientes vencidas del consultorio (design D8). Idempotente. Incrementa {@code version}
+     * para que una transacción concurrente que ya había cargado el turno falle con 409 al guardar. Exige una
+     * transacción abierta (la abre el service) y no publica eventos: la expiración no libera un hueco ofrecido.
+     *
+     * @return cantidad de turnos expirados
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(nativeQuery = true, value = """
+            UPDATE turno
+               SET estado = 'EXPIRADO', version = version + 1, actualizado_en = :ahora
+             WHERE consultorio_id = :consultorioId
+               AND estado = 'PENDIENTE_CONFIRMACION'
+               AND pendiente_hasta <= :ahora
+            """)
+    int expirarPendientesVencidas(@Param("consultorioId") Long consultorioId, @Param("ahora") Instant ahora);
 }

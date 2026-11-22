@@ -71,10 +71,10 @@
 
 ## 6. [P1 Thomas] Expiración de pendientes (bloqueado por grupo 3)
 
-- [ ] 6.1 RED: IT con `MutableClock` de `TurnoRepository.expirarPendientesVencidas`: vencida → `EXPIRADO` con `version` incrementada; vigente intacta; segunda ejecución no modifica filas; confirmar que falla [turno-lifecycle › Expiración periódica, Expiración idempotente]
-- [ ] 6.2 GREEN: implementar la consulta `@Modifying` de D8; verificar que 6.1 pasa
-- [ ] 6.3 RED → GREEN: `reservar` expira antes de insertar: pendiente vencida en el mismo rango → `201` y la pendiente queda `EXPIRADO`; pendiente vigente → `409` [turno-lifecycle › Pendiente vigente retiene el hueco, Pendiente vencida se expira antes de reservar]
-- [ ] 6.4 RED → GREEN: `ExpiracionPendientesScheduler` (`app.turnos.expiracion-intervalo`; se apaga con el `app.scheduling.enabled=false` de C-03, sin redeclarar `@EnableScheduling`) invoca la expiración con el `Clock`; test que llama al job directamente; agregar la propiedad a `application.yml` y documentar en `.env.example` solo si se expone como variable de entorno
+- [x] 6.1 RED: IT con `MutableClock` de `TurnoRepository.expirarPendientesVencidas`: vencida → `EXPIRADO` con `version` incrementada; vigente intacta; segunda ejecución no modifica filas; confirmar que falla [turno-lifecycle › Expiración periódica, Expiración idempotente]
+- [x] 6.2 GREEN: implementar la consulta `@Modifying` de D8; verificar que 6.1 pasa
+- [x] 6.3 RED → GREEN: `reservar` expira antes de insertar: pendiente vencida en el mismo rango → `201` y la pendiente queda `EXPIRADO`; pendiente vigente → `409` [turno-lifecycle › Pendiente vigente retiene el hueco, Pendiente vencida se expira antes de reservar]
+- [x] 6.4 RED → GREEN: `ExpiracionPendientesScheduler` (`app.turnos.expiracion-intervalo`; se apaga con el `app.scheduling.enabled=false` de C-03, sin redeclarar `@EnableScheduling`) invoca la expiración con el `Clock`; test que llama al job directamente; agregar la propiedad a `application.yml` y documentar en `.env.example` solo si se expone como variable de entorno
 
 ## 7. [P2 Martina] Transiciones de mover y cancelar en el dominio (bloqueado por grupo 1)
 

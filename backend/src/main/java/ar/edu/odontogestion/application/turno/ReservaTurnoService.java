@@ -55,6 +55,8 @@ public class ReservaTurnoService {
     @Transactional
     public TurnoDto reservar(SolicitudReserva solicitud) {
         Long consultorioId = consultorioActual.id();
+        // Primero se liberan las pendientes vencidas (D8); si la reserva falla, esto se revierte con ella.
+        turnos.expirarPendientesVencidas(consultorioId, clock.instant());
         Consultorio consultorio = consultorios.findById(consultorioId).orElseThrow();
         Prestacion prestacion = prestaciones.findByIdAndConsultorio_Id(solicitud.prestacionId(), consultorioId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Prestación no encontrada"));
