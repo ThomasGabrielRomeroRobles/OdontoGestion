@@ -64,10 +64,10 @@
 
 ## 5. [P1 Thomas] Consultas de agenda (bloqueado por grupo 3)
 
-- [ ] 5.1 RED: IT de `DisponibilidadService`: descuenta turnos que ocupan agenda y bloqueos; trata `CANCELADO` y pendientes vencidas no expiradas como libres; prestación inactiva → 422, inexistente → 404; confirmar que falla [agenda-availability › Turnos y bloqueos descuentan huecos, Turnos cancelados y pendientes vencidas no ocupan, Prestación inactiva o inexistente]
-- [ ] 5.2 GREEN: implementar `DisponibilidadService` (read-only, zona del consultorio, política odontólogo para la API); verificar que 5.1 pasa
-- [ ] 5.3 RED → GREEN: `AgendaApiIT`: `GET /api/v1/agenda/disponibilidad` y `GET /api/v1/agenda` → `200` ordenados (agenda con todos los estados y `version`); rango invertido o > 31 días → `422`; parámetro faltante → `400`; sin sesión → `401` [agenda-availability › Huecos de un día sin turnos, Agenda semanal, Agenda sin sesión, Rango invertido, Rango demasiado largo, Parámetro faltante]
-- [ ] 5.4 RED → GREEN: `GET /api/v1/bloqueos/{id}/turnos-afectados`: devuelve solo turnos que ocupan agenda y solapan el bloqueo; bloqueo inexistente o de otro consultorio → `404`; crear el bloqueo no modifica turnos (cierra US-012) [agenda-availability › Bloqueo que pisa turnos, Bloqueo inexistente]
+- [x] 5.1 RED: IT de `DisponibilidadService`: descuenta turnos que ocupan agenda y bloqueos; trata `CANCELADO` y pendientes vencidas no expiradas como libres; prestación inactiva → 422, inexistente → 404; confirmar que falla [agenda-availability › Turnos y bloqueos descuentan huecos, Turnos cancelados y pendientes vencidas no ocupan, Prestación inactiva o inexistente]
+- [x] 5.2 GREEN: implementar `DisponibilidadService` (read-only, zona del consultorio, política odontólogo para la API); verificar que 5.1 pasa
+- [x] 5.3 RED → GREEN: `AgendaApiIT`: `GET /api/v1/agenda/disponibilidad` y `GET /api/v1/agenda` → `200` ordenados (agenda con todos los estados y `version`); rango invertido o > 31 días → `422`; parámetro faltante → `400`; sin sesión → `401` [agenda-availability › Huecos de un día sin turnos, Agenda semanal, Agenda sin sesión, Rango invertido, Rango demasiado largo, Parámetro faltante]
+- [x] 5.4 RED → GREEN: `GET /api/v1/bloqueos/{id}/turnos-afectados`: devuelve solo turnos que ocupan agenda y solapan el bloqueo; bloqueo inexistente o de otro consultorio → `404`; crear el bloqueo no modifica turnos (cierra US-012) [agenda-availability › Bloqueo que pisa turnos, Bloqueo inexistente]
 
 ## 6. [P1 Thomas] Expiración de pendientes (bloqueado por grupo 3)
 

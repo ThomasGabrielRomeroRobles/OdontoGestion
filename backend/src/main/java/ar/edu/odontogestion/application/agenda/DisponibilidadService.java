@@ -6,11 +6,13 @@ import ar.edu.odontogestion.domain.agenda.CalculadoraDisponibilidad;
 import ar.edu.odontogestion.domain.agenda.FranjaHoraria;
 import ar.edu.odontogestion.domain.agenda.Hueco;
 import ar.edu.odontogestion.domain.agenda.HorarioTrabajoRepository;
+import ar.edu.odontogestion.domain.agenda.PoliticaAnticipacion;
 import ar.edu.odontogestion.domain.agenda.Prestacion;
 import ar.edu.odontogestion.domain.agenda.PrestacionRepository;
 import ar.edu.odontogestion.domain.consultorio.Consultorio;
 import ar.edu.odontogestion.domain.consultorio.ConsultorioRepository;
 import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
+import ar.edu.odontogestion.domain.error.ValidacionDominioException;
 import ar.edu.odontogestion.domain.turno.TurnoRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -48,6 +50,24 @@ public class DisponibilidadService {
         this.bloqueos = bloqueos;
         this.turnos = turnos;
         this.clock = clock;
+    }
+
+    /**
+     * Huecos libres para una prestación activa entre dos fechas locales inclusivas (API del odontólogo: política
+     * {@link PoliticaAnticipacion#odontologo()}, sin anticipación mínima).
+     */
+    @Transactional(readOnly = true)
+    public List<Hueco> huecosLibres(Long prestacionId, LocalDate desde, LocalDate hasta) {
+        RangoConsulta.validar(desde, hasta);
+        Long consultorioId = consultorioActual.id();
+        Consultorio consultorio = consultorios.findById(consultorioId).orElseThrow();
+        Prestacion prestacion = prestaciones.findByIdAndConsultorio_Id(prestacionId, consultorioId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Prestación no encontrada"));
+        if (!prestacion.isActiva()) {
+            throw new ValidacionDominioException("prestacionId", "La prestación está desactivada.");
+        }
+        return calcular(consultorio, prestacion, desde, hasta,
+                PoliticaAnticipacion.odontologo().minimoInicio(clock.instant()));
     }
 
     /**
