@@ -247,4 +247,33 @@ class GlobalExceptionHandlerWebMvcTest {
                 .andExpect(jsonPath("$.alternativas").isArray())
                 .andExpect(jsonPath("$.alternativas.length()").value(0));
     }
+
+    @Test
+    void transicionInvalidaDevuelve422ConSuTipo() throws Exception {
+        mockMvc.perform(get("/api/v1/recurso-de-prueba/1/transicion-invalida"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("https://odontogestion.example/problemas/transicion-invalida"))
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("CANCELADO")));
+    }
+
+    @Test
+    void modificacionConcurrenteDevuelve409SinFiltrarClasesNiDetallesInternos() throws Exception {
+        String cuerpo = mockMvc.perform(get("/api/v1/recurso-de-prueba/77/modificacion-concurrente"))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("https://odontogestion.example/problemas/modificacion-concurrente"))
+                .andExpect(jsonPath("$.detail").isNotEmpty())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(cuerpo).doesNotContain("ar.edu").doesNotContain("Hibernate").doesNotContain("Optimistic")
+                .doesNotContain("SQL");
+    }
+
+    @Test
+    void modificacionConcurrenteNoSeRegistraComoErrorInesperado(CapturedOutput salida) throws Exception {
+        mockMvc.perform(get("/api/v1/recurso-de-prueba/78/modificacion-concurrente")).andExpect(status().isConflict());
+
+        assertThat(salida.getOut() + salida.getErr()).doesNotContain("Error no controlado");
+    }
 }

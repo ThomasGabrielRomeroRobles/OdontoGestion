@@ -9,7 +9,10 @@ import ar.edu.odontogestion.domain.error.ReglaNegocioException;
 import ar.edu.odontogestion.domain.error.TokenInvalidoException;
 import ar.edu.odontogestion.domain.error.ValidacionDominioException;
 import ar.edu.odontogestion.domain.turno.HuecoNoDisponibleException;
+import ar.edu.odontogestion.domain.turno.EstadoTurno;
+import ar.edu.odontogestion.domain.turno.TransicionInvalidaException;
 import java.time.Instant;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import java.util.List;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -85,5 +88,16 @@ class ErrorTestController {
                 new Hueco(Instant.parse("2026-11-23T13:30:00Z"), Instant.parse("2026-11-23T14:00:00Z")),
                 new Hueco(Instant.parse("2026-11-23T13:45:00Z"), Instant.parse("2026-11-23T14:15:00Z")));
         throw new HuecoNoDisponibleException(todas.subList(0, alternativas));
+    }
+
+    @GetMapping("/{id}/transicion-invalida")
+    String transicionInvalida(@PathVariable long id) {
+        throw new TransicionInvalidaException(EstadoTurno.CANCELADO, EstadoTurno.ATENDIDO);
+    }
+
+    /** El mensaje de la excepción de Spring nombra la clase de la entidad: no debe llegar al cliente. */
+    @GetMapping("/{id}/modificacion-concurrente")
+    String modificacionConcurrente(@PathVariable long id) {
+        throw new ObjectOptimisticLockingFailureException("ar.edu.odontogestion.domain.turno.Turno", id);
     }
 }

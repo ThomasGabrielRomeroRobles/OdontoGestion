@@ -162,4 +162,106 @@ class TurnoTest {
         assertThat(c.getEstado()).isEqualTo(EstadoTurno.AUSENTE);
         assertThatThrownBy(pendiente()::marcarAusente).isInstanceOf(TransicionInvalidaException.class);
     }
+
+    // ---- Grupo 7: cancelar y mover ----
+
+    @Test
+    void cancelarDesdePendienteReservadoOConfirmadoRegistraQuienYElMotivo() {
+        for (EstadoTurno origen : new EstadoTurno[] {EstadoTurno.PENDIENTE_CONFIRMACION, EstadoTurno.RESERVADO,
+                EstadoTurno.CONFIRMADO}) {
+            Turno t = enEstado(origen);
+
+            t.cancelar(CanceladoPor.ODONTOLOGO, "Imprevisto del consultorio");
+
+            assertThat(t.getEstado()).as(origen.name()).isEqualTo(EstadoTurno.CANCELADO);
+            assertThat(t.getCanceladoPor()).isEqualTo(CanceladoPor.ODONTOLOGO);
+            assertThat(t.getMotivoCancelacion()).isEqualTo("Imprevisto del consultorio");
+        }
+    }
+
+    @Test
+    void cancelarConMotivoVacioOEnBlancoLoGuardaComoNulo() {
+        for (String vacio : new String[] {null, "", "   "}) {
+            Turno t = enEstado(EstadoTurno.CONFIRMADO);
+
+            t.cancelar(CanceladoPor.PACIENTE, vacio);
+
+            assertThat(t.getMotivoCancelacion()).as("motivo [" + vacio + "]").isNull();
+            assertThat(t.getCanceladoPor()).isEqualTo(CanceladoPor.PACIENTE);
+        }
+    }
+
+    @Test
+    void cancelarAceptaUnMotivoDe200YRechazaUnoDe201() {
+        Turno ok = enEstado(EstadoTurno.RESERVADO);
+        ok.cancelar(CanceladoPor.ODONTOLOGO, "x".repeat(200));
+        Turno largo = enEstado(EstadoTurno.RESERVADO);
+
+        assertThat(ok.getMotivoCancelacion()).hasSize(200);
+        assertThatThrownBy(() -> largo.cancelar(CanceladoPor.ODONTOLOGO, "x".repeat(201)))
+                .isInstanceOfSatisfying(ar.edu.odontogestion.domain.error.ValidacionDominioException.class,
+                        e -> assertThat(e.errores().get(0).field()).isEqualTo("motivo"));
+        assertThat(largo.getEstado()).isEqualTo(EstadoTurno.RESERVADO);
+        assertThat(largo.getCanceladoPor()).isNull();
+    }
+
+    @Test
+    void cancelarUnTurnoFinalizadoLanzaYNoModificaNada() {
+        for (EstadoTurno origen : new EstadoTurno[] {EstadoTurno.ATENDIDO, EstadoTurno.AUSENTE,
+                EstadoTurno.CANCELADO, EstadoTurno.EXPIRADO}) {
+            Turno t = enEstado(origen);
+            CanceladoPor antes = t.getCanceladoPor();
+            String motivoAntes = t.getMotivoCancelacion();
+
+            assertThatThrownBy(() -> t.cancelar(CanceladoPor.ODONTOLOGO, "otro motivo"))
+                    .as(origen.name()).isInstanceOf(TransicionInvalidaException.class);
+
+            assertThat(t.getEstado()).isEqualTo(origen);
+            assertThat(t.getCanceladoPor()).isEqualTo(antes);
+            assertThat(t.getMotivoCancelacion()).isEqualTo(motivoAntes);
+        }
+    }
+
+    @Test
+    void moverDesdeReservadoConservaDuracionEstadoPacienteYPrestacionYDevuelveElRangoAnterior() {
+        Turno t = Turno.reservado(consultorio, paciente, prestacion(45), INICIO, OrigenTurno.ODONTOLOGO);
+        Instant nuevo = INICIO.plus(Duration.ofHours(2));
+
+        ar.edu.odontogestion.domain.agenda.Hueco anterior = t.mover(nuevo);
+
+        assertThat(anterior).isEqualTo(new ar.edu.odontogestion.domain.agenda.Hueco(INICIO,
+                INICIO.plus(Duration.ofMinutes(45))));
+        assertThat(t.getInicio()).isEqualTo(nuevo);
+        assertThat(t.getFin()).isEqualTo(nuevo.plus(Duration.ofMinutes(45)));
+        assertThat(t.getEstado()).isEqualTo(EstadoTurno.RESERVADO);
+        assertThat(t.getPaciente()).isSameAs(paciente);
+        assertThat(t.getPrestacion().getDuracionMin()).isEqualTo(45);
+    }
+
+    @Test
+    void moverDesdeConfirmadoConservaElEstadoYAdmiteUnSolapeConSuPropioRango() {
+        Turno t = enEstado(EstadoTurno.CONFIRMADO);
+
+        t.mover(INICIO.plus(Duration.ofMinutes(15)));
+
+        assertThat(t.getEstado()).isEqualTo(EstadoTurno.CONFIRMADO);
+        assertThat(t.getInicio()).isEqualTo(INICIO.plus(Duration.ofMinutes(15)));
+        assertThat(t.getFin()).isEqualTo(INICIO.plus(Duration.ofMinutes(45)));
+    }
+
+    @Test
+    void moverDesdeCualquierOtroEstadoLanzaYNoCambiaElHorario() {
+        for (EstadoTurno origen : new EstadoTurno[] {EstadoTurno.PENDIENTE_CONFIRMACION, EstadoTurno.CANCELADO,
+                EstadoTurno.EXPIRADO, EstadoTurno.AUSENTE, EstadoTurno.ATENDIDO}) {
+            Turno t = enEstado(origen);
+
+            assertThatThrownBy(() -> t.mover(INICIO.plus(Duration.ofHours(1))))
+                    .as(origen.name())
+                    .isInstanceOf(TransicionInvalidaException.class)
+                    .hasMessageContaining(origen.name());
+
+            assertThat(t.getInicio()).isEqualTo(INICIO);
+            assertThat(t.getEstado()).isEqualTo(origen);
+        }
+    }
 }

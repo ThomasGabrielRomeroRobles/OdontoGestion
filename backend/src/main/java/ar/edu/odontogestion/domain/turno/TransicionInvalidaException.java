@@ -9,9 +9,19 @@ public class TransicionInvalidaException extends ReglaNegocioException {
     private final EstadoTurno hacia;
 
     public TransicionInvalidaException(EstadoTurno desde, EstadoTurno hacia) {
-        super("No se puede pasar un turno de " + desde + " a " + hacia + ".");
+        this("No se puede pasar un turno de " + desde + " a " + hacia + ".", desde, hacia);
+    }
+
+    private TransicionInvalidaException(String mensaje, EstadoTurno desde, EstadoTurno hacia) {
+        super(mensaje);
         this.desde = desde;
         this.hacia = hacia;
+    }
+
+    /** Solo {@code RESERVADO} y {@code CONFIRMADO} pueden cambiar de horario. */
+    public static TransicionInvalidaException noMovible(EstadoTurno actual) {
+        return new TransicionInvalidaException("No se puede mover un turno en estado " + actual + ".", actual,
+                null);
     }
 
     public EstadoTurno desde() {

@@ -78,14 +78,14 @@
 
 ## 7. [P2 Martina] Transiciones de mover y cancelar en el dominio (bloqueado por grupo 1)
 
-- [ ] 7.1 RED: `TurnoTest` amplía: `cancelar(ODONTOLOGO, motivo)` desde pendiente/reservado/confirmado → `CANCELADO` con `canceladoPor` y motivo (vacío permitido); desde `ATENDIDO` → `TransicionInvalidaException`; confirmar que falla [turno-lifecycle › Cancelación con motivo, Cancelación sin motivo, Cancelar un turno ya finalizado]
-- [ ] 7.2 GREEN: implementar `cancelar`; verificar que 7.1 pasa
-- [ ] 7.3 RED → GREEN: `mover(nuevoInicio)` desde `RESERVADO`/`CONFIRMADO` conserva duración, estado, paciente y prestación y devuelve el rango anterior; desde los otros cinco estados → `TransicionInvalidaException` [turno-lifecycle › Movimiento exitoso, Mover un turno en estado no movible]
+- [x] 7.1 RED: `TurnoTest` amplía: `cancelar(ODONTOLOGO, motivo)` desde pendiente/reservado/confirmado → `CANCELADO` con `canceladoPor` y motivo (vacío permitido); desde `ATENDIDO` → `TransicionInvalidaException`; confirmar que falla [turno-lifecycle › Cancelación con motivo, Cancelación sin motivo, Cancelar un turno ya finalizado]
+- [x] 7.2 GREEN: implementar `cancelar`; verificar que 7.1 pasa
+- [x] 7.3 RED → GREEN: `mover(nuevoInicio)` desde `RESERVADO`/`CONFIRMADO` conserva duración, estado, paciente y prestación y devuelve el rango anterior; desde los otros cinco estados → `TransicionInvalidaException` [turno-lifecycle › Movimiento exitoso, Mover un turno en estado no movible]
 
 ## 8. [P2 Martina] Errores 409/422 de turnos en la API (bloqueado por grupo 1; sin base)
 
-- [ ] 8.1 RED: ampliar `GlobalExceptionHandlerWebMvcTest` (con `ErrorTestController`): `TransicionInvalidaException` → `422` `type …/transicion-invalida`; `ObjectOptimisticLockingFailureException` → `409` `type …/modificacion-concurrente` sin nombres de clases ni SQL en el cuerpo; `HuecoNoDisponibleException` → `409` con `alternativas`; confirmar que falla
-- [ ] 8.2 GREEN: agregar los handlers a `GlobalExceptionHandler`; verificar que 8.1 pasa y que los tests existentes del handler siguen en verde
+- [x] 8.1 RED: ampliar `GlobalExceptionHandlerWebMvcTest` (con `ErrorTestController`): `TransicionInvalidaException` → `422` `type …/transicion-invalida`; `ObjectOptimisticLockingFailureException` → `409` `type …/modificacion-concurrente` sin nombres de clases ni SQL en el cuerpo; `HuecoNoDisponibleException` → `409` con `alternativas`; confirmar que falla
+- [x] 8.2 GREEN: agregar los handlers a `GlobalExceptionHandler`; verificar que 8.1 pasa y que los tests existentes del handler siguen en verde
 
 ## 9. [P2 Martina] Mover, cancelar y atender (bloqueado por grupos 3, 4 y 7)
 

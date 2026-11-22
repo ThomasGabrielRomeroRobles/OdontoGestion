@@ -1,8 +1,10 @@
 package ar.edu.odontogestion.domain.turno;
 
+import ar.edu.odontogestion.domain.agenda.Hueco;
 import ar.edu.odontogestion.domain.agenda.Prestacion;
 import ar.edu.odontogestion.domain.comun.AuditableEntity;
 import ar.edu.odontogestion.domain.consultorio.Consultorio;
+import ar.edu.odontogestion.domain.error.ValidacionDominioException;
 import ar.edu.odontogestion.domain.paciente.Paciente;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,6 +27,9 @@ import java.time.Instant;
 @Entity
 @Table(name = "turno")
 public class Turno extends AuditableEntity {
+
+    /** Largo máximo del motivo de cancelación ({@code ck_turno_motivo_largo}). */
+    public static final int MOTIVO_MAX = 200;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "consultorio_id", nullable = false, updatable = false)
@@ -118,11 +123,35 @@ public class Turno extends AuditableEntity {
         transicionarA(EstadoTurno.EXPIRADO);
     }
 
-    /** Cancela el turno; un motivo en blanco se guarda como {@code null}. */
+    /**
+     * Cancela el turno; un motivo en blanco se guarda como {@code null} (máximo 200 caracteres, igual que la base).
+     * Valida antes de modificar nada.
+     */
     public void cancelar(CanceladoPor quien, String motivo) {
+        String normalizado = motivo == null || motivo.isBlank() ? null : motivo.strip();
+        if (normalizado != null && normalizado.length() > MOTIVO_MAX) {
+            throw new ValidacionDominioException("motivo", "Máximo " + MOTIVO_MAX + " caracteres.");
+        }
         transicionarA(EstadoTurno.CANCELADO);
         this.canceladoPor = quien;
-        this.motivoCancelacion = motivo == null || motivo.isBlank() ? null : motivo.strip();
+        this.motivoCancelacion = normalizado;
+    }
+
+    /**
+     * Cambia el inicio conservando duración, estado, paciente y prestación (solo {@code RESERVADO} o
+     * {@code CONFIRMADO}, RN-TU). No chequea la agenda: si el nuevo rango choca, lo rechaza la base al guardar.
+     *
+     * @return el rango anterior, que queda libre en el mismo cambio
+     */
+    public Hueco mover(Instant nuevoInicio) {
+        if (estado != EstadoTurno.RESERVADO && estado != EstadoTurno.CONFIRMADO) {
+            throw TransicionInvalidaException.noMovible(estado);
+        }
+        Hueco anterior = new Hueco(inicio, fin);
+        Duration duracion = Duration.between(inicio, fin);
+        this.inicio = nuevoInicio;
+        this.fin = nuevoInicio.plus(duracion);
+        return anterior;
     }
 
     private void transicionarA(EstadoTurno destino) {
