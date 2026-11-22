@@ -75,6 +75,10 @@ El odontólogo autenticado SHALL poder crear un turno indicando paciente, presta
 - **WHEN** se crea un turno con una prestación desactivada
 - **THEN** la respuesta es `422`
 
+#### Scenario: Paciente dado de baja
+- **WHEN** se crea un turno para un paciente dado de baja
+- **THEN** la respuesta es `422` y no se crea ningún turno
+
 ### Requirement: Validación del horario de un turno
 Un turno nuevo o movido SHALL quedar íntegramente dentro de un horario de trabajo, fuera de todo bloqueo de agenda, con inicio alineado a la granularidad vigente y no en el pasado; si no cumple MUST responderse `422` sin cambios. El odontólogo no está sujeto a la anticipación mínima de reserva.
 
@@ -223,7 +227,7 @@ Por cada cambio de agenda el sistema SHALL emitir un evento de turno creado, tur
 - **THEN** no se emite ningún evento
 
 ### Requirement: Notificación al paciente de cambios en su turno
-Al crear un turno que nace `RESERVADO` o al moverlo, el sistema SHALL encolar una notificación `CONFIRMACION_TURNO`; al cancelarlo, una `CANCELACION`. Su contenido MUST limitarse a fecha, hora y consultorio, sin datos clínicos; un fallo de envío no revierte el cambio.
+Al crear un turno que nace `RESERVADO` o al moverlo, el sistema SHALL encolar una notificación `CONFIRMACION_TURNO`; al cancelarlo, una `CANCELACION`. Su contenido MUST limitarse a fecha, hora, consultorio y nombre de la prestación, sin DNI, tokens ni datos de la historia clínica; un fallo de envío no revierte el cambio.
 
 #### Scenario: Confirmación encolada al crear
 - **WHEN** el odontólogo crea un turno para un paciente con email
@@ -242,7 +246,7 @@ Al crear un turno que nace `RESERVADO` o al moverlo, el sistema SHALL encolar un
 - **WHEN** el odontólogo cancela un turno
 - **THEN** el turno queda `CANCELADO` y la notificación queda registrada para reintento
 
-#### Scenario: Paciente sin email
-- **GIVEN** un paciente sin email registrado
-- **WHEN** el odontólogo le crea un turno
-- **THEN** el turno se crea y no se encola ninguna notificación
+#### Scenario: Mover re-notifica
+- **GIVEN** un turno `RESERVADO` con su `CONFIRMACION_TURNO` ya encolada
+- **WHEN** el odontólogo lo mueve
+- **THEN** queda encolada una segunda `CONFIRMACION_TURNO` para ese turno con el horario nuevo
