@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.domain.agenda;
 
+import java.time.Duration;
 import java.time.Instant;
 
 /**
@@ -16,20 +17,16 @@ public final class PoliticaAnticipacion {
 
     /** Sin anticipación: huecos desde el momento actual. */
     public static PoliticaAnticipacion odontologo() {
-        throw new UnsupportedOperationException("Pendiente: tarea 2.4");
+        return new PoliticaAnticipacion(0);
     }
 
     /** Solo huecos que empiezan al menos {@code anticipacionMin} minutos después de ahora. */
     public static PoliticaAnticipacion publica(int anticipacionMin) {
-        throw new UnsupportedOperationException("Pendiente: tarea 2.4");
+        return new PoliticaAnticipacion(anticipacionMin);
     }
 
     /** Primer instante de inicio admitido en el momento {@code ahora}. */
     public Instant minimoInicio(Instant ahora) {
-        throw new UnsupportedOperationException("Pendiente: tarea 2.4");
-    }
-
-    int anticipacionMin() {
-        return anticipacionMin;
+        return ahora.plus(Duration.ofMinutes(anticipacionMin));
     }
 }

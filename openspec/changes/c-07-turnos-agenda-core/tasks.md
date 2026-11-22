@@ -38,10 +38,10 @@
 
 ## 2. [P1 Thomas] Calculadora de disponibilidad pura (no bloqueado)
 
-- [ ] 2.1 RED: `domain.agenda.CalculadoraDisponibilidadTest` (sin Spring): horario 09:00–10:00, granularidad 15, duración 30 → 09:00, 09:15, 09:30; día sin horario → vacío; dos horarios el mismo día (09–13, 14–18) sin huecos que crucen el corte; confirmar que falla [agenda-availability › Huecos de un día sin turnos, Día sin horario de trabajo]
-- [ ] 2.2 GREEN: implementar `CalculadoraDisponibilidad` y `Hueco` según D7; verificar que 2.1 pasa
-- [ ] 2.3 RED → GREEN: triangular con ocupados y bloqueos en `[)` (contiguo permitido, solape parcial descartado), `horaDesde` no alineada (primer candidato alineado), duración no múltiplo de la granularidad, ventana de varios días ordenada, y conversión de zona (`America/Argentina/Buenos_Aires`, turno a las 22:00 local = 01:00 UTC del día siguiente); verificar que pasan [agenda-availability › Turnos y bloqueos descuentan huecos; turno-lifecycle › Turnos contiguos permitidos (lógica orientativa)]
-- [ ] 2.4 RED → GREEN: `PoliticaAnticipacionTest`: `odontologo()` excluye huecos con inicio < ahora; `publica(120)` excluye un hueco a 60 min e incluye uno a 120 min exactos; verificar que pasan [agenda-availability › Política pública, Política del odontólogo, Huecos pasados excluidos]
+- [x] 2.1 RED: `domain.agenda.CalculadoraDisponibilidadTest` (sin Spring): horario 09:00–10:00, granularidad 15, duración 30 → 09:00, 09:15, 09:30; día sin horario → vacío; dos horarios el mismo día (09–13, 14–18) sin huecos que crucen el corte; confirmar que falla [agenda-availability › Huecos de un día sin turnos, Día sin horario de trabajo]
+- [x] 2.2 GREEN: implementar `CalculadoraDisponibilidad` y `Hueco` según D7; verificar que 2.1 pasa
+- [x] 2.3 RED → GREEN: triangular con ocupados y bloqueos en `[)` (contiguo permitido, solape parcial descartado), `horaDesde` no alineada (primer candidato alineado), duración no múltiplo de la granularidad, ventana de varios días ordenada, y conversión de zona (`America/Argentina/Buenos_Aires`, turno a las 22:00 local = 01:00 UTC del día siguiente); verificar que pasan [agenda-availability › Turnos y bloqueos descuentan huecos; turno-lifecycle › Turnos contiguos permitidos (lógica orientativa)]
+- [x] 2.4 RED → GREEN: `PoliticaAnticipacionTest`: `odontologo()` excluye huecos con inicio < ahora; `publica(120)` excluye un hueco a 60 min e incluye uno a 120 min exactos; verificar que pasan [agenda-availability › Política pública, Política del odontólogo, Huecos pasados excluidos]
 
 ## 3. [P1 Thomas] Migración V9 y persistencia (no bloqueado: C-03, C-04 y C-06 en `main`)
 
