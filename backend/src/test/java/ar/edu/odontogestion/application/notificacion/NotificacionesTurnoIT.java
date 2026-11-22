@@ -146,15 +146,27 @@ class NotificacionesTurnoIT extends AbstractTurnoIT {
     }
 
     @Test
-    void unaSolicitudPendienteNoEncolaConfirmacionDeTurno() {
+    void unaSolicitudPublicaPendienteEncolaSoloConfirmarSolicitudSinTokenEnLaFila() {
         Instant inicio = lunes("12:00");
 
-        var dto = reservas.reservar(new SolicitudReserva(paciente, prestacion, inicio, OrigenTurno.PUBLICA,
-                EstadoTurno.PENDIENTE_CONFIRMACION, PoliticaAnticipacion.publica(120)));
+        var dto = reservas.reservar(SolicitudReserva.publica(paciente, prestacion, inicio, 120));
 
         assertThat(dto.estado()).isEqualTo(EstadoTurno.PENDIENTE_CONFIRMACION);
         assertThat(dto.pendienteHasta()).isEqualTo(reloj.instant().plusSeconds(30 * 60));
-        assertThat(notificacionesDe(dto.id())).isEmpty();
+        assertThat(notificacionesDe(dto.id())).singleElement().satisfies(n -> {
+            assertThat(n).containsEntry("tipo", "CONFIRMAR_SOLICITUD").containsEntry("estado", "PENDIENTE")
+                    .containsEntry("destinatario", emailPaciente);
+            assertThat((String) n.get("datos")).doesNotContainPattern("38\\d{6}").doesNotContain("@");
+        });
+        String enlaces = jdbc.queryForObject("SELECT enlaces::text FROM notificacion WHERE turno_id = ?",
+                String.class, dto.id());
+        JsonNode lista = leer(enlaces);
+        assertThat(lista).hasSize(1);
+        assertThat(lista.get(0).get("proposito").asText()).isEqualTo("CONFIRMAR_SOLICITUD");
+        assertThat(Instant.parse(lista.get(0).get("venceEn").asText())).isEqualTo(dto.pendienteHasta());
+        assertThat(lista.get(0).fieldNames()).toIterable().containsExactlyInAnyOrder("proposito", "venceEn");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM token_acceso WHERE turno_id = ?", Integer.class,
+                dto.id())).as("el token se emite recién al enviar").isZero();
     }
 
     private JsonNode leer(String texto) {

@@ -1,10 +1,14 @@
 package ar.edu.odontogestion.application.notificacion;
 
+import ar.edu.odontogestion.domain.notificacion.EnlaceProgramado;
 import ar.edu.odontogestion.domain.notificacion.TipoNotificacion;
+import ar.edu.odontogestion.domain.token.PropositoToken;
 import ar.edu.odontogestion.domain.token.ReferenciaToken;
 import ar.edu.odontogestion.domain.turno.EstadoTurno;
 import ar.edu.odontogestion.domain.turno.Turno;
 import ar.edu.odontogestion.domain.turno.TurnoRepository;
+import ar.edu.odontogestion.domain.turno.OrigenTurno;
+import ar.edu.odontogestion.domain.turno.evento.SolicitudConfirmada;
 import ar.edu.odontogestion.domain.turno.evento.TurnoCancelado;
 import ar.edu.odontogestion.domain.turno.evento.TurnoCreado;
 import ar.edu.odontogestion.domain.turno.evento.TurnoMovido;
@@ -40,21 +44,34 @@ public class NotificacionesTurnoListener {
         this.notificaciones = notificaciones;
     }
 
-    /** Un turno que nace {@code RESERVADO} se confirma al paciente; una solicitud pendiente no (la envía C-09). */
+    /**
+     * Un turno que nace {@code RESERVADO} se confirma al paciente. Una solicitud pública {@code PENDIENTE_CONFIRMACION}
+     * recibe el mail con el enlace {@code CONFIRMAR_SOLICITUD}, que vence en {@code pendiente_hasta} (C-09 D2).
+     */
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     public void alCrear(TurnoCreado evento) {
-        if (evento.estado() != EstadoTurno.RESERVADO) {
-            return;
+        if (evento.estado() == EstadoTurno.RESERVADO) {
+            turnos.findById(evento.turnoId()).ifPresent(t -> encolar(TipoNotificacion.CONFIRMACION_TURNO, t,
+                    t.getInicio(), List.of()));
+        } else if (evento.estado() == EstadoTurno.PENDIENTE_CONFIRMACION && evento.origen() == OrigenTurno.PUBLICA) {
+            turnos.findById(evento.turnoId()).ifPresent(t -> encolar(TipoNotificacion.CONFIRMAR_SOLICITUD, t,
+                    t.getInicio(), List.of(new EnlaceProgramado(PropositoToken.CONFIRMAR_SOLICITUD,
+                            t.getPendienteHasta()))));
         }
+    }
+
+    /** Confirmada la solicitud por el paciente: se le avisa que el turno quedó reservado (C-09 D6). */
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    public void alConfirmarSolicitud(SolicitudConfirmada evento) {
         turnos.findById(evento.turnoId()).ifPresent(t -> encolar(TipoNotificacion.CONFIRMACION_TURNO, t,
-                t.getInicio()));
+                t.getInicio(), List.of()));
     }
 
     /** Mover re-notifica con el horario nuevo (RN-NO-07: {@code CONFIRMACION_TURNO} puede repetirse). */
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     public void alMover(TurnoMovido evento) {
         turnos.findById(evento.turnoId()).ifPresent(t -> encolar(TipoNotificacion.CONFIRMACION_TURNO, t,
-                evento.inicioNuevo()));
+                evento.inicioNuevo(), List.of()));
     }
 
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
@@ -64,10 +81,10 @@ public class NotificacionesTurnoListener {
             log.warn("No se encolan avisos: el turno {} ya no existe", evento.turnoId());
             return;
         }
-        encolar(TipoNotificacion.CANCELACION, turno.get(), turno.get().getInicio());
+        encolar(TipoNotificacion.CANCELACION, turno.get(), turno.get().getInicio(), List.of());
     }
 
-    private void encolar(TipoNotificacion tipo, Turno turno, Instant inicio) {
+    private void encolar(TipoNotificacion tipo, Turno turno, Instant inicio, List<EnlaceProgramado> enlaces) {
         String email = turno.getPaciente().getEmail();
         if (email == null || email.isBlank()) {
             log.warn("No se encola {} del turno {}: el paciente no tiene email", tipo, turno.getId());
@@ -77,6 +94,6 @@ public class NotificacionesTurnoListener {
                 "consultorio", turno.getConsultorio().getNombre(),
                 "inicio", inicio.toString(),
                 "prestacion", turno.getPrestacion().getNombre());
-        notificaciones.encolar(tipo, email, new ReferenciaToken.Turno(turno.getId()), datos, List.of());
+        notificaciones.encolar(tipo, email, new ReferenciaToken.Turno(turno.getId()), datos, enlaces);
     }
 }

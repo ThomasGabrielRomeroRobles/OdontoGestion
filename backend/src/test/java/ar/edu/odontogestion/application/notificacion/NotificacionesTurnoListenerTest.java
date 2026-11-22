@@ -13,9 +13,11 @@ import static org.mockito.Mockito.when;
 
 import ar.edu.odontogestion.domain.agenda.Prestacion;
 import ar.edu.odontogestion.domain.consultorio.Consultorio;
+import ar.edu.odontogestion.domain.notificacion.EnlaceProgramado;
 import ar.edu.odontogestion.domain.notificacion.TipoNotificacion;
 import ar.edu.odontogestion.domain.paciente.DatosPaciente;
 import ar.edu.odontogestion.domain.paciente.Paciente;
+import ar.edu.odontogestion.domain.token.PropositoToken;
 import ar.edu.odontogestion.domain.token.ReferenciaToken;
 import ar.edu.odontogestion.domain.turno.CanceladoPor;
 import ar.edu.odontogestion.domain.turno.EstadoTurno;
@@ -99,11 +101,55 @@ class NotificacionesTurnoListenerTest {
     }
 
     @Test
-    void turnoCreadoPendienteDeConfirmacionNoEncolaNada() {
-        listener.alCrear(new TurnoCreado(9L, 1L, EstadoTurno.PENDIENTE_CONFIRMACION, OrigenTurno.PUBLICA));
+    void turnoCreadoPendienteQueNoEsDeLaPaginaPublicaNoEncolaNada() {
+        listener.alCrear(new TurnoCreado(9L, 1L, EstadoTurno.PENDIENTE_CONFIRMACION, OrigenTurno.LISTA_ESPERA));
 
         verifyNoInteractions(notificaciones);
         verifyNoInteractions(turnos);
+    }
+
+    private Turno pendientePublica(long id, String email, Instant pendienteHasta) {
+        Paciente paciente = Paciente.nuevo(consultorio,
+                new DatosPaciente("Ana", "Ficticia", DNI, null, "+54 11 5555-0000", email, null));
+        Prestacion prestacion = Prestacion.nueva(consultorio, "Consulta", 30);
+        Turno t = Turno.pendiente(consultorio, paciente, prestacion, INICIO, OrigenTurno.PUBLICA, pendienteHasta);
+        ReflectionTestUtils.setField(t, "id", id);
+        when(turnos.findById(id)).thenReturn(Optional.of(t));
+        return t;
+    }
+
+    @Test
+    void solicitudPublicaPendienteEncolaConfirmarSolicitudConEnlaceQueVenceEnPendienteHasta() {
+        Instant vence = Instant.parse("2026-11-20T12:30:00Z");
+        pendientePublica(11L, EMAIL, vence);
+
+        listener.alCrear(new TurnoCreado(11L, 1L, EstadoTurno.PENDIENTE_CONFIRMACION, OrigenTurno.PUBLICA));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, String>> datos = ArgumentCaptor.forClass(Map.class);
+        verify(notificaciones).encolar(eq(TipoNotificacion.CONFIRMAR_SOLICITUD), eq(EMAIL),
+                eq(new ReferenciaToken.Turno(11L)), datos.capture(),
+                eq(List.of(new EnlaceProgramado(PropositoToken.CONFIRMAR_SOLICITUD, vence))));
+        assertThat(datos.getValue()).containsOnly(
+                Map.entry("consultorio", "Consultorio Ficticio Sonrisa"),
+                Map.entry("inicio", "2026-11-23T13:00:00Z"),
+                Map.entry("prestacion", "Consulta"));
+        PlantillaNotificacion.de(TipoNotificacion.CONFIRMAR_SOLICITUD).validarDatos(datos.getValue());
+        assertThat(datos.getValue().values()).doesNotContain(DNI);
+    }
+
+    @Test
+    void cadaSolicitudUsaSuPropioEmailYVencimiento() {
+        Instant vence = Instant.parse("2026-11-20T12:45:00Z");
+        pendientePublica(12L, "otra@ejemplo.test", vence);
+
+        listener.alCrear(new TurnoCreado(12L, 1L, EstadoTurno.PENDIENTE_CONFIRMACION, OrigenTurno.PUBLICA));
+
+        verify(notificaciones).encolar(eq(TipoNotificacion.CONFIRMAR_SOLICITUD), eq("otra@ejemplo.test"),
+                eq(new ReferenciaToken.Turno(12L)), anyMap(),
+                eq(List.of(new EnlaceProgramado(PropositoToken.CONFIRMAR_SOLICITUD, vence))));
+        verify(notificaciones, never()).encolar(eq(TipoNotificacion.CONFIRMACION_TURNO), any(), any(), any(),
+                any());
     }
 
     @Test

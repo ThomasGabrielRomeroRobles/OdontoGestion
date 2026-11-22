@@ -63,6 +63,21 @@ public interface TurnoRepository extends JpaRepository<Turno, Long> {
             @Param("hasta") Instant hasta, @Param("ahora") Instant ahora);
 
     /**
+     * Solicitudes {@code PENDIENTE_CONFIRMACION} aún vigentes ({@code pendiente_hasta > ahora}) de pacientes del
+     * consultorio con ese DNI <b>o</b> ese email (C-09 D4: máximo de pendientes). {@code dni} y {@code email} llegan
+     * normalizados; las vencidas y las ya confirmadas no cuentan.
+     */
+    @Query("""
+            select count(t) from Turno t
+            where t.consultorio.id = :consultorioId
+              and t.estado = ar.edu.odontogestion.domain.turno.EstadoTurno.PENDIENTE_CONFIRMACION
+              and t.pendienteHasta > :ahora
+              and (t.paciente.dni = :dni or lower(t.paciente.email) = :email)
+            """)
+    long contarPendientesVigentesPorDniOEmail(@Param("consultorioId") Long consultorioId, @Param("dni") String dni,
+            @Param("email") String email, @Param("ahora") Instant ahora);
+
+    /**
      * Expira en masa las pendientes vencidas del consultorio (design D8). Idempotente. Incrementa {@code version}
      * para que una transacción concurrente que ya había cargado el turno falle con 409 al guardar. Exige una
      * transacción abierta (la abre el service) y no publica eventos: la expiración no libera un hueco ofrecido.
