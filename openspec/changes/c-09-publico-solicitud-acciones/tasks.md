@@ -69,8 +69,8 @@
 
 ## 6. [P2 Martina] Identificación de tokens sin consumo (D6, C-03)
 
-- [ ] 6.1 RED: IT de `TokenAccesoService.identificar(valor, admitidos)`: token `CANCELAR_TURNO` vigente → propósito, referencia y vencimiento, `usado_en` sigue nulo; `ACEPTAR_AVISO` fuera del conjunto → `TokenInvalidoException` y sigue consumible; usado, vencido (con `MutableClock`) e inexistente → mismo rechazo [patient-access-tokens › Identificar un token vigente, Propósito fuera del conjunto, Token usado o vencido]; confirmar que falla
-- [ ] 6.2 GREEN: `buscarVigentePorHash(hash, ahora)` en `TokenAccesoRepository` y `JdbcTokenAccesoRepository` (devuelve `proposito`) + `identificar` `@Transactional(readOnly = true)`; verificar que 6.1 y los tests de C-03 pasan
+- [x] 6.1 RED: IT de `TokenAccesoService.identificar(valor, admitidos)`: token `CANCELAR_TURNO` vigente → propósito, referencia y vencimiento, `usado_en` sigue nulo; `ACEPTAR_AVISO` fuera del conjunto → `TokenInvalidoException` y sigue consumible; usado, vencido (con `MutableClock`) e inexistente → mismo rechazo [patient-access-tokens › Identificar un token vigente, Propósito fuera del conjunto, Token usado o vencido]; confirmar que falla
+- [x] 6.2 GREEN: `buscarVigentePorHash(hash, ahora)` en `TokenAccesoRepository` y `JdbcTokenAccesoRepository` (devuelve `proposito`) + `identificar` `@Transactional(readOnly = true)`; verificar que 6.1 y los tests de C-03 pasan
 
 ## 7. [P2 Martina] Dominio de las acciones del paciente
 

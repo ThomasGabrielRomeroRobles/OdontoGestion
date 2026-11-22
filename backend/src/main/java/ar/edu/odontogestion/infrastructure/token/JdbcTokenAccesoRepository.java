@@ -3,6 +3,7 @@ package ar.edu.odontogestion.infrastructure.token;
 import ar.edu.odontogestion.domain.token.PropositoToken;
 import ar.edu.odontogestion.domain.token.ReferenciaToken;
 import ar.edu.odontogestion.domain.token.TokenAccesoRepository;
+import ar.edu.odontogestion.domain.token.TokenIdentificado;
 import ar.edu.odontogestion.domain.token.TokenVigente;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -60,6 +61,20 @@ public class JdbcTokenAccesoRepository implements TokenAccesoRepository {
                 .param("ahora", utc(ahora))
                 .query((rs, n) -> new TokenVigente(referencia(rs),
                         rs.getObject("vence_en", OffsetDateTime.class).toInstant()))
+                .optional();
+    }
+
+    @Override
+    public Optional<TokenIdentificado> buscarVigentePorHash(byte[] hash, Instant ahora) {
+        return jdbc.sql("""
+                SELECT proposito, turno_id, aviso_id, entrada_lista_espera_id, vence_en
+                  FROM token_acceso
+                 WHERE token_hash = :hash AND usado_en IS NULL AND vence_en > :ahora
+                """)
+                .param("hash", hash)
+                .param("ahora", utc(ahora))
+                .query((rs, n) -> new TokenIdentificado(PropositoToken.valueOf(rs.getString("proposito")),
+                        referencia(rs), rs.getObject("vence_en", OffsetDateTime.class).toInstant()))
                 .optional();
     }
 

@@ -7,10 +7,12 @@ import ar.edu.odontogestion.domain.token.PropositoToken;
 import ar.edu.odontogestion.domain.token.ReferenciaToken;
 import ar.edu.odontogestion.domain.token.TokenAccesoRepository;
 import ar.edu.odontogestion.domain.token.TokenEmitido;
+import ar.edu.odontogestion.domain.token.TokenIdentificado;
 import ar.edu.odontogestion.domain.token.TokenVigente;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,7 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>Contrato para los consumidores (C-07, C-09, C-10, C-11):
  * <ul>
- *   <li>{@code GET} (mostrar el enlace): {@link #verificar(String, PropositoToken)}, solo lectura, nunca consume.</li>
+ *   <li>{@code GET} (mostrar el enlace): {@link #verificar(String, PropositoToken)} o, si el propósito no se conoce
+ *       de antemano, {@link #identificar(String, Set)}; solo lectura, nunca consumen.</li>
  *   <li>{@code POST} (ejecutar la acción): {@link #consumir(String, PropositoToken)} DENTRO de la transacción de
  *       la acción, para que acción y consumo se confirmen o reviertan juntos; si la acción falla, el token sigue
  *       vigente.</li>
@@ -64,6 +67,21 @@ public class TokenAccesoService {
     public TokenVigente verificar(String valor, PropositoToken esperado) {
         byte[] hash = HashToken.sha256(valor);
         return tokens.buscarVigente(hash, esperado, clock.instant()).orElseThrow(TokenInvalidoException::new);
+    }
+
+    /**
+     * Solo lectura: identifica un token vigente cuyo propósito esté en {@code admitidos} sin consumirlo ni
+     * modificarlo (C-09 D6: el {@code GET} de {@code /acciones/{token}} no conoce de antemano el propósito). Un
+     * valor inexistente, usado, vencido, revocado o de otro propósito es el mismo {@link TokenInvalidoException}.
+     */
+    @Transactional(readOnly = true)
+    public TokenIdentificado identificar(String valor, Set<PropositoToken> admitidos) {
+        TokenIdentificado identificado = tokens.buscarVigentePorHash(HashToken.sha256(valor), clock.instant())
+                .orElseThrow(TokenInvalidoException::new);
+        if (!admitidos.contains(identificado.proposito())) {
+            throw new TokenInvalidoException();
+        }
+        return identificado;
     }
 
     /**

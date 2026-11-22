@@ -12,6 +12,12 @@ public interface TokenAccesoRepository {
     /** Solo lectura: token con ese hash y propósito, sin usar y con {@code vence_en > ahora}. */
     Optional<TokenVigente> buscarVigente(byte[] hash, PropositoToken proposito, Instant ahora);
 
+    /**
+     * Solo lectura: token sin usar y con {@code vence_en > ahora} con ese hash, de cualquier propósito (C-09 D6).
+     * El llamador decide si el propósito le sirve.
+     */
+    Optional<TokenIdentificado> buscarVigentePorHash(byte[] hash, Instant ahora);
+
     /** Marca {@code usado_en} con una única sentencia condicional; vacío si no hay token consumible. */
     Optional<ReferenciaToken> consumir(byte[] hash, PropositoToken proposito, Instant ahora);
 
