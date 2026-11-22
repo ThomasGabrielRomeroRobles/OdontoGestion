@@ -1,6 +1,7 @@
 package ar.edu.odontogestion.support;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.testcontainers.containers.PostgreSQLContainer;
 
@@ -10,10 +11,12 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * Prohibido @DirtiesContext y variantes de @MockBean aquí.
  * {@code app.scheduling.enabled=false}: los jobs {@code @Scheduled} (C-03 en adelante) no corren en segundo
  * plano; los tests invocan el procesamiento directamente.
+ * {@link CanalEnMemoriaTestConfig}: canal de notificaciones falso, ningún test envía emails reales.
  */
 @SpringBootTest(properties = {
         "app.bootstrap.odontologo-password=Ficticia-Test-123",
         "app.scheduling.enabled=false"})
+@Import(CanalEnMemoriaTestConfig.class)
 public abstract class AbstractIntegrationTest {
 
     @ServiceConnection
