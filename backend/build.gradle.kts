@@ -32,6 +32,8 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
+    // C-03: servidor SMTP de pruebas para el contrato de EmailChannel.
+    testImplementation("com.icegreen:greenmail-junit5:2.1.15")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

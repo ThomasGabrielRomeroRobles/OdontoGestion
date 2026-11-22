@@ -193,4 +193,37 @@ class GlobalExceptionHandlerWebMvcTest {
                 .andExpect(jsonPath("$.type").value("https://odontogestion.example/problemas/demasiados-intentos"))
                 .andExpect(jsonPath("$.instance").value("/api/v1/recurso-de-prueba/1/demasiados-intentos"));
     }
+
+    @Test
+    void tokenInvalidoDevuelve410ProblemDetailGenerico() throws Exception {
+        mockMvc.perform(get("/api/v1/recurso-de-prueba/token/" + "a".repeat(43)))
+                .andExpect(status().isGone())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(410))
+                .andExpect(jsonPath("$.type").value("https://odontogestion.example/problemas/token-invalido"))
+                .andExpect(jsonPath("$.title").value("Enlace no disponible"))
+                .andExpect(jsonPath("$.detail").value("El enlace no es válido o ya fue utilizado."));
+    }
+
+    @Test
+    void causasDistintasYTokensDistintosProducenCuerposIdenticos() throws Exception {
+        String vencido = mockMvc.perform(get("/api/v1/recurso-de-prueba/token/" + "V".repeat(43)).param("causa", "vencido"))
+                .andExpect(status().isGone()).andReturn().getResponse().getContentAsString();
+        String inexistente = mockMvc.perform(get("/api/v1/recurso-de-prueba/token/" + "I".repeat(43))
+                        .param("causa", "inexistente"))
+                .andExpect(status().isGone()).andReturn().getResponse().getContentAsString();
+
+        assertThat(vencido).isEqualTo(inexistente);
+    }
+
+    @Test
+    void elValorDelTokenNoApareceEnLaRespuestaNiEnLosLogs(CapturedOutput output) throws Exception {
+        String valor = "Tk9_-" + "z".repeat(38);
+
+        String cuerpo = mockMvc.perform(get("/api/v1/recurso-de-prueba/token/" + valor))
+                .andExpect(status().isGone()).andReturn().getResponse().getContentAsString();
+
+        assertThat(cuerpo).doesNotContain(valor).doesNotContain("token/");
+        assertThat(output.getAll()).doesNotContain(valor);
+    }
 }
