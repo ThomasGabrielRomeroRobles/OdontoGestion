@@ -63,6 +63,37 @@ describe('bootstrap', () => {
     expect(location.pathname).toBe('/login');
   });
 
+  it('sin sesión, /configuracion/prestaciones redirige a login con next', async () => {
+    me.mockResolvedValue(null);
+    history.replaceState(null, '', '/configuracion/prestaciones');
+
+    stop = (await bootstrap(deps())).stop;
+
+    expect(location.pathname).toBe('/login');
+    expect(location.search).toBe('?next=%2Fconfiguracion%2Fprestaciones');
+  });
+
+  it('con sesión, /configuracion/horarios renderiza la sección dentro del layout', async () => {
+    me.mockResolvedValue({ email: 'odontologo@consultorio.example' });
+    history.replaceState(null, '', '/configuracion/horarios');
+    const seccion = (nombre: string) => (container: HTMLElement) => {
+      container.textContent = `seccion-${nombre}`;
+    };
+    const configSections = {
+      consultorio: seccion('consultorio'),
+      perfil: seccion('perfil'),
+      prestaciones: seccion('prestaciones'),
+      horarios: seccion('horarios'),
+      bloqueos: seccion('bloqueos'),
+    };
+
+    stop = (await bootstrap({ ...deps(), configSections })).stop;
+
+    expect(location.pathname).toBe('/configuracion/horarios');
+    expect(root.textContent).toContain('seccion-horarios');
+    expect(root.textContent).toContain('odontologo@consultorio.example');
+  });
+
   it('una ruta pública se renderiza sin sesión y sin redirigir', async () => {
     me.mockResolvedValue(null);
     history.replaceState(null, '', '/publico');

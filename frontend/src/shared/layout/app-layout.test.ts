@@ -50,6 +50,11 @@ describe('layout autenticado', () => {
     expect(links).toContain('/pacientes');
   });
 
+  it('incluye el enlace Configuración a /configuracion', () => {
+    const link = [...host.querySelectorAll<HTMLAnchorElement>('a[data-link]')].find((a) => a.textContent === 'Configuración');
+    expect(link?.getAttribute('href')).toBe('/configuracion');
+  });
+
   it('logout con 204 deja la sesión anónima y navega a /login', async () => {
     logout.mockResolvedValue(undefined);
     logoutButton().click();
