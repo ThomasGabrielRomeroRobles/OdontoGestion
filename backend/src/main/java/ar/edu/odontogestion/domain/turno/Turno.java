@@ -137,6 +137,35 @@ public class Turno extends AuditableEntity {
         this.motivoCancelacion = normalizado;
     }
 
+    /** Último instante en que el paciente puede cancelar por su enlace: {@code inicio − horas} (RN-TU-03). */
+    public Instant limiteCancelacion(int horas) {
+        return inicio.minus(Duration.ofHours(horas));
+    }
+
+    /**
+     * Cancelación por el paciente desde su enlace (C-09 D6): solo un turno {@code RESERVADO} o {@code CONFIRMADO} y
+     * hasta el límite de horas <b>inclusive</b>. Valida todo antes de modificar nada y deja
+     * {@code cancelado_por = PACIENTE} sin motivo.
+     *
+     * @throws TransicionInvalidaException el estado actual no admite la cancelación del paciente
+     * @throws LimiteCancelacionException  ya pasó {@code inicio − limiteHoras}
+     */
+    public void cancelarPorPaciente(Instant ahora, int limiteHoras) {
+        if (estado != EstadoTurno.RESERVADO && estado != EstadoTurno.CONFIRMADO) {
+            throw new TransicionInvalidaException(estado, EstadoTurno.CANCELADO);
+        }
+        if (ahora.isAfter(limiteCancelacion(limiteHoras))) {
+            throw new LimiteCancelacionException();
+        }
+        cancelar(CanceladoPor.PACIENTE, null);
+    }
+
+    /** {@code true} si es una solicitud pendiente cuyo {@code pendiente_hasta} ya llegó (aunque no se haya expirado). */
+    public boolean pendienteVencida(Instant ahora) {
+        return estado == EstadoTurno.PENDIENTE_CONFIRMACION && pendienteHasta != null
+                && !pendienteHasta.isAfter(ahora);
+    }
+
     /**
      * Cambia el inicio conservando duración, estado, paciente y prestación (solo {@code RESERVADO} o
      * {@code CONFIRMADO}, RN-TU). No chequea la agenda: si el nuevo rango choca, lo rechaza la base al guardar.

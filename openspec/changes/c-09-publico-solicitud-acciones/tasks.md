@@ -74,9 +74,9 @@
 
 ## 7. [P2 Martina] Dominio de las acciones del paciente
 
-- [ ] 7.1 RED: `TurnoTest`: `limiteCancelacion(2)` = inicio − 2 h; `cancelarPorPaciente(ahora, 2)` permitido a 3 h y **exactamente** a 2 h (inclusivo), rechazado a 1 h 59 min con `LimiteCancelacionException` sin cambiar estado; deja `cancelado_por = PACIENTE` y motivo nulo; desde `ATENDIDO` → `TransicionInvalidaException` [token-actions › Cancelación dentro del límite, Cancelación justo en el límite, Cancelación fuera del límite]; GREEN; verificar que pasa
-- [ ] 7.2 RED → GREEN: `Turno.pendienteVencida(ahora)` (true si `PENDIENTE_CONFIRMACION` y `pendiente_hasta <= ahora`) con casos antes/en/después del instante
-- [ ] 7.3 RED → GREEN: `HuecoLiberado.de(turno, rango)` (fábrica estática que reemplaza el helper privado de `GestionTurnoService`); los tests de C-07 de eventos siguen en verde
+- [x] 7.1 RED: `TurnoTest`: `limiteCancelacion(2)` = inicio − 2 h; `cancelarPorPaciente(ahora, 2)` permitido a 3 h y **exactamente** a 2 h (inclusivo), rechazado a 1 h 59 min con `LimiteCancelacionException` sin cambiar estado; deja `cancelado_por = PACIENTE` y motivo nulo; desde `ATENDIDO` → `TransicionInvalidaException` [token-actions › Cancelación dentro del límite, Cancelación justo en el límite, Cancelación fuera del límite]; GREEN; verificar que pasa
+- [x] 7.2 RED → GREEN: `Turno.pendienteVencida(ahora)` (true si `PENDIENTE_CONFIRMACION` y `pendiente_hasta <= ahora`) con casos antes/en/después del instante
+- [x] 7.3 RED → GREEN: `HuecoLiberado.de(turno, rango)` (fábrica estática que reemplaza el helper privado de `GestionTurnoService`); los tests de C-07 de eventos siguen en verde
 
 ## 8. [P2 Martina] Servicio de acciones por token (D6)
 
