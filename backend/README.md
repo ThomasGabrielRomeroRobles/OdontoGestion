@@ -38,14 +38,15 @@ poner `true` solo si se sirve por HTTPS).
 
 ## Migraciones
 
-Números asignados por `CHANGES.md`: V1–V3 (C-01/C-02) y **V4 = C-06** ya en `main`; **V5 = C-04** (`paciente`),
-V6/V7 = C-03. Antes de numerar una migración nueva, revisá también las ramas abiertas (`git branch -r`), no solo
-`main`. La próxima libre después de esas es **V8** (reservada para C-05 en el plan).
+En `main`: V1–V3 (C-01/C-02), **V4 = C-06**, **V6/V7 = C-03**. **V8 = C-04** (`paciente`). Siguen según
+`CHANGES.md`: **V9 = C-07** (`turno`, con FK a `paciente`), **V10 = C-10** (lista de espera) y **V11 = C-05** (historia clínica, stretch). V5 queda
+sin usar: C-04 la tenía asignada, pero se renumeró a V8 (2026-11-22) porque C-03 llegó antes a `main` con V6/V7.
 
-**Orden de merge V4/V5** (acordado P1–P4, 2026-11-21): C-06 (V4) se mergea **antes** que C-04 (V5). En general,
-una migración de número menor que llega después de una mayor ya aplicada hace fallar `validate` en las bases
-locales existentes (Flyway la marca como *ignored*). Las bases de los tests arrancan vacías y no tienen el problema.
-Si pasa, en desarrollo se recrea la base local (`DROP SCHEMA public CASCADE; CREATE SCHEMA public;` y arrancar).
+**Regla**: una migración nueva siempre lleva un número **mayor que el último aplicado en `main`** y que el de las
+ramas abiertas (`git branch -r`). Una migración de número menor que llega después de una mayor ya aplicada hace
+fallar `validate` en las bases locales existentes (Flyway la marca como *ignored*); los tests no lo detectan porque
+arrancan con base vacía. Si pasa, en desarrollo se recrea la base local (`DROP SCHEMA public CASCADE; CREATE SCHEMA
+public;` y arrancar).
 
 ## Pacientes (C-04)
 

@@ -93,9 +93,10 @@ class FlywayV1MigrationIT extends AbstractIntegrationTest {
         List<String> versiones = jdbc.queryForList(
                 "SELECT version FROM flyway_schema_history WHERE version IS NOT NULL "
                         + "ORDER BY installed_rank", String.class);
-        // Sin lista exacta: cada change agrega su versión (C-06 = 4, C-04 = 5, C-03 = 6/7) y pueden mergearse en
-        // distinto orden. Se exige que las conocidas estén y que el orden de aplicación sea ascendente.
-        assertThat(versiones).contains("1", "2", "3", "4", "5");
-        assertThat(versiones).isSortedAccordingTo(java.util.Comparator.comparingInt(Integer::parseInt));
+        // Sin lista exacta: cada change agrega su versión (C-06 = 4, C-03 = 6/7, C-04 = 8, ...) y pueden mergearse
+        // en distinto orden. Se exige el inicio fijo, las versiones conocidas y orden de aplicación creciente.
+        assertThat(versiones).startsWith("1", "2", "3", "4")
+                .contains("6", "7", "8")
+                .isSortedAccordingTo(java.util.Comparator.comparingInt(Integer::parseInt));
     }
 }

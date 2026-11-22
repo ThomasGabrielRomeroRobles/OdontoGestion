@@ -86,7 +86,7 @@ Toda tabla de dominio de negocio SHALL tener clave primaria `BIGINT` generada, r
 #### Scenario: Versión de C-04 aplicada
 - **GIVEN** una base vacía
 - **WHEN** la aplicación arranca
-- **THEN** el historial de migraciones registra la versión `5` aplicada con éxito
+- **THEN** el historial de migraciones registra la versión `8` aplicada con éxito
 
 #### Scenario: Paciente referencia al consultorio
 - **WHEN** se inspecciona la tabla `paciente`

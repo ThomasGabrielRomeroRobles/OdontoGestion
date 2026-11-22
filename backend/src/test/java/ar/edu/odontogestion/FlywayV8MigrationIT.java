@@ -12,8 +12,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** V5 (C-04): tabla paciente. Cada caso corre en una transacción revertida para no dejar datos. */
-class FlywayV5MigrationIT extends AbstractIntegrationTest {
+/** V8 (C-04): tabla paciente. Cada caso corre en una transacción revertida para no dejar datos. */
+class FlywayV8MigrationIT extends AbstractIntegrationTest {
 
     private static final String INSERT_MINIMO = "INSERT INTO paciente (consultorio_id, nombre, apellido, dni, "
             + "telefono, email) VALUES (?, 'Ana', 'Ficticia', ?, '+54 11 5555-0000', 'ana@ejemplo.test')";
@@ -41,8 +41,8 @@ class FlywayV5MigrationIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void elHistorialRegistraLaVersionCinco() {
-        Boolean ok = jdbc.queryForObject("SELECT success FROM flyway_schema_history WHERE version = '5'",
+    void elHistorialRegistraLaVersionOcho() {
+        Boolean ok = jdbc.queryForObject("SELECT success FROM flyway_schema_history WHERE version = '8'",
                 Boolean.class);
         assertThat(ok).isTrue();
     }

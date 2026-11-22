@@ -5,7 +5,7 @@ import java.util.regex.Pattern;
 
 /**
  * Normalización del DNI (design D3): quita puntos, espacios y guiones y exige 7 u 8 dígitos. Se aplica al guardar
- * y al buscar; la restricción {@code CHECK} de V5 queda como garantía. El error nunca incluye el valor recibido.
+ * y al buscar; la restricción {@code CHECK} de V8 queda como garantía. El error nunca incluye el valor recibido.
  */
 public final class Dni {
 

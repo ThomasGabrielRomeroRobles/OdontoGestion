@@ -23,7 +23,7 @@ class BusquedaPacienteTest {
 
     @Test
     void sinDigitosElPrefijoNoCoincideConNingunDni() {
-        // '' sin comodín solo coincide con un DNI vacío, que la base no admite (CHECK de V5).
+        // '' sin comodín solo coincide con un DNI vacío, que la base no admite (CHECK de V8).
         assertThat(BusquedaPaciente.de("pérez").prefijoDni()).isEmpty();
     }
 }
