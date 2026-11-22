@@ -14,4 +14,10 @@ public interface EmisorEnlaces {
      * @return un enlace por cada programado, en el mismo orden, con la URL que contiene el token en claro
      */
     List<EnlaceRenderizado> emitir(ReferenciaToken referencia, List<EnlaceProgramado> enlaces);
+
+    /**
+     * Invalida exactamente los tokens de estos enlaces (emitidos en un intento de envío que falló y por lo tanto
+     * nunca llegaron al paciente). No toca otros tokens de la misma referencia, que pueden haberse entregado.
+     */
+    void revocar(List<EnlaceRenderizado> enlaces);
 }
