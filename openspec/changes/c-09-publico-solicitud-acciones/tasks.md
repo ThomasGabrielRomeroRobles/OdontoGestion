@@ -60,12 +60,12 @@
 
 ## 5. [P1 Thomas] Endpoint de solicitud e ITs de punta a punta
 
-- [ ] 5.1 RED → GREEN: `POST /api/v1/publico/solicitudes-turno` en `PublicoController` (IP por `getRemoteAddr()`, nunca `X-Forwarded-For`) → `202` con `SolicitudRecibidaResponse`; `SolicitudPublicaApiIT` sin sesión con CSRF: feliz, `400` por DNI/email inválidos o faltantes, `409` con `alternativas`, `422`, `403` sin CSRF [public-booking › Solicitud exitosa, DNI inválido, Falta el email]
-- [ ] 5.2 RED → GREEN: no enumeración: cuerpos byte a byte idénticos para DNI nuevo, existente, dado de baja y señuelo; sin `id` de turno ni paciente [public-booking › Cuerpo idéntico para DNI nuevo y existente]
-- [ ] 5.3 RED → GREEN: rate limit por IP (6.ª → `429` + `Retry-After`, sin turno) y por DNI desde IPs distintas (`with(remoteAddr(...))`) [public-booking › Exceso por IP, Exceso por DNI desde IP distintas]
-- [ ] 5.4 RED → GREEN: concurrencia con PostgreSQL real: dos solicitudes simultáneas al mismo horario con DNI distintos → exactamente un `202` y un `409`, un solo turno [public-booking › Solicitudes simultáneas del mismo horario]
-- [ ] 5.5 RED → GREEN: expiración con `MutableClock`: solicitud pendiente, avanzar 30 min, correr `ExpiracionTurnosService` → `EXPIRADO` y el hueco reaparece en `GET /publico/disponibilidad` [public-booking › Hueco liberado tras el vencimiento]
-- [ ] 5.6 RED → GREEN: `OutputCaptureExtension` en solicitud exitosa, limitada y con señuelo: los logs no contienen DNI, email, teléfono ni nombre enviados [public-booking › Solicitud registrada sin datos personales]
+- [x] 5.1 RED → GREEN: `POST /api/v1/publico/solicitudes-turno` en `PublicoController` (IP por `getRemoteAddr()`, nunca `X-Forwarded-For`) → `202` con `SolicitudRecibidaResponse`; `SolicitudPublicaApiIT` sin sesión con CSRF: feliz, `400` por DNI/email inválidos o faltantes, `409` con `alternativas`, `422`, `403` sin CSRF [public-booking › Solicitud exitosa, DNI inválido, Falta el email]
+- [x] 5.2 RED → GREEN: no enumeración: cuerpos byte a byte idénticos para DNI nuevo, existente, dado de baja y señuelo; sin `id` de turno ni paciente [public-booking › Cuerpo idéntico para DNI nuevo y existente]
+- [x] 5.3 RED → GREEN: rate limit por IP (6.ª → `429` + `Retry-After`, sin turno) y por DNI desde IPs distintas (`with(remoteAddr(...))`) [public-booking › Exceso por IP, Exceso por DNI desde IP distintas]
+- [x] 5.4 RED → GREEN: concurrencia con PostgreSQL real: dos solicitudes simultáneas al mismo horario con DNI distintos → exactamente un `202` y un `409`, un solo turno [public-booking › Solicitudes simultáneas del mismo horario]
+- [x] 5.5 RED → GREEN: expiración con `MutableClock`: solicitud pendiente, avanzar 30 min, correr `ExpiracionTurnosService` → `EXPIRADO` y el hueco reaparece en `GET /publico/disponibilidad` [public-booking › Hueco liberado tras el vencimiento]
+- [x] 5.6 RED → GREEN: `OutputCaptureExtension` en solicitud exitosa, limitada y con señuelo: los logs no contienen DNI, email, teléfono ni nombre enviados [public-booking › Solicitud registrada sin datos personales]
 
 ## 6. [P2 Martina] Identificación de tokens sin consumo (D6, C-03)
 
