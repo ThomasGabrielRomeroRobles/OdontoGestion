@@ -38,7 +38,7 @@ poner `true` solo si se sirve por HTTPS).
 
 ## Migraciones
 
-Números asignados por `CHANGES.md`: V1–V3 (C-01/C-02, en `main`), **V4 = C-06**, **V5 = C-04** (`paciente`),
+Números asignados por `CHANGES.md`: V1–V3 (C-01/C-02) y **V4 = C-06** ya en `main`; **V5 = C-04** (`paciente`),
 V6/V7 = C-03. Antes de numerar una migración nueva, revisá también las ramas abiertas (`git branch -r`), no solo
 `main`. La próxima libre después de esas es **V8** (reservada para C-05 en el plan).
 

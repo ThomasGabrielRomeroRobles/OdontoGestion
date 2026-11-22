@@ -159,7 +159,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
   - `knowledge-base/09_decisiones_y_supuestos.md` §DD-01, §DD-03
 
 ### [C-06] `agenda-configuracion`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado 2026-11-21 en `openspec/changes/archive/2026-11-21-c-06-agenda-configuracion/`)
 - **Scope**:
   - Migración V4: tablas `prestacion`, `horario_trabajo` (exclusión de solapamiento por consultorio y día), `bloqueo_agenda`; seed de las 6 prestaciones y horarios L-V 09-13 / 14-18
   - Modelos `Prestacion`, `HorarioTrabajo`, `BloqueoAgenda`; `/api/v1/prestaciones` (CRUD, desactivar sin perder historial), `/api/v1/horarios`, `/api/v1/bloqueos`
