@@ -44,10 +44,10 @@
 
 ## 3. [P1 Thomas] Limitador de solicitudes públicas (D4)
 
-- [ ] 3.1 RED: unit test `LimitadorSolicitudesPublicasTest` con `MutableClock`: límite 5 → la 6.ª de la misma IP lanza `DemasiadasSolicitudesException` con `retryAfterSegundos` hasta que sale el registro más antiguo; otra IP no afectada; tras 1 h la ventana se renueva [public-booking › Exceso por IP, La ventana se renueva]; GREEN; verificar que pasa
-- [ ] 3.2 RED → GREEN: triangular claves de identidad: mismo DNI con y sin puntos cuenta como la misma clave, email con mayúsculas igual, DNI y email independientes de la IP [public-booking › Exceso por DNI desde IP distintas]
-- [ ] 3.3 RED → GREEN: concurrencia (N hilos sobre la misma clave → exactamente `límite` aceptados) y tope de claves con purga de inactivas; verificar que pasa
-- [ ] 3.4 Leer el límite de `AppProperties.publicRateLimitPerHour` (sin propiedad nueva) y mapear `DemasiadasSolicitudesException` a `429` con `Retry-After` en `GlobalExceptionHandler`; verificar con un test WebMvc que el cuerpo del `429` es idéntico para límite de IP y de identidad
+- [x] 3.1 RED: unit test `LimitadorSolicitudesPublicasTest` con `MutableClock`: límite 5 → la 6.ª de la misma IP lanza `DemasiadasSolicitudesException` con `retryAfterSegundos` hasta que sale el registro más antiguo; otra IP no afectada; tras 1 h la ventana se renueva [public-booking › Exceso por IP, La ventana se renueva]; GREEN; verificar que pasa
+- [x] 3.2 RED → GREEN: triangular claves de identidad: mismo DNI con y sin puntos cuenta como la misma clave, email con mayúsculas igual, DNI y email independientes de la IP [public-booking › Exceso por DNI desde IP distintas]
+- [x] 3.3 RED → GREEN: concurrencia (N hilos sobre la misma clave → exactamente `límite` aceptados) y tope de claves con purga de inactivas; verificar que pasa
+- [x] 3.4 Leer el límite de `AppProperties.publicRateLimitPerHour` (sin propiedad nueva) y mapear `DemasiadasSolicitudesException` a `429` con `Retry-After` en `GlobalExceptionHandler`; verificar con un test WebMvc que el cuerpo del `429` es idéntico para límite de IP y de identidad
 
 ## 4. [P1 Thomas] Solicitud pública: servicio transaccional y fachada (D2, D5)
 

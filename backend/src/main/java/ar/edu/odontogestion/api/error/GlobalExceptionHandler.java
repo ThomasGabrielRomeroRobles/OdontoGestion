@@ -4,6 +4,7 @@ import ar.edu.odontogestion.application.turno.HuecoDto;
 import ar.edu.odontogestion.domain.error.ConflictoException;
 import ar.edu.odontogestion.domain.error.CredencialesInvalidasException;
 import ar.edu.odontogestion.domain.error.DomainException;
+import ar.edu.odontogestion.domain.error.DemasiadasSolicitudesException;
 import ar.edu.odontogestion.domain.error.DemasiadosIntentosException;
 import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
 import ar.edu.odontogestion.domain.error.ReglaNegocioException;
@@ -111,6 +112,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.retryAfterSegundos()))
                 .body(dominio(HttpStatus.TOO_MANY_REQUESTS, "Demasiados intentos", ex));
+    }
+
+    /**
+     * Exceso de solicitudes públicas (C-09 D4): el mismo cuerpo para el límite por IP, por DNI, por email y por
+     * máximo de pendientes; solo cambia {@code Retry-After}. Antes del handler de la superclase.
+     */
+    @ExceptionHandler(DemasiadasSolicitudesException.class)
+    ResponseEntity<ProblemDetail> handleDemasiadasSolicitudes(DemasiadasSolicitudesException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.retryAfterSegundos()))
+                .body(dominio(HttpStatus.TOO_MANY_REQUESTS, "Demasiadas solicitudes", ex));
     }
 
     /**
