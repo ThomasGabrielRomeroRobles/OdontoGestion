@@ -27,7 +27,6 @@
 | PA-03 | Media | Si un DNI ya existe con otro email, ¿a qué email se envían los enlaces y cómo se actualiza el contacto? (Suposición: se usa el email registrado y no se sobrescribe; ver RN-PU-04) | Página pública, RN-PU-04 | Equipo |
 | PA-04 | Media | ¿Cómo recupera su contraseña el odontólogo (único usuario, sin administrador)? Opciones: enlace por email, o reinicio manual por seed/variable de entorno. | Épica 1 (US-116) | Equipo |
 | PA-05 | Media | Valores por defecto de reglas: tolerancia de ausente (15 min), límite de cancelación (2 h), vencimiento de aviso (60 min), anticipación mínima (2 h), retención de solicitud pública (30 min). ¿Se confirman? | Reglas de turnos, página pública y lista de espera | Product Owner (docente/equipo) |
-| PA-06 | Media | ¿Los turnos `ATENDIDO` y `AUSENTE` deben seguir ocupando el rango en la restricción de exclusión? | Modelo de turno | Equipo técnico |
 | PA-07 | Media | ¿Todas las máquinas del equipo pueden ejecutar Docker para Testcontainers y tienen `btree_gist` disponible en su PostgreSQL local? (SU-07, SU-11) | Scaffolding, TDD | Equipo técnico |
 | PA-08 | Media | ¿Existe alguna política por reincidencia de ausencias (aviso, seña, bloqueo), por ejemplo restringir solicitudes públicas de un DNI con muchas ausencias? | Etapa posterior (US-112) | Equipo |
 | PA-09 | Baja | Estados de pieza dental y alcance del odontograma (por pieza vs. por cara). ¿Se valida con un odontólogo? | Épica 8 | Equipo / odontólogo asesor |
@@ -46,3 +45,9 @@ Resueltas el 2026-11-19 por decisión del equipo:
 |----|----------|------------|
 | IN-01 / PA-01 | **Corte por valor**: obligatorio para el 2026-11-25 los 11 changes core (C-01, C-02, C-03, C-04, C-06, C-07, C-08, C-09, C-10, C-11, C-12: épicas 1-7); "si llega" (stretch) C-05 historia clínica (épica 8). Lo no entregado se documenta como etapa posterior. | DD-16, SU-08 |
 | PA-02 | **Anti-abuso confirmado**: la solicitud pública crea turno/entrada de espera `PENDIENTE_CONFIRMACION`, retiene el hueco 30 min y pasa a `RESERVADO`/`ACTIVA` solo tras confirmar por enlace de token de un solo uso enviado por email; límite de 5 solicitudes/hora por IP y máximo 2 pendientes por DNI o email (429 al exceder); campo señuelo (honeypot) y validación estricta de formato; respuestas sin enumeración. CAPTCHA/OTP queda como mejora posterior (US-113). | DD-14, SU-09, RN-PU-02/03/06 |
+
+Resueltas el 2026-11-22 por decisión del equipo:
+
+| ID | Decisión | Referencia |
+|----|----------|------------|
+| PA-06 | **`ATENDIDO` y `AUSENTE` siguen ocupando el rango**: la restricción de exclusión de `turno` usa `WHERE (estado NOT IN ('CANCELADO','EXPIRADO'))`, es decir, solo `CANCELADO` y `EXPIRADO` liberan el hueco. Espejo literal de RN-AG-10 y RN-AS-04, costo cero (el rango ya pasó y no se reserva en el pasado) y evita liberar un rango futuro si se marca `ATENDIDO` antes de hora y chocar al revertir un `AUSENTE` (RN-AS-06). | Change C-07 (`design.md` D2), [04](04_modelo_de_datos.md) §turno, RN-AG-05 en [05](05_reglas_de_negocio.md) |

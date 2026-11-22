@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.api.notificacion;
 
+import ar.edu.odontogestion.support.TurnosFicticios;
 import static ar.edu.odontogestion.support.FixedClockTestConfig.AHORA;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,6 +31,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Registro de envíos con sesión, CSRF y PostgreSQL reales. "Ahora" es el reloj fijo de los ITs
  * (2026-11-20T12:00Z). Ids de referencia ficticios >= 900000; cada caso borra sus filas.
  */
+@TurnosFicticios
 class NotificacionApiIT extends AbstractWebIntegrationTest {
 
     private static final String URL = "/api/v1/notificaciones";

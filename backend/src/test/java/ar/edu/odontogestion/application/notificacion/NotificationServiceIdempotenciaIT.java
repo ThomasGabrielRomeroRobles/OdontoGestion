@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.application.notificacion;
 
+import ar.edu.odontogestion.support.TurnosFicticios;
 import static ar.edu.odontogestion.application.notificacion.NotificationServiceEncolarIT.DATOS_TURNO;
 import static ar.edu.odontogestion.support.FixedClockTestConfig.AHORA;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,6 +23,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /** Encolado idempotente (RN-NO-03, design D7). Ids ficticios >= 900000. */
 @Import(FixedClockTestConfig.class)
+@TurnosFicticios
 class NotificationServiceIdempotenciaIT extends AbstractIntegrationTest {
 
     private static final List<EnlaceProgramado> ENLACES_RECORDATORIO = List.of(

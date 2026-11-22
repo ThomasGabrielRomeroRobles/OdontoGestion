@@ -1,5 +1,6 @@
 package ar.edu.odontogestion;
 
+import ar.edu.odontogestion.support.TurnosFicticios;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -16,8 +17,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * V6 (C-03): outbox {@code notificacion}. Ids de referencia ficticios >= 900000 y limpieza al final
- * (sin FK hasta C-07/C-10, design D1).
+ * (FK a turno desde V9 de C-07; las de aviso/entrada llegan con C-10).
  */
+@TurnosFicticios
 class FlywayV6MigrationIT extends AbstractIntegrationTest {
 
     private static final String INSERT = "INSERT INTO notificacion (consultorio_id, tipo, destinatario, "
@@ -62,7 +64,7 @@ class FlywayV6MigrationIT extends AbstractIntegrationTest {
         assertThat(columnas.get("error")).containsEntry("is_nullable", "YES");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM information_schema.table_constraints "
                 + "WHERE table_name = 'notificacion' AND constraint_type = 'FOREIGN KEY'", Integer.class))
-                .as("solo la FK a consultorio; las de turno/aviso/entrada llegan con C-07/C-10").isEqualTo(1);
+                .as("FK a consultorio y a turno (V9, C-07); las de aviso/entrada llegan con C-10").isEqualTo(2);
     }
 
     @Test

@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 /**
  * Plantilla de texto plano por tipo de notificación (design D11, KB 12). Cada plantilla declara la lista blanca
@@ -132,6 +133,14 @@ public enum PlantillaNotificacion {
             Set.of("consultorio", "inicio", "prestacion"),
             EnumSet.noneOf(PropositoToken.class));
 
+    /**
+     * Largo máximo de una variable de texto libre ({@code consultorio}, {@code prestacion}): suficiente para
+     * cualquier nombre real y evita asuntos de email desmedidos.
+     */
+    public static final int MAX_LONGITUD_VALOR = 200;
+
+    private static final Pattern CONTROL = Pattern.compile("\\p{Cntrl}");
+
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter HORA = DateTimeFormatter.ofPattern("HH:mm");
     private static final String PIE = "\nEste es un mensaje automático de {consultorio}; no lo respondas.\n";
@@ -179,6 +188,20 @@ public enum PlantillaNotificacion {
             String valor = datos.get(variable);
             if (valor == null || valor.isBlank()) {
                 errores.add(new ErrorCampo("datos." + variable, "Variable obligatoria."));
+            }
+        }
+        for (String variable : new TreeSet<>(variables)) {
+            String valor = datos.get(variable);
+            if (valor == null || valor.isBlank() || "inicio".equals(variable)) {
+                continue;
+            }
+            // Texto libre que termina en el asunto y el cuerpo del email: sin CR/LF (inyección de cabeceras) ni
+            // otros caracteres de control, y con largo acotado.
+            if (CONTROL.matcher(valor).find()) {
+                errores.add(new ErrorCampo("datos." + variable, "No puede contener caracteres de control."));
+            } else if (valor.length() > MAX_LONGITUD_VALOR) {
+                errores.add(new ErrorCampo("datos." + variable,
+                        "No puede superar los " + MAX_LONGITUD_VALOR + " caracteres."));
             }
         }
         if (variables.contains("inicio") && datos.get("inicio") != null && !esInstante(datos.get("inicio"))) {

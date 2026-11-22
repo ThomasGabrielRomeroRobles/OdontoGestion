@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.application.token;
 
+import ar.edu.odontogestion.support.TurnosFicticios;
 import static ar.edu.odontogestion.support.FixedClockTestConfig.AHORA;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,6 +31,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Import(FixedClockTestConfig.class)
+@TurnosFicticios
 class TokenAccesoServiceIT extends AbstractIntegrationTest {
 
     private static final ReferenciaToken.Turno TURNO = new ReferenciaToken.Turno(900101);
@@ -315,6 +317,35 @@ class TokenAccesoServiceIT extends AbstractIntegrationTest {
         assertThat(service.revocar(new ReferenciaToken.Aviso(900007), Optional.empty())).isEqualTo(1);
         assertThatThrownBy(() -> service.verificar(aviso.valor(), PropositoToken.ACEPTAR_AVISO))
                 .isInstanceOf(TokenInvalidoException.class);
+    }
+
+    @Test
+    void revocarUnTokenPorValorInvalidaSoloEseYNoLosDemasDeLaMismaReferenciaYPropositoNiAlRepetirse() {
+        TokenEmitido objetivo = service.emitir(PropositoToken.CONFIRMAR_TURNO, TURNO, AHORA.plusSeconds(3600));
+        TokenEmitido mismoTurnoYPropositoEntregado = service.emitir(PropositoToken.CONFIRMAR_TURNO, TURNO,
+                AHORA.plusSeconds(3600));
+        TokenEmitido otroProposito = service.emitir(PropositoToken.CANCELAR_TURNO, TURNO, AHORA.plusSeconds(3600));
+
+        assertThat(service.revocarToken(objetivo.valor())).isEqualTo(1);
+
+        assertThatThrownBy(() -> service.verificar(objetivo.valor(), PropositoToken.CONFIRMAR_TURNO))
+                .isInstanceOf(TokenInvalidoException.class);
+        assertThat(service.verificar(mismoTurnoYPropositoEntregado.valor(), PropositoToken.CONFIRMAR_TURNO)
+                .referencia()).isEqualTo(TURNO);
+        assertThat(service.verificar(otroProposito.valor(), PropositoToken.CANCELAR_TURNO).referencia())
+                .isEqualTo(TURNO);
+        assertThat(service.revocarToken(objetivo.valor())).isZero();
+    }
+
+    @Test
+    void revocarUnTokenPorValorNoTocaUnoYaUsadoNiUnoInexistente() {
+        TokenEmitido usado = service.emitir(PropositoToken.CONFIRMAR_TURNO, TURNO, AHORA.plusSeconds(3600));
+        consumirEnTx(usado.valor(), PropositoToken.CONFIRMAR_TURNO);
+        Instant usadoAntes = usadoEn(900101);
+
+        assertThat(service.revocarToken(usado.valor())).isZero();
+        assertThat(service.revocarToken("B".repeat(43))).isZero();
+        assertThat(usadoEn(900101)).isEqualTo(usadoAntes);
     }
 
     // ---- 3.10 causas indistinguibles ----

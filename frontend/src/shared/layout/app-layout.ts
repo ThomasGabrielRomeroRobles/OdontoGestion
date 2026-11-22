@@ -22,7 +22,12 @@ export function createAppLayout(
   return (host, authenticated) => {
     const header = document.createElement('header');
     const nav = document.createElement('nav');
-    nav.append(navLink('/agenda', 'Agenda'), navLink('/pacientes', 'Pacientes'), navLink('/configuracion', 'Configuración'));
+    nav.append(
+      navLink('/agenda', 'Agenda'),
+      navLink('/pacientes', 'Pacientes'),
+      navLink('/notificaciones', 'Notificaciones'),
+      navLink('/configuracion', 'Configuración'),
+    );
 
     const user = document.createElement('span');
     user.textContent = authenticated.email;

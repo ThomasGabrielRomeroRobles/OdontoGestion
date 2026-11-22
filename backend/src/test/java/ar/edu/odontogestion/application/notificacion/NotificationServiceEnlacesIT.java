@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.application.notificacion;
 
+import ar.edu.odontogestion.support.TurnosFicticios;
 import static ar.edu.odontogestion.application.notificacion.NotificationServiceEncolarIT.DATOS_TURNO;
 import static ar.edu.odontogestion.support.FixedClockTestConfig.AHORA;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -10,6 +11,7 @@ import ar.edu.odontogestion.domain.notificacion.EnlaceProgramado;
 import ar.edu.odontogestion.domain.notificacion.TipoNotificacion;
 import ar.edu.odontogestion.domain.token.PropositoToken;
 import ar.edu.odontogestion.domain.token.ReferenciaToken;
+import ar.edu.odontogestion.domain.token.TokenEmitido;
 import ar.edu.odontogestion.domain.token.TokenVigente;
 import ar.edu.odontogestion.infrastructure.config.AppProperties;
 import ar.edu.odontogestion.support.AbstractIntegrationTest;
@@ -32,6 +34,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /** Enlaces con tokens emitidos al enviar con el adaptador real (design D8, RN-TK-02). Ids ficticios. */
 @Import(FixedClockTestConfig.class)
+@TurnosFicticios
 class NotificationServiceEnlacesIT extends AbstractIntegrationTest {
 
     private static final Pattern TOKEN = Pattern.compile("/(acciones|avisos)/([A-Za-z0-9_-]{43})");
@@ -149,5 +152,71 @@ class NotificationServiceEnlacesIT extends AbstractIntegrationTest {
         assertThat(canal.enviados()).isEmpty();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM token_acceso WHERE turno_id = 900103", Integer.class))
                 .isZero();
+    }
+
+    private int tokensVigentes(long turnoId) {
+        return jdbc.queryForObject("SELECT count(*) FROM token_acceso WHERE turno_id = ? AND usado_en IS NULL "
+                + "AND vence_en > ?", Integer.class, turnoId, java.sql.Timestamp.from(reloj.instant()));
+    }
+
+    private void encolarRecordatorio(long turnoId) {
+        tx.executeWithoutResult(s -> service.encolar(TipoNotificacion.RECORDATORIO, "paciente@ejemplo.test",
+                new ReferenciaToken.Turno(turnoId), DATOS_TURNO, List.of(
+                        new EnlaceProgramado(PropositoToken.CONFIRMAR_TURNO, AHORA.plus(Duration.ofHours(24))),
+                        new EnlaceProgramado(PropositoToken.CANCELAR_TURNO, AHORA.plus(Duration.ofHours(24))))));
+    }
+
+    @Test
+    void siElEnvioFallaLosTokensEmitidosEnEseIntentoQuedanInvalidosPorqueNuncaSeEntregaron() {
+        canal.fallarSiempre();
+        encolarRecordatorio(900104);
+
+        service.procesarPendientes();
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM token_acceso WHERE turno_id = 900104", Integer.class))
+                .isEqualTo(2);
+        assertThat(tokensVigentes(900104)).isZero();
+    }
+
+    @Test
+    void elFalloNoRevocaUnTokenDelMismoTurnoYPropositoEntregadoAntes() {
+        TokenEmitido entregadoAntes = tokens.emitir(PropositoToken.CONFIRMAR_TURNO, new ReferenciaToken.Turno(900105),
+                AHORA.plus(Duration.ofHours(24)));
+        canal.fallarSiempre();
+        encolarRecordatorio(900105);
+
+        service.procesarPendientes();
+
+        assertThat(tokens.verificar(entregadoAntes.valor(), PropositoToken.CONFIRMAR_TURNO).referencia())
+                .isEqualTo(new ReferenciaToken.Turno(900105));
+        assertThat(tokensVigentes(900105)).isEqualTo(1);
+    }
+
+    @Test
+    void trasUnFalloElReintentoEmiteTokensNuevosVigentesYLosDelIntentoFallidoSiguenInvalidos() {
+        canal.fallarSiempre();
+        encolarRecordatorio(900106);
+        service.procesarPendientes();
+        canal.reiniciar();
+        reloj.advance(Duration.ofHours(1));
+
+        service.procesarPendientes();
+
+        assertThat(canal.enviados()).hasSize(1);
+        List<String[]> entregados = enlaces(canal.enviados().getFirst().cuerpo());
+        assertThat(entregados).hasSize(2);
+        assertThat(tokens.verificar(entregados.get(0)[1], PropositoToken.CONFIRMAR_TURNO).referencia())
+                .isEqualTo(new ReferenciaToken.Turno(900106));
+        assertThat(tokensVigentes(900106)).isEqualTo(2);
+    }
+
+    @Test
+    void siElEnvioSeConcretaLosTokensQuedanVigentes() {
+        encolarRecordatorio(900107);
+
+        service.procesarPendientes();
+
+        assertThat(canal.enviados()).hasSize(1);
+        assertThat(tokensVigentes(900107)).isEqualTo(2);
     }
 }

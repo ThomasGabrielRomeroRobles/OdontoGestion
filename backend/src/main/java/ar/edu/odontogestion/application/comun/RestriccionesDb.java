@@ -1,19 +1,19 @@
-package ar.edu.odontogestion.application.agenda;
+package ar.edu.odontogestion.application.comun;
 
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 
 /**
  * Identifica qué restricción con nombre de la base provocó una {@link DataIntegrityViolationException}
- * (design.md D3). Revisa toda la cadena de causas: el nombre que extrae Hibernate y, si no lo trae (p. ej. para
+ * (C-06 D3; compartida con C-07 D5). Revisa toda la cadena de causas: el nombre que extrae Hibernate y, si no lo trae (p. ej. para
  * {@code EXCLUDE}), el mensaje de PostgreSQL, que siempre lo incluye entre comillas.
  */
-final class RestriccionesDb {
+public final class RestriccionesDb {
 
     private RestriccionesDb() {
     }
 
-    static boolean viola(DataIntegrityViolationException ex, String restriccion) {
+    public static boolean viola(DataIntegrityViolationException ex, String restriccion) {
         for (Throwable causa = ex; causa != null; causa = causa.getCause()) {
             if (causa instanceof ConstraintViolationException cve
                     && restriccion.equalsIgnoreCase(cve.getConstraintName())) {

@@ -8,6 +8,7 @@ import ar.edu.odontogestion.domain.token.PropositoToken;
 import ar.edu.odontogestion.domain.token.ReferenciaToken;
 import ar.edu.odontogestion.domain.token.TokenEmitido;
 import ar.edu.odontogestion.infrastructure.config.AppProperties;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
@@ -30,10 +31,27 @@ public class EmisorEnlacesConTokens implements EmisorEnlaces {
 
     @Override
     public List<EnlaceRenderizado> emitir(ReferenciaToken referencia, List<EnlaceProgramado> enlaces) {
-        return enlaces.stream().map(enlace -> {
-            TokenEmitido emitido = tokens.emitir(enlace.proposito(), referencia, enlace.venceEn());
-            String ruta = enlace.proposito() == PropositoToken.ACEPTAR_AVISO ? "/avisos/" : "/acciones/";
-            return new EnlaceRenderizado(enlace.proposito(), baseUrl + ruta + emitido.valor(), enlace.venceEn());
-        }).toList();
+        List<EnlaceRenderizado> emitidos = new ArrayList<>();
+        try {
+            for (EnlaceProgramado enlace : enlaces) {
+                TokenEmitido emitido = tokens.emitir(enlace.proposito(), referencia, enlace.venceEn());
+                String ruta = enlace.proposito() == PropositoToken.ACEPTAR_AVISO ? "/avisos/" : "/acciones/";
+                emitidos.add(new EnlaceRenderizado(enlace.proposito(), baseUrl + ruta + emitido.valor(),
+                        enlace.venceEn()));
+            }
+        } catch (RuntimeException e) {
+            // Emisión a medias: los ya emitidos no se van a entregar.
+            revocar(emitidos);
+            throw e;
+        }
+        return List.copyOf(emitidos);
+    }
+
+    @Override
+    public void revocar(List<EnlaceRenderizado> enlaces) {
+        // El token es el último segmento de la URL que armó emitir().
+        for (EnlaceRenderizado enlace : enlaces) {
+            tokens.revocarToken(enlace.url().substring(enlace.url().lastIndexOf('/') + 1));
+        }
     }
 }

@@ -78,14 +78,15 @@ erDiagram
 - `estado`: `PENDIENTE_CONFIRMACION` (solicitud pública a la espera del enlace de email), `RESERVADO`, `CONFIRMADO`, `CANCELADO`, `AUSENTE`, `ATENDIDO`, `EXPIRADO` (solicitud no confirmada a tiempo).
 - **Constraint crítico** (extensión `btree_gist` de PostgreSQL local; garantiza no superposición en la agenda del odontólogo):
   ```sql
-  EXCLUDE USING gist (consultorio_id WITH =, tstzrange(inicio, fin, '[)') WITH &&)
-    WHERE (estado IN ('PENDIENTE_CONFIRMACION','RESERVADO','CONFIRMADO'));
-  CHECK (inicio < fin);
+  CONSTRAINT ex_turno_sin_superposicion EXCLUDE USING gist (consultorio_id WITH =, tstzrange(inicio, fin, '[)') WITH &&)
+    WHERE (estado NOT IN ('CANCELADO','EXPIRADO'));
+  CONSTRAINT ck_turno_rango CHECK (inicio < fin);
   ```
+  Ocupan agenda **todos los estados salvo `CANCELADO` y `EXPIRADO`**: `ATENDIDO` y `AUSENTE` siguen ocupando su rango (resolución de PA-06, 2026-11-22, C-07 D2). Implementado en `V9__turno.sql`.
   Como el MVP tiene un solo odontólogo por consultorio, la agenda del odontólogo es la del consultorio. Al sumar odontólogos se agrega `usuario_id` a `turno` y a la restricción.
 - Una solicitud `PENDIENTE_CONFIRMACION` **retiene el hueco** hasta `pendiente_hasta`; antes de cada reserva, y por el scheduler, las vencidas pasan a `EXPIRADO` (RN-PU-02).
 - Índices: (`consultorio_id`, `inicio`), (`paciente_id`, `inicio`), (`estado`, `inicio`).
-- **Suposición:** los estados `ATENDIDO` y `AUSENTE` salen de la restricción (el rango ya pasó); alternativa: incluir `ATENDIDO`. Se resuelve en implementación (ver [10](10_preguntas_abiertas.md)).
+- **Resuelto (PA-06, 2026-11-22, C-07 D2):** `ATENDIDO` y `AUSENTE` **siguen ocupando el rango** en la restricción de exclusión. Es el espejo de RN-AG-10 (solo `CANCELADO` y `EXPIRADO` liberan el hueco) y de RN-AS-04, no cuesta nada (el rango ya pasó y no se puede reservar en el pasado, RN-AG-11) y evita dos bordes: marcar `ATENDIDO` antes de su hora no libera un rango futuro que el odontólogo usó, y revertir un `AUSENTE` (RN-AS-06) nunca puede chocar con otro turno. `EstadoTurno.ocupaAgenda()` replica el predicado en Java solo para la disponibilidad orientativa (un test de integración compara ambos). Ver [10](10_preguntas_abiertas.md).
 
 ### entrada_lista_espera
 - `id`, `consultorio_id`, `paciente_id`, `prestacion_id`, `fecha_desde`, `fecha_hasta`, `franja_desde`, `franja_hasta` (nullable), `estado` (`PENDIENTE_CONFIRMACION | ACTIVA | CUBIERTA | CANCELADA | VENCIDA`), `origen` (`PUBLICA | ODONTOLOGO`), `turno_resultante_id` (nullable).

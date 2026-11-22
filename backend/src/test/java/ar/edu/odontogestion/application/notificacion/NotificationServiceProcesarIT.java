@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.application.notificacion;
 
+import ar.edu.odontogestion.support.TurnosFicticios;
 import static ar.edu.odontogestion.application.notificacion.NotificationServiceEncolarIT.DATOS_TURNO;
 import static ar.edu.odontogestion.support.FixedClockTestConfig.AHORA;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,6 +24,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /** Procesamiento del outbox con reintentos (design D10). Ids ficticios >= 900000 y datos ficticios. */
 @Import(FixedClockTestConfig.class)
+@TurnosFicticios
 class NotificationServiceProcesarIT extends AbstractIntegrationTest {
 
     @Autowired
