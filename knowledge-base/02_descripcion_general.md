@@ -69,8 +69,8 @@ Prefijo `/api/v1`. Tres zonas de acceso: **autenticada** (sesión del odontólog
 | Zona | Recurso | Endpoints principales |
 |------|---------|-----------------------|
 | Autenticada | `auth` | `POST /auth/login`, `POST /auth/logout`, `GET /auth/sesion` |
-| Autenticada | `turnos` | `GET /turnos` (filtros), `POST /turnos`, `PATCH /turnos/{id}` (mover), `POST /turnos/{id}/cancelar`, `POST /turnos/{id}/ausente`, `POST /turnos/{id}/atendido` |
-| Autenticada | `disponibilidad` | `GET /disponibilidad?prestacion=&desde=&hasta=` (huecos libres) |
+| Autenticada | `turnos` | `GET /turnos` (filtros), `POST /turnos`, `PUT /turnos/{id}/mover`, `POST /turnos/{id}/cancelar`, `POST /turnos/{id}/ausente`, `POST /turnos/{id}/atendido`, `GET /turnos/hoy` (mover es una acción explícita como `cancelar` y `atendido`; C-07 D1) |
+| Autenticada | `agenda` | `GET /agenda/disponibilidad?prestacionId=&desde=&hasta=` (huecos libres), `GET /agenda?desde=&hasta=` (turnos de un rango), `GET /bloqueos/{id}/turnos-afectados` (C-07 D1) |
 | Autenticada | `lista-espera` | `POST /lista-espera`, `GET /lista-espera`, `DELETE /lista-espera/{id}` |
 | Autenticada | `pacientes` | CRUD de pacientes, historial de ausencias |
 | Autenticada | `historias-clinicas` | `GET /pacientes/{id}/historia`, `PUT /pacientes/{id}/anamnesis`, `PUT /pacientes/{id}/odontograma/piezas/{fdi}`, `POST /pacientes/{id}/evoluciones` |

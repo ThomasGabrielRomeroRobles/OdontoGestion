@@ -111,9 +111,9 @@
 ## 12. [Todos] Integración y cierre
 
 - [ ] 12.1 Actualizar la rama desde `main` (C-03, C-04 y C-06 ya integrados); verificar que Flyway aplica V1…V9 en orden sobre una base vacía y que `cd backend && ./gradlew test` pasa completo
-- [ ] 12.2 Verificar la regla dura #10 en todo el change: `grep` de logs y DTOs sin DNI, email, tokens ni datos clínicos; `TurnoDto` sin datos personales más allá de nombre y apellido
-- [ ] 12.3 Actualizar la KB con la decisión final de PA-06 (`04_modelo_de_datos.md` §turno, `05_reglas_de_negocio.md` RN-AG-05, `10_preguntas_abiertas.md` PA-06 → resuelta) y el endpoint de mover en `02_descripcion_general.md`; verificar que `CLAUDE.md`/`AGENTS.md` no requieren cambios
-- [ ] 12.4 Publicar a P5 (C-08) el contrato final de D1 con ejemplos de respuesta (en el PR o en el canal) y verificar que no hay diferencias con lo implementado (`TurnoApiIT`/`AgendaApiIT`)
+- [x] 12.2 Verificar la regla dura #10 en todo el change: `grep` de logs y DTOs sin DNI, email, tokens ni datos clínicos; `TurnoDto` sin datos personales más allá de nombre y apellido
+- [x] 12.3 Actualizar la KB con la decisión final de PA-06 (`04_modelo_de_datos.md` §turno, `05_reglas_de_negocio.md` RN-AG-05, `10_preguntas_abiertas.md` PA-06 → resuelta) y el endpoint de mover en `02_descripcion_general.md`; verificar que `CLAUDE.md`/`AGENTS.md` no requieren cambios
+- [x] 12.4 Publicar a P5 (C-08) el contrato final de D1 con ejemplos de respuesta (en el PR o en el canal) y verificar que no hay diferencias con lo implementado (`TurnoApiIT`/`AgendaApiIT`) — *Hecho: contrato final con ejemplos y diferencias contra el v0 de C-08 en `contrato-c08.md` (misma carpeta); verificado contra `TurnoApiIT`, `AgendaApiIT`, `TurnosHoyApiIT` y `TurnosAfectadosApiIT`.*
 
 ## Workflow follow-up
 
