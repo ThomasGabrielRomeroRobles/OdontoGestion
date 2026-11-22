@@ -1,6 +1,8 @@
 package ar.edu.odontogestion.domain.notificacion;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -8,6 +10,27 @@ import org.springframework.data.repository.query.Param;
 
 /** Toda consulta filtra por consultorio (regla dura #6). */
 public interface NotificacionRepository extends JpaRepository<Notificacion, Long> {
+
+    /** Candidatas del procesador (design D10): pendientes cuyo momento llegó, las más antiguas primero. */
+    @Query(nativeQuery = true, value = """
+            SELECT id FROM notificacion
+             WHERE consultorio_id = :consultorioId AND estado = 'PENDIENTE' AND programada_para <= :ahora
+             ORDER BY programada_para, id
+             LIMIT :lote
+            """)
+    List<Long> idsPendientes(@Param("consultorioId") Long consultorioId, @Param("ahora") Instant ahora,
+            @Param("lote") int lote);
+
+    /**
+     * Toma la notificación para procesarla re-verificando estado y momento. {@code SKIP LOCKED}: si otra
+     * ejecución ya la tiene bloqueada devuelve vacío, así dos procesamientos superpuestos no envían dos veces.
+     */
+    @Query(nativeQuery = true, value = """
+            SELECT * FROM notificacion
+             WHERE id = :id AND estado = 'PENDIENTE' AND programada_para <= :ahora
+             FOR UPDATE SKIP LOCKED
+            """)
+    Optional<Notificacion> tomarParaProcesar(@Param("id") Long id, @Param("ahora") Instant ahora);
 
     /**
      * Inserción idempotente (design D7): {@code ON CONFLICT DO NOTHING} sobre los índices únicos parciales.

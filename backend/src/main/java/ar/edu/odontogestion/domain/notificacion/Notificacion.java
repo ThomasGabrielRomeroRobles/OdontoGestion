@@ -75,6 +75,44 @@ public class Notificacion extends AuditableEntity {
     protected Notificacion() {
     }
 
+    /** Error máximo guardado (coincide con el {@code CHECK} de V6). */
+    public static final int MAX_ERROR = 500;
+
+    /** Envío aceptado por el canal. */
+    public void marcarEnviada(Instant ahora) {
+        this.intentos++;
+        this.estado = EstadoNotificacion.ENVIADA;
+        this.enviadaEn = ahora;
+        this.error = null;
+    }
+
+    /** Intento fallido con reintento programado. */
+    public void registrarFalloConReintento(String error, Instant programadaPara) {
+        this.intentos++;
+        this.error = truncar(error);
+        this.programadaPara = programadaPara;
+    }
+
+    /** Intento fallido sin más reintentos automáticos. */
+    public void registrarFalloDefinitivo(String error) {
+        this.intentos++;
+        this.estado = EstadoNotificacion.FALLIDA;
+        this.error = truncar(error);
+    }
+
+    /** Descartada sin intentar el envío (p. ej. enlace vencido): no cuenta como intento. */
+    public void descartar(String error) {
+        this.estado = EstadoNotificacion.FALLIDA;
+        this.error = truncar(error);
+    }
+
+    private static String truncar(String error) {
+        if (error == null || error.isBlank()) {
+            return "Fallo de envío sin detalle";
+        }
+        return error.length() > MAX_ERROR ? error.substring(0, MAX_ERROR) : error;
+    }
+
     public ReferenciaToken referencia() {
         if (turnoId != null) {
             return new ReferenciaToken.Turno(turnoId);
