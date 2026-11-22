@@ -3,6 +3,8 @@ package ar.edu.odontogestion.domain.notificacion;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,6 +12,18 @@ import org.springframework.data.repository.query.Param;
 
 /** Toda consulta filtra por consultorio (regla dura #6). */
 public interface NotificacionRepository extends JpaRepository<Notificacion, Long> {
+
+    /** Registro de envíos (design D13): filtros opcionales; el orden lo da el {@link Pageable}. */
+    @Query("""
+            SELECT n FROM Notificacion n
+             WHERE n.consultorioId = :consultorioId
+               AND (:estado IS NULL OR n.estado = :estado)
+               AND (:tipo IS NULL OR n.tipo = :tipo)
+            """)
+    Page<Notificacion> buscar(@Param("consultorioId") Long consultorioId, @Param("estado") EstadoNotificacion estado,
+            @Param("tipo") TipoNotificacion tipo, Pageable pageable);
+
+    Optional<Notificacion> findByIdAndConsultorioId(Long id, Long consultorioId);
 
     /** Candidatas del procesador (design D10): pendientes cuyo momento llegó, las más antiguas primero. */
     @Query(nativeQuery = true, value = """

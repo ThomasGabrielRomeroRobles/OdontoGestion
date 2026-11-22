@@ -106,6 +106,18 @@ public class Notificacion extends AuditableEntity {
         this.error = truncar(error);
     }
 
+    /**
+     * Reintento manual (design D13): vuelve a {@code PENDIENTE} con intentos reiniciados, programada para ahora.
+     * Las reglas (estado, tope de reintentos, enlaces vigentes) las valida el servicio antes de llamar.
+     */
+    public void reintentarManualmente(Instant ahora) {
+        this.estado = EstadoNotificacion.PENDIENTE;
+        this.intentos = 0;
+        this.reintentosManuales++;
+        this.programadaPara = ahora;
+        this.error = null;
+    }
+
     private static String truncar(String error) {
         if (error == null || error.isBlank()) {
             return "Fallo de envío sin detalle";

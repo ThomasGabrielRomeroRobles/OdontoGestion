@@ -1,9 +1,13 @@
 package ar.edu.odontogestion.application.notificacion;
 
 import ar.edu.odontogestion.application.consultorio.ConsultorioActual;
+import ar.edu.odontogestion.domain.error.ConflictoException;
+import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
+import ar.edu.odontogestion.domain.error.ReglaNegocioException;
 import ar.edu.odontogestion.domain.error.ValidacionDominioException;
 import ar.edu.odontogestion.domain.notificacion.CanalNotificacion;
 import ar.edu.odontogestion.domain.notificacion.EnlaceProgramado;
+import ar.edu.odontogestion.domain.notificacion.EstadoNotificacion;
 import ar.edu.odontogestion.domain.notificacion.Notificacion;
 import ar.edu.odontogestion.domain.notificacion.NotificacionRepository;
 import ar.edu.odontogestion.domain.notificacion.TipoNotificacion;
@@ -21,6 +25,9 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -43,6 +50,8 @@ public class NotificationService {
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
     private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
     static final String ENLACE_VENCIDO = "ENLACE_VENCIDO";
+    /** Tope de reintentos manuales por notificación (design D13). */
+    static final int MAX_REINTENTOS_MANUALES = 3;
 
     private final NotificacionRepository repository;
     private final ConsultorioActual consultorioActual;
@@ -170,6 +179,48 @@ public class NotificationService {
             }
         }
         return true;
+    }
+
+    /**
+     * Registro de envíos (design D13), de la más reciente a la más antigua.
+     *
+     * @param estado filtro opcional ({@code null} = todos)
+     * @param tipo filtro opcional ({@code null} = todos)
+     */
+    @Transactional(readOnly = true)
+    public Page<NotificacionVista> listar(EstadoNotificacion estado, TipoNotificacion tipo, int pagina, int tamanio) {
+        PageRequest pageable = PageRequest.of(pagina, tamanio,
+                Sort.by(Sort.Order.desc("creadoEn"), Sort.Order.desc("id")));
+        return repository.buscar(consultorioActual.id(), estado, tipo, pageable).map(NotificacionVista::de);
+    }
+
+    /**
+     * Reintento manual acotado de una notificación {@code FALLIDA} (design D13): vuelve a {@code PENDIENTE} y la
+     * envía el siguiente procesamiento.
+     *
+     * @throws RecursoNoEncontradoException si no existe en el consultorio (404)
+     * @throws ConflictoException si no está {@code FALLIDA} (409)
+     * @throws ReglaNegocioException si ya tuvo {@value #MAX_REINTENTOS_MANUALES} reintentos manuales o tiene un
+     *                               enlace vencido (422)
+     */
+    @Transactional
+    public NotificacionVista reintentar(Long id) {
+        Notificacion notificacion = repository.findByIdAndConsultorioId(id, consultorioActual.id())
+                .orElseThrow(() -> new RecursoNoEncontradoException("La notificación no existe."));
+        if (notificacion.getEstado() != EstadoNotificacion.FALLIDA) {
+            throw new ConflictoException("Solo se puede reintentar una notificación fallida.");
+        }
+        if (notificacion.getReintentosManuales() >= MAX_REINTENTOS_MANUALES) {
+            throw new ReglaNegocioException(
+                    "La notificación ya se reintentó " + MAX_REINTENTOS_MANUALES + " veces manualmente.");
+        }
+        Instant ahora = clock.instant();
+        if (notificacion.getEnlaces().stream().anyMatch(e -> !e.venceEn().isAfter(ahora))) {
+            throw new ReglaNegocioException("Un enlace de la notificación ya venció: no se puede reenviar.");
+        }
+        notificacion.reintentarManualmente(ahora);
+        repository.flush();
+        return NotificacionVista.de(notificacion);
     }
 
     /** Formato estable del JSON de enlaces, independiente de la configuración de Jackson: ISO-8601 en UTC. */
