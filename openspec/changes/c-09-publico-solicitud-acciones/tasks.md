@@ -88,11 +88,11 @@
 
 ## 9. [P2 Martina] Endpoints de acciones e ITs de concurrencia
 
-- [ ] 9.1 RED → GREEN: `AccionesController` `GET/POST /api/v1/acciones/{token}`; `AccionesApiIT` sin sesión: `200` del resumen, `POST` con CSRF ejecuta, `400` con `accion` ausente o inválida, `410` idéntico para usado/vencido/inexistente en `GET` y `POST` [token-actions › Token usado, Token vencido]
-- [ ] 9.2 RED → GREEN: CSRF: `POST` sin `X-XSRF-TOKEN` → `403`, turno sin cambios y token vigente; `GET` sin cookies entrega `XSRF-TOKEN` y un `POST` con ese valor no es rechazado por CSRF [token-actions › POST sin cabecera CSRF, GET entrega la cookie CSRF]
-- [ ] 9.3 RED → GREEN: dos `POST` simultáneos con el mismo token `CANCELAR_TURNO` (PostgreSQL real, `CountDownLatch`) → exactamente un `200` y un `410`, un único `HuecoLiberado` y una única `CANCELACION` [token-actions › Mismo token dos veces a la vez]
-- [ ] 9.4 RED → GREEN: `CONFIRMAR_TURNO` y `CANCELAR_TURNO` simultáneos sobre el mismo turno: el estado final es coherente con las respuestas (cancelación `200` → `CANCELADO`; `409` → `CONFIRMADO` con `CANCELAR_TURNO` vigente) [token-actions › Confirmar y cancelar a la vez]
-- [ ] 9.5 RED → GREEN: límite de cancelación con `MutableClock` por la API: dentro → `200`, en el límite → `200`, fuera → `422 limite-cancelacion` y token vigente [token-actions › Cancelación dentro del límite, Cancelación justo en el límite, Cancelación fuera del límite]
+- [x] 9.1 RED → GREEN: `AccionesController` `GET/POST /api/v1/acciones/{token}`; `AccionesApiIT` sin sesión: `200` del resumen, `POST` con CSRF ejecuta, `400` con `accion` ausente o inválida, `410` idéntico para usado/vencido/inexistente en `GET` y `POST` [token-actions › Token usado, Token vencido]
+- [x] 9.2 RED → GREEN: CSRF: `POST` sin `X-XSRF-TOKEN` → `403`, turno sin cambios y token vigente; `GET` sin cookies entrega `XSRF-TOKEN` y un `POST` con ese valor no es rechazado por CSRF [token-actions › POST sin cabecera CSRF, GET entrega la cookie CSRF]
+- [x] 9.3 RED → GREEN: dos `POST` simultáneos con el mismo token `CANCELAR_TURNO` (PostgreSQL real, `CountDownLatch`) → exactamente un `200` y un `410`, un único `HuecoLiberado` y una única `CANCELACION` [token-actions › Mismo token dos veces a la vez]
+- [x] 9.4 RED → GREEN: `CONFIRMAR_TURNO` y `CANCELAR_TURNO` simultáneos sobre el mismo turno: el estado final es coherente con las respuestas (cancelación `200` → `CANCELADO`; `409` → `CONFIRMADO` con `CANCELAR_TURNO` vigente) [token-actions › Confirmar y cancelar a la vez]
+- [x] 9.5 RED → GREEN: límite de cancelación con `MutableClock` por la API: dentro → `200`, en el límite → `200`, fuera → `422 limite-cancelacion` y token vigente [token-actions › Cancelación dentro del límite, Cancelación justo en el límite, Cancelación fuera del límite]
 
 ## 10. [P2 Martina] No filtrar el token (D7, D8)
 
