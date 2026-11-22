@@ -23,4 +23,10 @@ public record SolicitudReserva(Long pacienteId, Long prestacionId, Instant inici
         return new SolicitudReserva(pacienteId, prestacionId, inicio, OrigenTurno.ODONTOLOGO,
                 EstadoTurno.RESERVADO, PoliticaAnticipacion.odontologo());
     }
+
+    /** Solicitud de la página pública (C-09): pendiente de confirmación, origen {@code PUBLICA}, con anticipación mínima. */
+    public static SolicitudReserva publica(Long pacienteId, Long prestacionId, Instant inicio, int anticipacionMin) {
+        return new SolicitudReserva(pacienteId, prestacionId, inicio, OrigenTurno.PUBLICA,
+                EstadoTurno.PENDIENTE_CONFIRMACION, PoliticaAnticipacion.publica(anticipacionMin));
+    }
 }

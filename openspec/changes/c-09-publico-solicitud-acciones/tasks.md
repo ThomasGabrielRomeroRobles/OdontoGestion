@@ -36,11 +36,11 @@
 
 ## 2. [P1 Thomas] Disponibilidad y prestaciones públicas
 
-- [ ] 2.1 RED: `SolicitudReservaTest`: `SolicitudReserva.publica(pacienteId, prestacionId, inicio, anticipacionMin)` nace `PENDIENTE_CONFIRMACION`, origen `PUBLICA` y su política exige la anticipación; GREEN: agregar la fábrica; verificar que pasa
-- [ ] 2.2 RED: IT de `DisponibilidadService.huecosLibresPublicos`: anticipación 120 excluye un hueco a 60 min e incluye uno a 120; pendiente vigente ocupa y vencida no; prestación inactiva `422`, inexistente `404`, rango > 31 días `422` [public-booking › Huecos libres con anticipación pública, Pendientes vigentes ocupan y vencidas no, Prestación inactiva, inexistente o rango inválido]; GREEN; verificar que pasa
-- [ ] 2.3 RED → GREEN: IT de `alternativas(prestacionId, desde, maximo, política)` con política pública (excluye huecos antes de la anticipación) y la sobrecarga existente sin cambios (los ITs de C-07 siguen en verde); verificar con `./gradlew test --tests '*Disponibilidad*'`
-- [ ] 2.4 RED → GREEN: consulta de prestaciones activas ordenadas por nombre (servicio + test con una inactiva excluida y lista vacía) [public-booking › Solo prestaciones activas, Sin prestaciones activas]
-- [ ] 2.5 RED → GREEN: `PublicoApiIT` para `GET /api/v1/publico/prestaciones` y `GET /api/v1/publico/disponibilidad` sin sesión: `200`, solo `{id, nombre, duracionMin}` / `{inicio, fin}`, sin campos de turno ni paciente (aserción sobre el JSON crudo); verificar que pasa
+- [x] 2.1 RED: `SolicitudReservaTest`: `SolicitudReserva.publica(pacienteId, prestacionId, inicio, anticipacionMin)` nace `PENDIENTE_CONFIRMACION`, origen `PUBLICA` y su política exige la anticipación; GREEN: agregar la fábrica; verificar que pasa
+- [x] 2.2 RED: IT de `DisponibilidadService.huecosLibresPublicos`: anticipación 120 excluye un hueco a 60 min e incluye uno a 120; pendiente vigente ocupa y vencida no; prestación inactiva `422`, inexistente `404`, rango > 31 días `422` [public-booking › Huecos libres con anticipación pública, Pendientes vigentes ocupan y vencidas no, Prestación inactiva, inexistente o rango inválido]; GREEN; verificar que pasa
+- [x] 2.3 RED → GREEN: IT de `alternativas(prestacionId, desde, maximo, política)` con política pública (excluye huecos antes de la anticipación) y la sobrecarga existente sin cambios (los ITs de C-07 siguen en verde); verificar con `./gradlew test --tests '*Disponibilidad*'`
+- [x] 2.4 RED → GREEN: consulta de prestaciones activas ordenadas por nombre (servicio + test con una inactiva excluida y lista vacía) [public-booking › Solo prestaciones activas, Sin prestaciones activas]
+- [x] 2.5 RED → GREEN: `PublicoApiIT` para `GET /api/v1/publico/prestaciones` y `GET /api/v1/publico/disponibilidad` sin sesión: `200`, solo `{id, nombre, duracionMin}` / `{inicio, fin}`, sin campos de turno ni paciente (aserción sobre el JSON crudo); verificar que pasa
 
 ## 3. [P1 Thomas] Limitador de solicitudes públicas (D4)
 
