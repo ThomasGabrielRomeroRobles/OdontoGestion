@@ -12,8 +12,10 @@ import ar.edu.odontogestion.domain.paciente.PacienteRepository;
 import ar.edu.odontogestion.domain.turno.EstadoTurno;
 import ar.edu.odontogestion.domain.turno.Turno;
 import ar.edu.odontogestion.domain.turno.TurnoRepository;
+import ar.edu.odontogestion.domain.turno.evento.TurnoCreado;
 import java.time.Clock;
 import java.time.Duration;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,11 +34,13 @@ public class ReservaTurnoService {
     private final TurnoRepository turnos;
     private final ValidadorHorarioTurno validador;
     private final TraductorViolacionAgenda traductor;
+    private final ApplicationEventPublisher eventos;
     private final Clock clock;
 
     public ReservaTurnoService(ConsultorioActual consultorioActual, ConsultorioRepository consultorios,
             PacienteRepository pacientes, PrestacionRepository prestaciones, TurnoRepository turnos,
-            ValidadorHorarioTurno validador, TraductorViolacionAgenda traductor, Clock clock) {
+            ValidadorHorarioTurno validador, TraductorViolacionAgenda traductor,
+            ApplicationEventPublisher eventos, Clock clock) {
         this.consultorioActual = consultorioActual;
         this.consultorios = consultorios;
         this.pacientes = pacientes;
@@ -44,6 +48,7 @@ public class ReservaTurnoService {
         this.turnos = turnos;
         this.validador = validador;
         this.traductor = traductor;
+        this.eventos = eventos;
         this.clock = clock;
     }
 
@@ -74,6 +79,9 @@ public class ReservaTurnoService {
                 ? Turno.reservado(consultorio, paciente, prestacion, solicitud.inicio(), solicitud.origen())
                 : Turno.pendiente(consultorio, paciente, prestacion, solicitud.inicio(), solicitud.origen(),
                         clock.instant().plus(Duration.ofMinutes(consultorio.getParametros().vencimientoPendienteMin())));
-        return TurnoDto.de(traductor.ejecutar(() -> turnos.saveAndFlush(turno)));
+        Turno guardado = traductor.ejecutar(() -> turnos.saveAndFlush(turno));
+        eventos.publishEvent(new TurnoCreado(guardado.getId(), consultorioId, guardado.getEstado(),
+                guardado.getOrigen()));
+        return TurnoDto.de(guardado);
     }
 }

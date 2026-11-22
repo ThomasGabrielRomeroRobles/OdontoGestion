@@ -96,10 +96,10 @@
 
 ## 10. [P2 Martina] Eventos, concurrencia optimista y turnos de hoy (bloqueado por grupo 9)
 
-- [ ] 10.1 RED: IT con `@RecordApplicationEvents`: crear publica `TurnoCreado`; mover publica `TurnoMovido` (rangos anterior y nuevo) y `HuecoLiberado` del rango anterior; cancelar publica `TurnoCancelado` y `HuecoLiberado`; un `409` no deja efectos (listener de prueba `BEFORE_COMMIT` que escribe una marca: no persiste tras rollback); confirmar que falla [turno-lifecycle › Mover libera hueco, Cancelar libera hueco, Sin evento ante conflicto]
-- [ ] 10.2 GREEN: publicar los eventos desde `ReservaTurnoService` (coordinar con P1) y `GestionTurnoService`; verificar que 10.1 pasa
-- [ ] 10.3 RED → GREEN: test de concurrencia (Testcontainers, dos hilos, sin `@Transactional` en el test): cancelar y mover el mismo turno a la vez → exactamente una operación aplicada y la otra `ObjectOptimisticLockingFailureException` (→ `409` vía API); repetir 10 veces [turno-lifecycle › Cancelar y mover a la vez]
-- [ ] 10.4 RED → GREEN: `GET /api/v1/turnos/hoy` con `FixedClockTestConfig`: incluye `ATENDIDO` y `CONFIRMADO` de hoy ordenados, excluye `CANCELADO`/`EXPIRADO`, incluye `paciente.id`; un turno a las 22:00 de Buenos Aires (01:00 UTC del día siguiente) cuenta como de hoy; sin sesión → `401` [agenda-availability › Lista del día, Límite de día en la zona del consultorio]
+- [x] 10.1 RED: IT con `@RecordApplicationEvents`: crear publica `TurnoCreado`; mover publica `TurnoMovido` (rangos anterior y nuevo) y `HuecoLiberado` del rango anterior; cancelar publica `TurnoCancelado` y `HuecoLiberado`; un `409` no deja efectos (listener de prueba `BEFORE_COMMIT` que escribe una marca: no persiste tras rollback); confirmar que falla [turno-lifecycle › Mover libera hueco, Cancelar libera hueco, Sin evento ante conflicto]
+- [x] 10.2 GREEN: publicar los eventos desde `ReservaTurnoService` (coordinar con P1) y `GestionTurnoService`; verificar que 10.1 pasa
+- [x] 10.3 RED → GREEN: test de concurrencia (Testcontainers, dos hilos, sin `@Transactional` en el test): cancelar y mover el mismo turno a la vez → exactamente una operación aplicada y la otra `ObjectOptimisticLockingFailureException` (→ `409` vía API); repetir 10 veces [turno-lifecycle › Cancelar y mover a la vez]
+- [x] 10.4 RED → GREEN: `GET /api/v1/turnos/hoy` con `FixedClockTestConfig`: incluye `ATENDIDO` y `CONFIRMADO` de hoy ordenados, excluye `CANCELADO`/`EXPIRADO`, incluye `paciente.id`; un turno a las 22:00 de Buenos Aires (01:00 UTC del día siguiente) cuenta como de hoy; sin sesión → `401` [agenda-availability › Lista del día, Límite de día en la zona del consultorio]
 
 ## 11. [P3 Jeremías] Notificaciones al paciente (bloqueado por grupo 1 y C-03; ITs además por grupos 4 y 9)
 

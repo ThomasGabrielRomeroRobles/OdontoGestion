@@ -1,6 +1,7 @@
 package ar.edu.odontogestion.application.turno;
 
 import ar.edu.odontogestion.application.consultorio.ConsultorioActual;
+import ar.edu.odontogestion.domain.agenda.Hueco;
 import ar.edu.odontogestion.domain.agenda.PoliticaAnticipacion;
 import ar.edu.odontogestion.domain.consultorio.Consultorio;
 import ar.edu.odontogestion.domain.consultorio.ConsultorioRepository;
@@ -8,8 +9,12 @@ import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
 import ar.edu.odontogestion.domain.turno.CanceladoPor;
 import ar.edu.odontogestion.domain.turno.Turno;
 import ar.edu.odontogestion.domain.turno.TurnoRepository;
+import ar.edu.odontogestion.domain.turno.evento.HuecoLiberado;
+import ar.edu.odontogestion.domain.turno.evento.TurnoCancelado;
+import ar.edu.odontogestion.domain.turno.evento.TurnoMovido;
 import java.time.Clock;
 import java.time.Instant;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,16 +32,18 @@ public class GestionTurnoService {
     private final TurnoRepository turnos;
     private final ValidadorHorarioTurno validador;
     private final TraductorViolacionAgenda traductor;
+    private final ApplicationEventPublisher eventos;
     private final Clock clock;
 
     public GestionTurnoService(ConsultorioActual consultorioActual, ConsultorioRepository consultorios,
             TurnoRepository turnos, ValidadorHorarioTurno validador, TraductorViolacionAgenda traductor,
-            Clock clock) {
+            ApplicationEventPublisher eventos, Clock clock) {
         this.consultorioActual = consultorioActual;
         this.consultorios = consultorios;
         this.turnos = turnos;
         this.validador = validador;
         this.traductor = traductor;
+        this.eventos = eventos;
         this.clock = clock;
     }
 
@@ -53,15 +60,24 @@ public class GestionTurnoService {
         validador.validar(consultorio, nuevoInicio, turno.getPrestacion().getDuracionMin(),
                 PoliticaAnticipacion.odontologo());
 
-        turno.mover(nuevoInicio);
-        return TurnoDto.de(traductor.ejecutar(() -> turnos.saveAndFlush(turno)));
+        Hueco anterior = turno.mover(nuevoInicio);
+        Turno guardado = traductor.ejecutar(() -> turnos.saveAndFlush(turno));
+        // Se publica el rango anterior completo aunque el nuevo lo solape: C-10 recalcula la disponibilidad (D10).
+        eventos.publishEvent(new TurnoMovido(guardado.getId(), anterior.inicio(), anterior.fin(),
+                guardado.getInicio(), guardado.getFin()));
+        eventos.publishEvent(huecoLiberado(guardado, anterior));
+        return TurnoDto.de(guardado);
     }
 
     @Transactional
     public TurnoDto cancelar(Long turnoId, String motivo) {
         Turno turno = cargar(turnoId, consultorioActual.id());
+        Hueco liberado = new Hueco(turno.getInicio(), turno.getFin());
         turno.cancelar(CanceladoPor.ODONTOLOGO, motivo);
-        return TurnoDto.de(turnos.saveAndFlush(turno));
+        Turno guardado = turnos.saveAndFlush(turno);
+        eventos.publishEvent(new TurnoCancelado(guardado.getId(), CanceladoPor.ODONTOLOGO));
+        eventos.publishEvent(huecoLiberado(guardado, liberado));
+        return TurnoDto.de(guardado);
     }
 
     @Transactional
@@ -75,6 +91,11 @@ public class GestionTurnoService {
     @Transactional(readOnly = true)
     public Long prestacionDe(Long turnoId) {
         return cargar(turnoId, consultorioActual.id()).getPrestacion().getId();
+    }
+
+    private static HuecoLiberado huecoLiberado(Turno turno, Hueco rango) {
+        return new HuecoLiberado(turno.getConsultorio().getId(), turno.getId(), turno.getPrestacion().getId(),
+                rango.inicio(), rango.fin());
     }
 
     private Turno cargar(Long turnoId, Long consultorioId) {
