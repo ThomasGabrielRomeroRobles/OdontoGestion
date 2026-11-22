@@ -199,9 +199,9 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
   - `knowledge-base/09_decisiones_y_supuestos.md` §DD-07, §DD-08, §DD-13, §SU-10
 
 ### [C-04] `pacientes-core`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado 2026-11-21 en `openspec/changes/archive/2026-11-21-c-04-pacientes-core/`)
 - **Scope**:
-  - Migración V5: tabla `paciente` (único `consultorio_id + dni`, índices por dni, email, apellido+nombre, `cantidad_ausencias`)
+  - Migración V8 (era V5; renumerada el 2026-11-22 porque C-03 entró antes con V6/V7): tabla `paciente` (único `consultorio_id + dni`, índices por dni, email, apellido+nombre, `cantidad_ausencias`)
   - Modelo `Paciente` (sin cuenta); servicio `buscarOCrearPorDni`
   - `GET /api/v1/pacientes?dni=&q=`, `POST /api/v1/pacientes`, `PUT /api/v1/pacientes/{id}`
   - Tests: unicidad por DNI, búsqueda, creación en el momento, filtrado por `consultorio_id`, `401` sin sesión
@@ -218,7 +218,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 - **Scope**:
   - STRETCH: no es obligatorio para la entrega y no bloquea ningún otro change (ni C-12)
   - CARRIL PARALELO: no depende de la agenda; arranca al cerrar C-04
-  - Migración V8: tablas `historia_clinica` (única por paciente, creación perezosa), `anamnesis`, `pieza_dental_estado` (único `historia_id + pieza_fdi`) y `evolucion_clinica` (`turno_id` nullable sin FK; la FK la agrega C-07)
+  - Migración V11 (era V8, que pasó a C-04; V10 es de C-10; si C-07/V9 ya está aplicada, C-05 crea también la FK de `evolucion_clinica.turno_id`): tablas `historia_clinica` (única por paciente, creación perezosa), `anamnesis`, `pieza_dental_estado` (único `historia_id + pieza_fdi`) y `evolucion_clinica` (`turno_id` nullable sin FK; la FK la agrega C-07)
   - `GET /api/v1/pacientes/{id}/historia`, `PUT /api/v1/pacientes/{id}/historia/anamnesis`
   - `PUT /api/v1/pacientes/{id}/historia/odontograma/piezas/{fdi}` (estado + observación, autor y fecha), validación FDI (`422`), 32 piezas permanentes, enum de estados MVP
   - `POST/GET /api/v1/pacientes/{id}/historia/evoluciones` (orden cronológico, edición por el autor dentro de ventana)

@@ -45,6 +45,11 @@ app:
   public-rate-limit-per-hour: ${PUBLIC_RATE_LIMIT_PER_HOUR:5}
   notification-channels: ${NOTIFICATION_CHANNELS:EMAIL}
   mail-from: ${MAIL_FROM:no-reply@consultorio.example}
+  notifications:
+    poll-interval: ${NOTIFICATION_POLL_INTERVAL:PT5M}
+    max-intentos: 3
+    esperas: PT1M,PT5M
+    lote: 50
   bootstrap:
     odontologo-email: ${BOOTSTRAP_ODONTOLOGO_EMAIL:odontologo@consultorio.example}
     odontologo-password: ${BOOTSTRAP_ODONTOLOGO_PASSWORD:}

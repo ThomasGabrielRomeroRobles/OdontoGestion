@@ -82,3 +82,16 @@ Toda tabla de dominio de negocio SHALL tener clave primaria `BIGINT` generada, r
 #### Scenario: Timestamps en UTC
 - **WHEN** se inspeccionan las columnas `creado_en` y `actualizado_en` de `consultorio` y `usuario`
 - **THEN** son de tipo `timestamp with time zone` y no nulas
+
+#### Scenario: Versión de C-04 aplicada
+- **GIVEN** una base vacía
+- **WHEN** la aplicación arranca
+- **THEN** el historial de migraciones registra la versión `8` aplicada con éxito
+
+#### Scenario: Paciente referencia al consultorio
+- **WHEN** se inspecciona la tabla `paciente`
+- **THEN** su columna `consultorio_id` es no nula y tiene clave foránea a `consultorio`
+
+#### Scenario: Timestamps de paciente en UTC
+- **WHEN** se inspeccionan las columnas `creado_en` y `actualizado_en` de `paciente`
+- **THEN** son de tipo `timestamp with time zone` y no nulas
