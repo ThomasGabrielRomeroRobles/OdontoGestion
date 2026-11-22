@@ -239,7 +239,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 ## FASE 3 — Agenda y turnos (Épicas 3 y 7)
 
 ### [C-07] `turnos-agenda-core`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado 2026-11-22 en `openspec/changes/archive/2026-11-22-c-07-turnos-agenda-core/`)
 - **Scope**:
   - Migración V9: tabla `turno` con `EXCLUDE USING gist` (`consultorio_id`, `tstzrange(inicio, fin, '[)')`) para estados activos, `CHECK (inicio < fin)`, `@Version`, índices; agrega FK de `evolucion_clinica.turno_id`
   - Modelo `Turno` y máquina de estados (`PENDIENTE_CONFIRMACION, RESERVADO, CONFIRMADO, CANCELADO, AUSENTE, ATENDIDO, EXPIRADO`); resolver PA-06 sobre `ATENDIDO/AUSENTE` en la restricción
