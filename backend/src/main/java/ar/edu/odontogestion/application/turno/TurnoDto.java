@@ -21,9 +21,11 @@ public record TurnoDto(
         Instant pendienteHasta,
         CanceladoPor canceladoPor,
         String motivoCancelacion,
-        long version) {
+        long version,
+        Instant ausenteMarcadoEn) {
 
-    public record PacienteResumen(long id, String nombre, String apellido) {
+    /** @param cantidadAusencias contador de ausencias del paciente (RN-AS-02); sin DNI, email ni teléfono */
+    public record PacienteResumen(long id, String nombre, String apellido, int cantidadAusencias) {
     }
 
     public record PrestacionResumen(long id, String nombre) {
@@ -32,8 +34,9 @@ public record TurnoDto(
     public static TurnoDto de(Turno t) {
         return new TurnoDto(t.getId(), t.getInicio(), t.getFin(), t.getEstado(), t.getOrigen(),
                 new PacienteResumen(t.getPaciente().getId(), t.getPaciente().getNombre(),
-                        t.getPaciente().getApellido()),
+                        t.getPaciente().getApellido(), t.getPaciente().getCantidadAusencias()),
                 new PrestacionResumen(t.getPrestacion().getId(), t.getPrestacion().getNombre()),
-                t.getPendienteHasta(), t.getCanceladoPor(), t.getMotivoCancelacion(), t.getVersion());
+                t.getPendienteHasta(), t.getCanceladoPor(), t.getMotivoCancelacion(), t.getVersion(),
+                t.getAusenteMarcadoEn());
     }
 }
