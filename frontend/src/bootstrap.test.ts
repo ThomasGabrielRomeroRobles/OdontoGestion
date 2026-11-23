@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { bootstrap, type BootstrapDeps } from './bootstrap';
 import type { NotificacionesApi } from './features/notificaciones/notificaciones-api';
+import type { AccionesApi } from './features/acciones-token/acciones-api';
+import { resumenCancelar } from './features/acciones-token/test-fixtures';
 import type { PublicoApi } from './features/publico/publico-api';
 import { huecos, prestaciones } from './features/publico/test-fixtures';
 import { apiRequest, configureHttpClient } from './shared/http/client';
@@ -164,6 +166,33 @@ describe('bootstrap', () => {
     stop = (await bootstrap({ ...deps(), publicoApi })).stop;
 
     expect(root.textContent).not.toContain('odontologo@consultorio.example');
+  });
+
+  it('/acciones/:token sin sesión no redirige a login, no usa el layout y pasa el token a la página', async () => {
+    me.mockResolvedValue(null);
+    history.replaceState(null, '', '/acciones/tok-123');
+    const accionesApi: AccionesApi = {
+      obtenerResumen: vi.fn<AccionesApi['obtenerResumen']>().mockResolvedValue({ tipo: 'resumen', resumen: resumenCancelar }),
+      ejecutar: vi.fn<AccionesApi['ejecutar']>(),
+    };
+
+    stop = (await bootstrap({ ...deps(), accionesApi })).stop;
+
+    expect(location.pathname).toBe('/acciones/tok-123');
+    expect(session.get()).toEqual({ status: 'anonymous' });
+    await vi.waitFor(() => expect(root.querySelector('button[data-accion="CANCELAR_TURNO"]')).not.toBeNull());
+    expect(accionesApi.obtenerResumen).toHaveBeenCalledWith('tok-123');
+    expect(accionesApi.ejecutar).not.toHaveBeenCalled();
+    expect(root.querySelector('header, nav')).toBeNull();
+  });
+
+  it('/acciones/ sin token es una página no encontrada', async () => {
+    me.mockResolvedValue(null);
+    history.replaceState(null, '', '/acciones/');
+
+    stop = (await bootstrap(deps())).stop;
+
+    expect(root.querySelector('h1')?.textContent).toBe('Página no encontrada');
   });
 
   it('una ruta pública se renderiza sin sesión y sin redirigir', async () => {

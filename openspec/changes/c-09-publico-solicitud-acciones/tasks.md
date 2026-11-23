@@ -118,10 +118,10 @@
 
 ## 13. [P5 Juan Ignacio] Feature `acciones-token`
 
-- [ ] 13.1 RED → GREEN: `acciones-api.test.ts` con fixtures del contrato: `obtenerResumen(token)` y `ejecutar(token, accion)` tipados; `410` como resultado `noDisponible`; token codificado en la URL con `encodeURIComponent`
-- [ ] 13.2 RED → GREEN: `acciones-page.test.ts`: abrir la página muestra el resumen en hora local y un único botón según la acción, sin `POST`; `disponible: false` con `FUERA_DE_LIMITE` → explicación sin botón [web-token-actions › Resumen de cancelación, Acción no disponible]
-- [ ] 13.3 RED → GREEN: pulsar ejecuta un solo `POST` aunque haya doble clic, muestra el resultado y no vuelve a ofrecer el botón; `410` → página genérica con enlace a `/publico` sin datos del turno; `422`/`409` → "ya no admite la acción" y resumen recargado [web-token-actions › Confirmar la solicitud, Doble clic, Enlace vencido, Estado cambiado al ejecutar]
-- [ ] 13.4 RED → GREEN: ruta `/acciones/:token` pública en `bootstrap.ts` sin layout autenticado [web-token-actions › Acceso sin sesión]; verificar con `npm test && npm run typecheck`
+- [x] 13.1 RED → GREEN: `acciones-api.test.ts` con fixtures del contrato: `obtenerResumen(token)` y `ejecutar(token, accion)` tipados; `410` como resultado `noDisponible`; token codificado en la URL con `encodeURIComponent`
+- [x] 13.2 RED → GREEN: `acciones-page.test.ts`: abrir la página muestra el resumen en hora local y un único botón según la acción, sin `POST`; `disponible: false` con `FUERA_DE_LIMITE` → explicación sin botón [web-token-actions › Resumen de cancelación, Acción no disponible]
+- [x] 13.3 RED → GREEN: pulsar ejecuta un solo `POST` aunque haya doble clic, muestra el resultado y no vuelve a ofrecer el botón; `410` → página genérica con enlace a `/publico` sin datos del turno; `422`/`409` → "ya no admite la acción" y resumen recargado [web-token-actions › Confirmar la solicitud, Doble clic, Enlace vencido, Estado cambiado al ejecutar]
+- [x] 13.4 RED → GREEN: ruta `/acciones/:token` pública en `bootstrap.ts` sin layout autenticado [web-token-actions › Acceso sin sesión]; verificar con `npm test && npm run typecheck`
 
 ## 14. [Todos] Integración y cierre
 

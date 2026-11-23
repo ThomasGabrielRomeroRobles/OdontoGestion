@@ -9,10 +9,11 @@ export { bootstrap } from './bootstrap';
 async function resolverDeps(root: HTMLElement): Promise<BootstrapDeps> {
   const base = defaultDeps(root);
   if (import.meta.env.DEV && import.meta.env['VITE_CONFIG_MOCKS'] === 'true') {
-    const [{ crearMocksDesarrollo }, { createConfigSections }, { crearPublicoApiMock }] = await Promise.all([
+    const [{ crearMocksDesarrollo }, { createConfigSections }, { crearPublicoApiMock }, { crearAccionesApiMock }] = await Promise.all([
       import('./dev/config-mocks'),
       import('./features/config'),
       import('./dev/publico-mocks'),
+      import('./dev/acciones-mocks'),
     ]);
     const mocks = crearMocksDesarrollo();
     console.info('[OdontoGestión] Modo mocks de desarrollo activo (contraseña de prueba: "demo").');
@@ -21,6 +22,7 @@ async function resolverDeps(root: HTMLElement): Promise<BootstrapDeps> {
       ...mocks.auth,
       configSections: createConfigSections(mocks.config, mocks.agenda),
       publicoApi: crearPublicoApiMock(),
+      accionesApi: crearAccionesApiMock(),
     };
   }
   return base;

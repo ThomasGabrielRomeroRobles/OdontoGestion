@@ -1,4 +1,5 @@
 import { login, logout, me, type SessionUser } from './features/auth/auth-api';
+import { createAccionesRoute, type AccionesApi } from './features/acciones-token';
 import { createConfigRoutes, createDefaultConfigSections, type ConfigSections } from './features/config';
 import { createNotificacionesRoute, type NotificacionesApi } from './features/notificaciones';
 import { createPublicoRoute, type PublicoApi } from './features/publico';
@@ -21,6 +22,8 @@ export interface BootstrapDeps {
   readonly notificacionesApi?: NotificacionesApi;
   /** API pública de solicitud de turno (`/publico`); los tests inyectan un doble. Por defecto, la real. */
   readonly publicoApi?: PublicoApi;
+  /** API de las acciones por token (`/acciones/:token`); los tests inyectan un doble. Por defecto, la real. */
+  readonly accionesApi?: AccionesApi;
 }
 
 export interface App {
@@ -52,6 +55,7 @@ export async function bootstrap(deps: BootstrapDeps): Promise<App> {
     },
     { path: '/login', access: 'public', render: createLoginPage({ session, login: deps.login }) },
     createPublicoRoute(deps.publicoApi),
+    createAccionesRoute(deps.accionesApi),
     placeholderRoute('/agenda', 'private', 'Agenda'),
     placeholderRoute('/pacientes', 'private', 'Pacientes'),
     ...createConfigRoutes(deps.configSections ?? createDefaultConfigSections()),
