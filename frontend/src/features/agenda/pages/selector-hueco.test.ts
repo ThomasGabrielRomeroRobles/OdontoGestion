@@ -79,14 +79,14 @@ describe('selector "fecha → huecos" (6.2)', () => {
     expect(selector.seleccion()?.hueco.inicio).toBe('2026-11-24T14:00:00Z');
   });
 
-  it('prestación fija y excluirTurnoId (para mover)', async () => {
-    selector = crearSelectorHueco({ disponibilidad, prestaciones: { tipo: 'fija', id: 3 }, excluirTurnoId: 41 });
+  it('prestación fija (para mover): pide solo prestación y fecha', async () => {
+    selector = crearSelectorHueco({ disponibilidad, prestaciones: { tipo: 'fija', id: 3 } });
     document.body.replaceChildren(selector.elemento);
     expect(selector.elemento.querySelector('select')).toBeNull();
     fecha().value = '2026-11-24';
     fecha().dispatchEvent(new Event('change'));
     await flush();
-    expect(disponibilidad).toHaveBeenLastCalledWith(3, '2026-11-24', 41);
+    expect(disponibilidad).toHaveBeenLastCalledWith(3, '2026-11-24');
   });
 
   it('refrescar vuelve a pedir y limpia la selección', async () => {

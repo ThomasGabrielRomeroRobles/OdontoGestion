@@ -86,13 +86,34 @@ describe('mocks de desarrollo de la agenda (8.2, design D10)', () => {
     ).resolves.toMatchObject({ estado: 'RESERVADO', inicio: cancelado.inicio });
   });
 
-  it('la disponibilidad excluye ocupados y respeta excluirTurnoId', async () => {
+  it('la disponibilidad excluye ocupados, incluido el propio turno (C-07 no tiene excluirTurnoId)', async () => {
     const reservado = semana.find((t) => t.estado === 'RESERVADO' && Date.parse(t.inicio) > ahora.getTime())!;
-    const dia = fechaLocal(reservado.inicio);
-    const sin = await api.disponibilidad(reservado.prestacion.id, dia);
-    const con = await api.disponibilidad(reservado.prestacion.id, dia, reservado.id);
-    expect(sin.map((h) => h.inicio)).not.toContain(reservado.inicio);
-    expect(con.map((h) => h.inicio)).toContain(reservado.inicio);
+    const huecos = await api.disponibilidad(reservado.prestacion.id, fechaLocal(reservado.inicio));
+    expect(huecos.map((h) => h.inicio)).not.toContain(reservado.inicio);
+  });
+
+  it('mover un turno 15 minutos sobre su propio rango es válido y sube la version', async () => {
+    const consulta = await prestacionId('Consulta');
+    // Jueves 26/11 15:00 → 15:15 en el consultorio (Consulta = 30 min): el destino pisa el rango actual.
+    const creado = await api.crearTurno({ pacienteId: semana[0]!.paciente.id, prestacionId: consulta, inicio: '2026-11-26T18:00:00Z' });
+    expect(creado.version).toBe(0);
+    await expect(api.moverTurno(creado.id, '2026-11-26T18:15:00Z')).resolves.toMatchObject({
+      inicio: '2026-11-26T18:15:00Z',
+      fin: '2026-11-26T18:45:00Z',
+      version: 1,
+    });
+  });
+
+  it('los turnos ATENDIDO y AUSENTE siguen ocupando su rango (PA-06)', async () => {
+    const atendido = semana.find((t) => t.estado === 'ATENDIDO')!;
+    const huecos = await api.disponibilidad(atendido.prestacion.id, fechaLocal(atendido.inicio));
+    expect(huecos.map((h) => h.inicio)).not.toContain(atendido.inicio);
+  });
+
+  it('el turno no expone DNI ni la duración de la prestación (contrato de C-07)', () => {
+    expect(semana[0]!.paciente).not.toHaveProperty('dni');
+    expect(semana[0]!.prestacion).not.toHaveProperty('duracionMin');
+    expect(semana[0]!.version).toBe(0);
   });
 
   it('ausente antes de la tolerancia → 422; después suma 1 al contador', async () => {
@@ -151,12 +172,12 @@ describe('mocks de desarrollo de la agenda (8.2, design D10)', () => {
   });
 
   it('buscarPorDni acepta puntos de miles; DNI duplicado en el alta → 409', async () => {
-    const existente = semana[0]!.paciente;
-    const conPuntos = existente.dni.replace(/^(\d{1,2})(\d{3})(\d{3})$/, '$1.$2.$3');
-    expect((await pacientes.buscarPorDni(conPuntos)).map((p) => p.id)).toEqual([existente.id]);
+    const [existente] = await pacientes.buscarPorDni('30111222');
+    expect(existente).toBeDefined();
+    expect((await pacientes.buscarPorDni('30.111.222')).map((p) => p.id)).toEqual([existente!.id]);
     expect(await pacientes.buscarPorDni('99999999')).toEqual([]);
     const error = await rechazo(
-      pacientes.crearPaciente({ nombre: 'X', apellido: 'Y', dni: existente.dni, telefono: '1', email: 'x@ejemplo.test' }),
+      pacientes.crearPaciente({ nombre: 'X', apellido: 'Y', dni: existente!.dni, telefono: '1', email: 'x@ejemplo.test' }),
     );
     expect(error).toMatchObject({ status: 409 });
   });

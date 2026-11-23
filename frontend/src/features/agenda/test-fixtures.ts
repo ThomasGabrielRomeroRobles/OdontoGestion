@@ -8,8 +8,8 @@ import type { PacienteResponse } from './pacientes-api';
 export function turnoFicticio(cambios: Partial<Turno> = {}): Turno {
   return {
     id: 41,
-    paciente: { id: 7, nombre: 'Lucía', apellido: 'Gómez', dni: '30111222', cantidadAusencias: 0 },
-    prestacion: { id: 3, nombre: 'Limpieza', duracionMin: 45 },
+    paciente: { id: 7, nombre: 'Lucía', apellido: 'Gómez', cantidadAusencias: 0 },
+    prestacion: { id: 3, nombre: 'Limpieza' },
     inicio: '2026-11-24T12:00:00Z',
     fin: '2026-11-24T12:45:00Z',
     estado: 'RESERVADO',
@@ -17,6 +17,7 @@ export function turnoFicticio(cambios: Partial<Turno> = {}): Turno {
     pendienteHasta: null,
     motivoCancelacion: null,
     canceladoPor: null,
+    version: 0,
     ausenteMarcadoEn: null,
     ...cambios,
   };

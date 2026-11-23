@@ -35,8 +35,8 @@ describe('vista /agenda/hoy (8.1, US-024)', () => {
         inicio: '2026-11-24T15:00:00Z',
         fin: '2026-11-24T15:30:00Z',
         estado: 'CONFIRMADO',
-        paciente: { id: 8, nombre: 'Tomás', apellido: 'Ríos', dni: '40999888', cantidadAusencias: 0 },
-        prestacion: { id: 1, nombre: 'Consulta', duracionMin: 30 },
+        paciente: { id: 8, nombre: 'Tomás', apellido: 'Ríos', cantidadAusencias: 0 },
+        prestacion: { id: 1, nombre: 'Consulta' },
       }),
     ]);
     await abrir();

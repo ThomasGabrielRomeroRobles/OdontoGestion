@@ -1,8 +1,9 @@
 import { apiRequest } from '../../shared/http/client';
 
 /**
- * Contrato REAL de C-04 (spec `paciente-registry`, archivado en la rama de C-04, todavía sin mergear).
- * Solo lo que usa la agenda: búsqueda exacta por DNI y alta rápida.
+ * Contrato REAL de C-04 (spec `paciente-registry`, en `main`; verificado contra `PacienteController`,
+ * `PacienteResponse` y `PacienteRequest` en la tarea 9.1). Solo lo que usa la agenda: búsqueda exacta por DNI y
+ * alta rápida. `cantidadAusencias` ya viene en la ficha (C-04).
  */
 export interface PacienteResponse {
   readonly id: number;

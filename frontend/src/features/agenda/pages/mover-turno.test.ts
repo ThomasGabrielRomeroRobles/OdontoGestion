@@ -45,9 +45,9 @@ describe('mover turno (grupo 7, US-022)', () => {
   const elegir = (hora: string): void =>
     [...host.querySelectorAll<HTMLButtonElement>('[data-huecos] button')].find((b) => b.textContent === hora)!.click();
 
-  it('pide los huecos con la prestación del turno y excluirTurnoId', async () => {
+  it('pide los huecos con la prestación del turno (C-07 no tiene excluirTurnoId)', async () => {
     await elegirFecha('2026-11-24');
-    expect(deps.api.disponibilidad).toHaveBeenCalledWith(3, '2026-11-24', 41);
+    expect(deps.api.disponibilidad).toHaveBeenCalledWith(3, '2026-11-24');
     expect(host.querySelector('select')).toBeNull();
   });
 

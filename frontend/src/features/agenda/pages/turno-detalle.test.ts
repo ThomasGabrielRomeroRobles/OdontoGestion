@@ -40,7 +40,9 @@ describe('detalle del turno (grupo 5)', () => {
     it('muestra los datos del turno y el historial de ausencias', async () => {
       await abrir(turnoFicticio(), INICIO - 120 * MIN);
       expect(host.textContent).toContain('24/11/2026 09:00–09:45');
-      expect(host.textContent).toContain('Gómez, Lucía (DNI 30111222)');
+      expect(host.textContent).toContain('Gómez, Lucía');
+      // C-07 no expone el DNI en el turno (regla dura #10).
+      expect(host.textContent).not.toContain('DNI');
       expect(host.textContent).toContain('Limpieza');
       expect(host.textContent).toContain('Reservado');
       expect(deps.api.ausenciasPaciente).toHaveBeenCalledWith(7);

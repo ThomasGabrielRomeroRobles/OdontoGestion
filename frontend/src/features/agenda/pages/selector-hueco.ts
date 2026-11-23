@@ -11,8 +11,6 @@ export type FuentePrestaciones =
 export interface OpcionesSelectorHueco {
   readonly disponibilidad: AgendaApi['disponibilidad'];
   readonly prestaciones: FuentePrestaciones;
-  /** Al mover: el propio turno no ocupa su hueco (design D1). */
-  readonly excluirTurnoId?: number;
 }
 
 export interface SeleccionHueco {
@@ -102,10 +100,7 @@ export function crearSelectorHueco(opciones: OpcionesSelectorHueco): SelectorHue
     pedido += 1;
     const este = pedido;
     try {
-      const huecos =
-        opciones.excluirTurnoId === undefined
-          ? await opciones.disponibilidad(prestacionId, fecha.value)
-          : await opciones.disponibilidad(prestacionId, fecha.value, opciones.excluirTurnoId);
+      const huecos = await opciones.disponibilidad(prestacionId, fecha.value);
       if (este !== pedido) return;
       if (huecos.length === 0) estado.textContent = 'No hay horarios libres para esa fecha';
       listaHuecos.replaceChildren(...huecos.map(botonHueco));

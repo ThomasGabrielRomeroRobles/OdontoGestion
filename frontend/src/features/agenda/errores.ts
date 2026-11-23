@@ -5,6 +5,7 @@ import type { Hueco } from './agenda-api';
 export const MENSAJE_RED = 'No se pudo conectar. Reintentá.';
 export const MENSAJE_CONFLICTO = 'Ese horario ya no está disponible.';
 export const MENSAJE_INEXISTENTE = 'El turno ya no existe.';
+export const MENSAJE_CONCURRENTE = 'Otro cambio se aplicó antes sobre este turno. Se recargó la agenda.';
 const MENSAJE_INESPERADO = 'Ocurrió un error inesperado.';
 
 export interface ErrorTraducido {
@@ -39,6 +40,14 @@ export function alternativasDe(error: ApiError): Hueco[] {
   return Array.isArray(valor) ? valor.filter(esHueco) : [];
 }
 
+/**
+ * C-07 emite dos 409: `hueco-no-disponible`, que SIEMPRE trae `alternativas` (puede ser `[]`), y
+ * `modificacion-concurrente`, que no la trae. `ApiError` no expone `type`, así que se distinguen por ese miembro.
+ */
+function esConflictoDeHueco(error: ApiError): boolean {
+  return error.kind === 'http' && 'alternativas' in error.extensions;
+}
+
 const base = { alternativas: [], conflicto: false, recargar: false, cerrar: false } as const;
 
 export function traducirErrorAccion(error: unknown): ErrorTraducido {
@@ -46,6 +55,7 @@ export function traducirErrorAccion(error: unknown): ErrorTraducido {
   if (error.kind === 'network') return { ...base, mensaje: MENSAJE_RED };
   switch (error.status) {
     case 409:
+      if (!esConflictoDeHueco(error)) return { ...base, mensaje: MENSAJE_CONCURRENTE, recargar: true };
       return { ...base, mensaje: error.detail ?? MENSAJE_CONFLICTO, alternativas: alternativasDe(error), conflicto: true };
     case 422:
       return { ...base, mensaje: error.detail ?? error.title, recargar: true };

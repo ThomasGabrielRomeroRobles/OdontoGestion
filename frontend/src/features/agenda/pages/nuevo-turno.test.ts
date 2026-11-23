@@ -218,7 +218,8 @@ describe('nuevo turno (grupo 6, US-021)', () => {
     });
 
     it('409 sin alternativas: mensaje y huecos actualizados, sin opciones', async () => {
-      deps.api.crearTurno.mockRejectedValue(errorHttp(409));
+      // C-07 manda `alternativas: []` cuando no hay huecos cercanos.
+      deps.api.crearTurno.mockRejectedValue(errorHttp(409, { extensions: { alternativas: [] } }));
       deps.api.disponibilidad.mockResolvedValue([{ inicio: '2026-11-24T15:00:00Z', fin: '2026-11-24T15:45:00Z' }]);
       boton('Confirmar turno').click();
       await flush();

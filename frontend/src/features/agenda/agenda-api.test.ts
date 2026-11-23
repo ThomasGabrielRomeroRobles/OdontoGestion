@@ -12,33 +12,49 @@ describe('agendaApi (contrato provisional v0, design D1)', () => {
     document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
   });
 
-  it('listarAgenda: GET /agenda con desde y hasta', async () => {
+  it('listarAgenda: un día del consultorio viaja como desde = hasta (fechas inclusivas de C-07)', async () => {
     const fn = mockFetchJson([turnoFicticio()]);
     const turnos = await agendaApi.listarAgenda('2026-11-24T03:00:00Z', '2026-11-25T03:00:00Z');
     const s = ultimaSolicitud(fn);
     expect(s.method).toBe('GET');
     expect(s.path).toBe('/api/v1/agenda');
-    expect(s.query.get('desde')).toBe('2026-11-24T03:00:00Z');
-    expect(s.query.get('hasta')).toBe('2026-11-25T03:00:00Z');
+    expect(s.query.get('desde')).toBe('2026-11-24');
+    expect(s.query.get('hasta')).toBe('2026-11-24');
     expect(s.csrf).toBeNull();
     expect(turnos[0]?.id).toBe(41);
   });
 
-  it('disponibilidad: sin excluirTurnoId no envía el parámetro', async () => {
+  it('listarAgenda: una semana (lunes a domingo) incluye el domingo como hasta', async () => {
+    const fn = mockFetchJson([]);
+    await agendaApi.listarAgenda('2026-11-23T03:00:00Z', '2026-11-30T03:00:00Z');
+    const s = ultimaSolicitud(fn);
+    expect(s.query.get('desde')).toBe('2026-11-23');
+    expect(s.query.get('hasta')).toBe('2026-11-29');
+  });
+
+  it('listarAgenda: las fechas no dependen de la zona del navegador', async () => {
+    vi.stubEnv('TZ', 'Asia/Tokyo');
+    try {
+      const fn = mockFetchJson([]);
+      await agendaApi.listarAgenda('2026-11-24T03:00:00Z', '2026-11-25T03:00:00Z');
+      expect(ultimaSolicitud(fn).query.get('desde')).toBe('2026-11-24');
+      expect(ultimaSolicitud(fn).query.get('hasta')).toBe('2026-11-24');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('disponibilidad: pide el día con desde = hasta = fecha (C-07 no tiene fecha ni excluirTurnoId)', async () => {
     const fn = mockFetchJson([{ inicio: '2026-11-24T12:00:00Z', fin: '2026-11-24T12:45:00Z' }]);
     const huecos = await agendaApi.disponibilidad(3, '2026-11-24');
     const s = ultimaSolicitud(fn);
     expect(s.path).toBe('/api/v1/agenda/disponibilidad');
     expect(s.query.get('prestacionId')).toBe('3');
-    expect(s.query.get('fecha')).toBe('2026-11-24');
+    expect(s.query.get('desde')).toBe('2026-11-24');
+    expect(s.query.get('hasta')).toBe('2026-11-24');
+    expect(s.query.has('fecha')).toBe(false);
     expect(s.query.has('excluirTurnoId')).toBe(false);
     expect(huecos).toHaveLength(1);
-  });
-
-  it('disponibilidad: con excluirTurnoId lo envía', async () => {
-    const fn = mockFetchJson([]);
-    await agendaApi.disponibilidad(3, '2026-11-24', 41);
-    expect(ultimaSolicitud(fn).query.get('excluirTurnoId')).toBe('41');
   });
 
   it('turnosHoy: GET /turnos/hoy', async () => {

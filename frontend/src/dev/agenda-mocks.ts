@@ -18,6 +18,7 @@ import type {
 import { fechaLocal, inicioSemana, sumarDias } from '../features/agenda/calendario';
 import type { PacienteAltaRapida, PacienteResponse, PacientesApi } from '../features/agenda/pacientes-api';
 import type { ApiError } from '../shared/http/client';
+import type { FieldError } from '../shared/http/problem';
 
 export interface AgendaMocksDeps {
   readonly listarPrestaciones: () => Promise<Prestacion[]>;
@@ -39,9 +40,22 @@ const MIN = 60_000;
 const VENTANA_REVERSION_MS = 24 * 60 * MIN;
 const ACTIVOS: ReadonlySet<EstadoTurno> = new Set(['PENDIENTE_CONFIRMACION', 'RESERVADO', 'CONFIRMADO']);
 const CONFIRMABLES: ReadonlySet<EstadoTurno> = new Set(['RESERVADO', 'CONFIRMADO']);
+/** Como C-07 (PA-06): ocupan agenda todos los estados salvo `CANCELADO` y `EXPIRADO`. */
+const LIBERAN: ReadonlySet<EstadoTurno> = new Set(['CANCELADO', 'EXPIRADO']);
 
-function error(status: number, title: string, detail?: string, extensions: Record<string, unknown> = {}): ApiError {
-  const base = { kind: 'http', status, title, fieldErrors: [], extensions } as const;
+/** Prestación con su duración: solo interna del mock (C-07 no la expone en el turno). */
+type PrestacionMock = PrestacionResumen & { readonly duracionMin: number };
+const resumenPrestacion = (p: PrestacionMock): PrestacionResumen => ({ id: p.id, nombre: p.nombre });
+const duracionDe = (t: Hueco): number => (Date.parse(t.fin) - Date.parse(t.inicio)) / MIN;
+
+function error(
+  status: number,
+  title: string,
+  detail?: string,
+  extensions: Record<string, unknown> = {},
+  fieldErrors: readonly FieldError[] = [],
+): ApiError {
+  const base = { kind: 'http', status, title, fieldErrors, extensions } as const;
   return detail === undefined ? base : { ...base, detail };
 }
 
@@ -103,7 +117,6 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
     id: p.id,
     nombre: p.nombre,
     apellido: p.apellido,
-    dni: p.dni,
     cantidadAusencias: p.cantidadAusencias,
   });
 
@@ -114,7 +127,7 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
 
   // ---- Seed relativo a la semana actual (se arma al primer uso, cuando hay prestaciones) ----
   const listo: Promise<Prestacion[]> = deps.listarPrestaciones().then((prestaciones) => {
-    const p = (nombre: string): PrestacionResumen => {
+    const p = (nombre: string): PrestacionMock => {
       const encontrada = prestaciones.find((x) => x.nombre === nombre) ?? prestaciones[0];
       if (encontrada === undefined) throw new Error('Los mocks necesitan al menos una prestación.');
       return { id: encontrada.id, nombre: encontrada.nombre, duracionMin: encontrada.duracionMin };
@@ -140,7 +153,7 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
       const turno: Turno = {
         id: nuevoId(),
         paciente: resumenPaciente(paciente),
-        prestacion: pr,
+        prestacion: resumenPrestacion(pr),
         inicio,
         fin: sumarMin(inicio, pr.duracionMin),
         estado,
@@ -148,6 +161,7 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
         pendienteHasta: estado === 'PENDIENTE_CONFIRMACION' ? sumarMin(inicio, -60) : null,
         motivoCancelacion: null,
         canceladoPor: null,
+        version: 0,
         ausenteMarcadoEn: null,
         ...extra,
       };
@@ -172,13 +186,14 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
       const turno: Turno = {
         id: nuevoId(),
         paciente: resumenPaciente(paciente),
-        prestacion: consulta,
+        prestacion: resumenPrestacion(consulta),
         ...hueco,
         estado,
         origen: 'ODONTOLOGO',
         pendienteHasta: null,
         motivoCancelacion: null,
         canceladoPor: null,
+        version: 0,
         ausenteMarcadoEn: marcado === null ? null : new Date(marcado).toISOString(),
       };
       turnos.push(turno);
@@ -198,7 +213,10 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
     return paciente === undefined ? turno : { ...turno, paciente: resumenPaciente(paciente) };
   }
 
-  function guardar(turno: Turno): Promise<Turno> {
+  /** Como C-07: `version` crece con cada cambio de un turno existente. */
+  function guardar(cambiado: Turno): Promise<Turno> {
+    const anterior = turnos.find((t) => t.id === cambiado.id);
+    const turno = anterior === undefined ? cambiado : { ...cambiado, version: anterior.version + 1 };
     turnos = [...turnos.filter((t) => t.id !== turno.id), turno];
     return copia(vista(turno));
   }
@@ -210,9 +228,10 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
     return turno;
   }
 
-  const ocupados = (excluir?: number): Turno[] => turnos.filter((t) => ACTIVOS.has(t.estado) && t.id !== excluir);
+  const ocupados = (excluir?: number): Turno[] => turnos.filter((t) => !LIBERAN.has(t.estado) && t.id !== excluir);
 
-  async function huecosDelDia(prestacion: PrestacionResumen, fecha: string, excluir?: number): Promise<Hueco[]> {
+  /** `excluir` es solo interno (validar un movimiento sobre el propio rango); la API pública no lo tiene. */
+  async function huecosDelDia(duracionMin: number, fecha: string, excluir?: number): Promise<Hueco[]> {
     const [horarios, bloqueos, consultorio] = await Promise.all([
       deps.listarHorarios(),
       deps.listarBloqueos(),
@@ -223,9 +242,9 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
     const tomados = ocupados(excluir);
     const huecos: Hueco[] = [];
     for (const h of horarios.filter((x) => x.diaSemana === dia).sort((x, y) => x.horaDesde.localeCompare(y.horaDesde))) {
-      for (let m = horaAMin(h.horaDesde); m + prestacion.duracionMin <= horaAMin(h.horaHasta); m += paso) {
+      for (let m = horaAMin(h.horaDesde); m + duracionMin <= horaAMin(h.horaHasta); m += paso) {
         const inicio = enLocal(fecha, minAHora(m));
-        const hueco = { inicio, fin: sumarMin(inicio, prestacion.duracionMin) };
+        const hueco = { inicio, fin: sumarMin(inicio, duracionMin) };
         if (Date.parse(inicio) <= ahora().getTime()) continue;
         if (tomados.some((t) => seSuperponen(t, hueco))) continue;
         if (bloqueos.some((b) => seSuperponen({ inicio: b.desde, fin: b.hasta }, hueco))) continue;
@@ -235,7 +254,7 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
     return huecos;
   }
 
-  async function prestacionResumen(id: number): Promise<PrestacionResumen> {
+  async function prestacionResumen(id: number): Promise<PrestacionMock> {
     const prestaciones = await listo;
     const p = prestaciones.find((x) => x.id === id);
     if (p === undefined) throw error(404, 'Prestación inexistente');
@@ -244,20 +263,20 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
   }
 
   /** Valida horario, bloqueos y superposición como lo haría C-07; 409 con las 3 alternativas más cercanas. */
-  async function validarIntervalo(prestacion: PrestacionResumen, inicio: string, excluir?: number): Promise<Hueco> {
+  async function validarIntervalo(duracionMin: number, inicio: string, excluir?: number): Promise<Hueco> {
     if (Number.isNaN(Date.parse(inicio))) throw error(422, 'Datos inválidos', 'Inicio inválido');
-    const hueco = { inicio, fin: sumarMin(inicio, prestacion.duracionMin) };
+    const hueco = { inicio, fin: sumarMin(inicio, duracionMin) };
     if (Date.parse(inicio) <= ahora().getTime()) throw error(422, 'Regla de negocio incumplida', 'No se puede reservar en el pasado');
     const fecha = fechaLocal(inicio);
     if (ocupados(excluir).some((t) => seSuperponen(t, hueco))) {
-      const libres = await huecosDelDia(prestacion, fecha, excluir);
+      const libres = await huecosDelDia(duracionMin, fecha, excluir);
       const cercanas = [...libres]
         .sort((x, y) => Math.abs(Date.parse(x.inicio) - Date.parse(inicio)) - Math.abs(Date.parse(y.inicio) - Date.parse(inicio)))
         .slice(0, 3)
         .sort((x, y) => Date.parse(x.inicio) - Date.parse(y.inicio));
-      throw error(409, 'Conflicto de agenda', undefined, { alternativas: cercanas });
+      throw error(409, 'Horario no disponible', 'El horario elegido ya no está disponible.', { alternativas: cercanas });
     }
-    const libres = await huecosDelDia(prestacion, fecha, excluir);
+    const libres = await huecosDelDia(duracionMin, fecha, excluir);
     if (!libres.some((h) => h.inicio === inicio)) {
       throw error(422, 'Regla de negocio incumplida', 'Fuera del horario de atención o en un bloqueo');
     }
@@ -269,47 +288,54 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
   const api: AgendaApi = {
     async listarAgenda(desde, hasta) {
       await listo;
-      const rango = { inicio: desde, fin: hasta };
-      return copia(turnos.filter((t) => seSuperponen(t, rango)).sort((x, y) => Date.parse(x.inicio) - Date.parse(y.inicio)).map(vista));
+      // Como C-07: los turnos que EMPIEZAN en el rango (no los que solo lo pisan).
+      const enRango = (t: Turno): boolean => Date.parse(t.inicio) >= Date.parse(desde) && Date.parse(t.inicio) < Date.parse(hasta);
+      return copia(turnos.filter(enRango).sort((x, y) => Date.parse(x.inicio) - Date.parse(y.inicio)).map(vista));
     },
-    async disponibilidad(prestacionId, fecha, excluirTurnoId) {
+    async disponibilidad(prestacionId, fecha) {
       const prestacion = await prestacionResumen(prestacionId);
-      return copia(await huecosDelDia(prestacion, fecha, excluirTurnoId));
+      return copia(await huecosDelDia(prestacion.duracionMin, fecha));
     },
     async turnosHoy() {
       await listo;
       const hoy = fechaLocal(ahora());
-      return copia(turnos.filter((t) => fechaLocal(t.inicio) === hoy).sort((x, y) => Date.parse(x.inicio) - Date.parse(y.inicio)).map(vista));
+      // Como C-07: sin CANCELADO ni EXPIRADO.
+      return copia(turnos.filter((t) => fechaLocal(t.inicio) === hoy && !LIBERAN.has(t.estado)).sort((x, y) => Date.parse(x.inicio) - Date.parse(y.inicio)).map(vista));
     },
     async crearTurno({ pacienteId, prestacionId, inicio }: CrearTurnoInput) {
       await listo;
       const paciente = pacientes.find((p) => p.id === pacienteId);
       if (paciente === undefined) return falla(error(404, 'Paciente inexistente'));
       const prestacion = await prestacionResumen(prestacionId);
-      const hueco = await validarIntervalo(prestacion, inicio);
+      const hueco = await validarIntervalo(prestacion.duracionMin, inicio);
       return guardar({
         id: nuevoId(),
         paciente: resumenPaciente(paciente),
-        prestacion,
+        prestacion: resumenPrestacion(prestacion),
         ...hueco,
         estado: 'RESERVADO',
         origen: 'ODONTOLOGO',
         pendienteHasta: null,
         motivoCancelacion: null,
         canceladoPor: null,
+        version: 0,
         ausenteMarcadoEn: null,
       });
     },
     async moverTurno(id, inicio) {
       const turno = await buscarTurno(id);
       if (!CONFIRMABLES.has(turno.estado)) return falla(transicionInvalida());
-      const hueco = await validarIntervalo(turno.prestacion, inicio, id);
+      // Mover sobre el propio rango es válido en C-07 (es un UPDATE del mismo registro).
+      const hueco = await validarIntervalo(duracionDe(turno), inicio, id);
       return guardar({ ...turno, ...hueco });
     },
     async cancelarTurno(id, motivo) {
       const turno = await buscarTurno(id);
       if (!ACTIVOS.has(turno.estado)) return falla(transicionInvalida());
-      if (motivo !== null && motivo.length > 200) return falla(error(422, 'Datos inválidos', 'Máximo 200 caracteres.'));
+      if (motivo !== null && motivo.length > 200) {
+        // Como C-07: 400 por campo (Bean Validation), no 422.
+        return falla(error(400, 'Datos inválidos', undefined, {}, [{ field: 'motivo', message: 'Máximo 200 caracteres.' }]));
+      }
       return guardar({ ...turno, estado: 'CANCELADO', motivoCancelacion: motivo, canceladoPor: 'ODONTOLOGO' });
     },
     async marcarAtendido(id) {
@@ -331,8 +357,9 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
     },
     async revertirAusencia(id) {
       const turno = await buscarTurno(id);
-      if (turno.estado !== 'AUSENTE' || turno.ausenteMarcadoEn === null) return falla(transicionInvalida());
-      if (ahora().getTime() >= Date.parse(turno.ausenteMarcadoEn) + VENTANA_REVERSION_MS) {
+      const marcadoEn = turno.ausenteMarcadoEn;
+      if (turno.estado !== 'AUSENTE' || typeof marcadoEn !== 'string') return falla(transicionInvalida());
+      if (ahora().getTime() >= Date.parse(marcadoEn) + VENTANA_REVERSION_MS) {
         return falla(error(422, 'Regla de negocio incumplida', 'Pasaron más de 24 horas desde la marca'));
       }
       const paciente = pacientes.find((p) => p.id === turno.paciente.id);

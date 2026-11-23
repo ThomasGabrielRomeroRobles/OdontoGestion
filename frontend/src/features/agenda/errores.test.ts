@@ -16,7 +16,7 @@ describe('traducirErrorAccion (3.4, design D7)', () => {
   });
 
   it('409 usa el detail si viene', () => {
-    expect(traducirErrorAccion(errorHttp(409, { detail: 'Ocupado' })).mensaje).toBe('Ocupado');
+    expect(traducirErrorAccion(errorHttp(409, { detail: 'Ocupado', extensions: { alternativas: [] } })).mensaje).toBe('Ocupado');
   });
 
   it('409 descarta alternativas mal formadas', () => {
@@ -24,9 +24,19 @@ describe('traducirErrorAccion (3.4, design D7)', () => {
     expect(traducirErrorAccion(errorHttp(409, { extensions })).alternativas).toEqual([alt]);
   });
 
-  it('409 sin alternativas (o no arreglo): lista vacía', () => {
-    expect(traducirErrorAccion(errorHttp(409)).alternativas).toEqual([]);
+  it('409 hueco-no-disponible con alternativas vacías (o no arreglo): conflicto con lista vacía', () => {
+    expect(traducirErrorAccion(errorHttp(409, { extensions: { alternativas: [] } }))).toMatchObject({ conflicto: true, alternativas: [] });
     expect(traducirErrorAccion(errorHttp(409, { extensions: { alternativas: 'no' } })).alternativas).toEqual([]);
+  });
+
+  it('409 modificacion-concurrente (sin alternativas): no es conflicto de horario, recarga la agenda', () => {
+    expect(traducirErrorAccion(errorHttp(409, { detail: 'Otro cambio sobre el turno se aplicó antes.' }))).toEqual({
+      mensaje: 'Otro cambio se aplicó antes sobre este turno. Se recargó la agenda.',
+      alternativas: [],
+      conflicto: false,
+      recargar: true,
+      cerrar: false,
+    });
   });
 
   it('422: usa detail, si no title, y marca recargar', () => {

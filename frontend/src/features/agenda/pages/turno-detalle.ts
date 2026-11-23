@@ -51,7 +51,7 @@ export function createTurnoDetalle(deps: AgendaDeps, opciones: OpcionesDetalle =
       estado.classList.add(claseEstado(turno.estado));
       const filas: HTMLElement[] = [
         el('p', `${fechaCorta(fechaLocal(turno.inicio))} ${rangoHorario(turno)}`),
-        el('p', `${nombrePaciente(turno)} (DNI ${turno.paciente.dni})`),
+        el('p', nombrePaciente(turno)),
         el('p', turno.prestacion.nombre),
         el('p'),
       ];
