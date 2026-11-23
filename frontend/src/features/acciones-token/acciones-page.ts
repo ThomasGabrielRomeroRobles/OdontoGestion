@@ -1,22 +1,25 @@
 import { formatearInstante } from '../config/zoned-time';
-import type { Accion, AccionesApi, EstadoTurno, ResumenAccion } from './acciones-api';
+import type { Accion, AccionesApi, EntradaResumen, EstadoEntrada, EstadoTurno, ResumenAccion } from './acciones-api';
 
 const ETIQUETA_BOTON: Readonly<Record<Accion, string>> = {
   CONFIRMAR_SOLICITUD: 'Confirmar solicitud',
   CONFIRMAR_TURNO: 'Confirmar asistencia',
   CANCELAR_TURNO: 'Cancelar turno',
+  CONFIRMAR_LISTA_ESPERA: 'Confirmar inscripción',
 };
 
 const TITULO: Readonly<Record<Accion, string>> = {
   CONFIRMAR_SOLICITUD: 'Confirmá tu solicitud de turno',
   CONFIRMAR_TURNO: 'Confirmá tu asistencia',
   CANCELAR_TURNO: 'Cancelá tu turno',
+  CONFIRMAR_LISTA_ESPERA: 'Confirmá tu inscripción en la lista de espera',
 };
 
 const RESULTADO: Readonly<Record<Accion, string>> = {
   CONFIRMAR_SOLICITUD: 'Tu solicitud fue confirmada: el turno quedó reservado.',
   CONFIRMAR_TURNO: 'Asistencia confirmada. ¡Te esperamos!',
   CANCELAR_TURNO: 'El turno fue cancelado.',
+  CONFIRMAR_LISTA_ESPERA: 'Tu inscripción quedó confirmada: te avisaremos si se libera un horario.',
 };
 
 const ETIQUETA_ESTADO: Readonly<Record<EstadoTurno, string>> = {
@@ -29,6 +32,14 @@ const ETIQUETA_ESTADO: Readonly<Record<EstadoTurno, string>> = {
   EXPIRADO: 'Expirado',
 };
 
+const ETIQUETA_ESTADO_ENTRADA: Readonly<Record<EstadoEntrada, string>> = {
+  PENDIENTE_CONFIRMACION: 'Pendiente de confirmación',
+  ACTIVA: 'Activa',
+  CUBIERTA: 'Cubierta',
+  CANCELADA: 'Cancelada',
+  VENCIDA: 'Vencida',
+};
+
 const MENSAJE_YA_NO_ADMITE = 'Este turno ya no admite esta acción.';
 const MENSAJE_GENERICO = 'No pudimos completar la operación. Intentá de nuevo en un momento.';
 
@@ -36,12 +47,27 @@ const MENSAJE_GENERICO = 'No pudimos completar la operación. Intentá de nuevo 
 const MENSAJE_ENLACE =
   'El enlace no es válido, venció o ya fue utilizado. Si era una solicitud de turno, el horario se liberó.';
 
+function filasEntrada(entrada: EntradaResumen): HTMLElement[] {
+  return [
+    ...fila('consultorio', 'Consultorio', entrada.consultorio),
+    ...fila('prestacion', 'Prestación', entrada.prestacion),
+    ...fila('rango', 'Fechas', `${formatearFecha(entrada.fechaDesde)} al ${formatearFecha(entrada.fechaHasta)}`),
+    ...fila('estado', 'Estado', ETIQUETA_ESTADO_ENTRADA[entrada.estado]),
+  ];
+}
+
 function explicacionNoDisponible(resumen: ResumenAccion): string {
   if (resumen.motivo === 'FUERA_DE_LIMITE') {
     const limite = resumen.limiteCancelacion === null ? '' : ` (el límite era el ${formatearInstante(resumen.limiteCancelacion)})`;
     return `Ya no se puede cancelar este turno por este medio${limite}. Comunicate con el consultorio.`;
   }
   return MENSAJE_YA_NO_ADMITE;
+}
+
+/** `YYYY-MM-DD` → `DD/MM/YYYY` sin pasar por `Date` (son fechas locales, no instantes). */
+function formatearFecha(fecha: string): string {
+  const [anio, mes, dia] = fecha.split('-');
+  return anio === undefined || mes === undefined || dia === undefined ? fecha : `${dia}/${mes}/${anio}`;
 }
 
 function fila(clave: string, etiqueta: string, valor: string): [HTMLElement, HTMLElement] {
@@ -87,17 +113,24 @@ export function createAccionesPage(api: AccionesApi): (container: HTMLElement, t
       cuerpo.replaceChildren(mensaje, pedir);
     }
 
+    function filasDe(resumen: ResumenAccion): HTMLElement[] {
+      if (resumen.turno !== null) {
+        return [
+          ...fila('consultorio', 'Consultorio', resumen.turno.consultorio),
+          ...fila('prestacion', 'Prestación', resumen.turno.prestacion),
+          ...fila('fecha', 'Fecha y hora', formatearInstante(resumen.turno.inicio)),
+          ...fila('estado', 'Estado', ETIQUETA_ESTADO[resumen.turno.estado]),
+        ];
+      }
+      return resumen.entrada === null ? [] : filasEntrada(resumen.entrada);
+    }
+
     function mostrarResumen(resumen: ResumenAccion, resultado?: string): void {
       titulo.textContent = TITULO[resumen.accion];
       estado.textContent = resultado ?? '';
       const lista = document.createElement('dl');
-      lista.append(
-        ...fila('consultorio', 'Consultorio', resumen.turno.consultorio),
-        ...fila('prestacion', 'Prestación', resumen.turno.prestacion),
-        ...fila('fecha', 'Fecha y hora', formatearInstante(resumen.turno.inicio)),
-        ...fila('estado', 'Estado', ETIQUETA_ESTADO[resumen.turno.estado]),
-      );
       cuerpo.replaceChildren(lista);
+      lista.append(...filasDe(resumen));
       if (resumen.disponible) {
         cuerpo.append(crearBoton(resumen));
       } else if (resultado === undefined) {

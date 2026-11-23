@@ -34,6 +34,17 @@ public class TurnosFicticiosExtension implements BeforeEachCallback, AfterEachCa
                 + "CROSS JOIN (SELECT min(id) AS id FROM consultorio) c "
                 + "CROSS JOIN (SELECT id FROM paciente WHERE dni = '" + DNI_FICTICIO + "') p "
                 + "CROSS JOIN (SELECT min(id) AS id FROM prestacion) pr");
+        // Desde V10 (C-10) aviso_id y entrada_lista_espera_id también tienen FK: mismas ids, entradas CANCELADA (no
+        // chocan con el único de vigentes) y un aviso por entrada.
+        jdbc.update("INSERT INTO entrada_lista_espera (id, consultorio_id, paciente_id, prestacion_id, fecha_desde, "
+                + "fecha_hasta, estado, origen) OVERRIDING SYSTEM VALUE "
+                + "SELECT t.id, t.consultorio_id, t.paciente_id, t.prestacion_id, date '2045-01-01', "
+                + "date '2045-01-01', 'CANCELADA', 'PUBLICA' FROM turno t "
+                + "WHERE t.id BETWEEN " + PRIMER_ID + " AND " + ULTIMO_ID);
+        jdbc.update("INSERT INTO aviso_hueco (id, consultorio_id, entrada_lista_espera_id, turno_origen_id, "
+                + "prestacion_id, inicio, fin, estado, vence_en) OVERRIDING SYSTEM VALUE "
+                + "SELECT t.id, t.consultorio_id, t.id, t.id, t.prestacion_id, t.inicio, t.fin, 'CERRADO', t.inicio "
+                + "FROM turno t WHERE t.id BETWEEN " + PRIMER_ID + " AND " + ULTIMO_ID);
     }
 
     @Override
@@ -46,6 +57,8 @@ public class TurnosFicticiosExtension implements BeforeEachCallback, AfterEachCa
                 + PRIMER_ID);
         jdbc.update("DELETE FROM token_acceso WHERE coalesce(turno_id, aviso_id, entrada_lista_espera_id) >= "
                 + PRIMER_ID);
+        jdbc.update("DELETE FROM aviso_hueco WHERE id BETWEEN " + PRIMER_ID + " AND " + ULTIMO_ID);
+        jdbc.update("DELETE FROM entrada_lista_espera WHERE id BETWEEN " + PRIMER_ID + " AND " + ULTIMO_ID);
         jdbc.update("DELETE FROM turno WHERE id BETWEEN " + PRIMER_ID + " AND " + ULTIMO_ID);
         jdbc.update("DELETE FROM paciente WHERE dni = '" + DNI_FICTICIO + "'");
     }

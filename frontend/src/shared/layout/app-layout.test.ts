@@ -60,6 +60,11 @@ describe('layout autenticado', () => {
     expect(link?.getAttribute('href')).toBe('/notificaciones');
   });
 
+  it('incluye el enlace Lista de espera a /lista-espera', () => {
+    const link = [...host.querySelectorAll<HTMLAnchorElement>('a[data-link]')].find((a) => a.textContent === 'Lista de espera');
+    expect(link?.getAttribute('href')).toBe('/lista-espera');
+  });
+
   it('logout con 204 deja la sesión anónima y navega a /login', async () => {
     logout.mockResolvedValue(undefined);
     logoutButton().click();

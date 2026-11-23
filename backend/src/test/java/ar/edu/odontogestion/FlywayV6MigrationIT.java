@@ -64,7 +64,7 @@ class FlywayV6MigrationIT extends AbstractIntegrationTest {
         assertThat(columnas.get("error")).containsEntry("is_nullable", "YES");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM information_schema.table_constraints "
                 + "WHERE table_name = 'notificacion' AND constraint_type = 'FOREIGN KEY'", Integer.class))
-                .as("FK a consultorio y a turno (V9, C-07); las de aviso/entrada llegan con C-10").isEqualTo(2);
+                .as("FK a consultorio y a turno (V9, C-07); y a aviso y entrada (V10, C-10)").isEqualTo(4);
     }
 
     @Test

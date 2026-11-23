@@ -5,8 +5,10 @@ import {
   ejecutado,
   resumenCancelar,
   resumenCancelarFueraDeLimite,
+  resumenConfirmarListaEspera,
   resumenConfirmarSolicitud,
   resumenConfirmarTurno,
+  resumenListaEsperaActiva,
   resumenNoPermite,
 } from './test-fixtures';
 
@@ -212,6 +214,51 @@ describe('página de acciones por token', () => {
       boton()?.click();
       await vi.waitFor(() => expect(texto('[role="status"]')).toMatch(/cancelado/i));
       expect(ejecutar).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('confirmación de la lista de espera (C-10)', () => {
+    it('muestra el resumen de la inscripción (sin turno) con un único botón y sin POST', async () => {
+      obtenerResumen.mockResolvedValue({ tipo: 'resumen', resumen: resumenConfirmarListaEspera });
+      await montar();
+
+      expect(texto('h1')).toBe('Confirmá tu inscripción en la lista de espera');
+      expect(texto('[data-campo="consultorio"]')).toBe('Consultorio Ficticio');
+      expect(texto('[data-campo="prestacion"]')).toBe('Consulta');
+      expect(texto('[data-campo="rango"]')).toBe('23/11/2026 al 02/12/2026');
+      expect(texto('[data-campo="estado"]')).toBe('Pendiente de confirmación');
+      expect(container.querySelector('[data-campo="fecha"]')).toBeNull();
+      expect(boton()?.textContent).toBe('Confirmar inscripción');
+      expect(ejecutar).not.toHaveBeenCalled();
+    });
+
+    it('confirmar envía un POST, muestra la inscripción activa y no vuelve a ofrecer el botón', async () => {
+      obtenerResumen.mockResolvedValue({ tipo: 'resumen', resumen: resumenConfirmarListaEspera });
+      ejecutar.mockResolvedValue({ tipo: 'ejecutada', resumen: resumenListaEsperaActiva });
+      await montar();
+
+      boton()?.click();
+
+      await vi.waitFor(() => expect(texto('[role="status"]')).toBe('Tu inscripción quedó confirmada: te avisaremos si se libera un horario.'));
+      expect(ejecutar).toHaveBeenCalledWith(TOKEN, 'CONFIRMAR_LISTA_ESPERA');
+      expect(texto('[data-campo="estado"]')).toBe('Activa');
+      expect(boton()).toBeNull();
+    });
+
+    it('410 muestra la página genérica sin datos de la inscripción', async () => {
+      obtenerResumen.mockResolvedValue({ tipo: 'noDisponible' });
+      await montar();
+
+      expect(texto('h1')).toBe('Enlace no disponible');
+      expect(container.querySelector('[data-campo]')).toBeNull();
+    });
+
+    it('un resumen de turno sigue mostrando el turno (regresión)', async () => {
+      obtenerResumen.mockResolvedValue({ tipo: 'resumen', resumen: resumenConfirmarTurno });
+      await montar();
+
+      expect(texto('[data-campo="fecha"]')).toContain('10:00');
+      expect(container.querySelector('[data-campo="rango"]')).toBeNull();
     });
   });
 });

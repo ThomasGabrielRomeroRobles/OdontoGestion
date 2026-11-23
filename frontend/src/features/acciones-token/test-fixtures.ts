@@ -1,4 +1,4 @@
-import type { ResumenAccion } from './acciones-api';
+import type { EstadoTurno, ResumenAccion } from './acciones-api';
 
 /** Fixtures tipadas desde `contrato-c09.md` (C-09). Datos 100 % ficticios. */
 const turno = {
@@ -16,6 +16,7 @@ export const resumenCancelar: ResumenAccion = {
   motivo: null,
   limiteCancelacion: '2026-11-23T11:00:00Z',
   turno: { ...turno, estado: 'RESERVADO' },
+  entrada: null,
 };
 
 export const resumenCancelarFueraDeLimite: ResumenAccion = {
@@ -31,6 +32,7 @@ export const resumenConfirmarSolicitud: ResumenAccion = {
   motivo: null,
   limiteCancelacion: null,
   turno: { ...turno, estado: 'PENDIENTE_CONFIRMACION' },
+  entrada: null,
 };
 
 export const resumenConfirmarTurno: ResumenAccion = {
@@ -40,6 +42,7 @@ export const resumenConfirmarTurno: ResumenAccion = {
   motivo: null,
   limiteCancelacion: null,
   turno: { ...turno, estado: 'RESERVADO' },
+  entrada: null,
 };
 
 export const resumenNoPermite: ResumenAccion = {
@@ -50,7 +53,8 @@ export const resumenNoPermite: ResumenAccion = {
 };
 
 /** Respuesta del `POST` ya ejecutado: estado nuevo, token usado. */
-export function ejecutado(resumen: ResumenAccion, estado: ResumenAccion['turno']['estado']): ResumenAccion {
+export function ejecutado(resumen: ResumenAccion, estado: EstadoTurno): ResumenAccion {
+  if (resumen.turno === null) throw new Error('ejecutado() espera un resumen de turno');
   return { ...resumen, disponible: false, motivo: 'ESTADO_NO_PERMITE', venceEn: null, turno: { ...resumen.turno, estado } };
 }
 
@@ -78,4 +82,30 @@ export const problema409Concurrente = {
   status: 409,
   detail: 'El turno fue modificado a la vez.',
   instance: 'urn:odontogestion:ruta-por-token',
+};
+
+/** Resumen de la confirmación de lista de espera (C-10 D3): `turno` nulo y `entrada` informada. */
+export const resumenConfirmarListaEspera: ResumenAccion = {
+  accion: 'CONFIRMAR_LISTA_ESPERA',
+  venceEn: '2026-11-21T12:00:00Z',
+  disponible: true,
+  motivo: null,
+  limiteCancelacion: null,
+  turno: null,
+  entrada: {
+    consultorio: 'Consultorio Ficticio',
+    prestacion: 'Consulta',
+    fechaDesde: '2026-11-23',
+    fechaHasta: '2026-12-02',
+    estado: 'PENDIENTE_CONFIRMACION',
+  },
+};
+
+/** Respuesta del `POST` de la confirmación ya ejecutada: la entrada quedó activa y el token usado. */
+export const resumenListaEsperaActiva: ResumenAccion = {
+  ...resumenConfirmarListaEspera,
+  disponible: false,
+  motivo: 'ESTADO_NO_PERMITE',
+  venceEn: null,
+  entrada: resumenConfirmarListaEspera.entrada === null ? null : { ...resumenConfirmarListaEspera.entrada, estado: 'ACTIVA' },
 };

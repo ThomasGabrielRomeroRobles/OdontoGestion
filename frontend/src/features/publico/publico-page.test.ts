@@ -81,7 +81,12 @@ describe('página pública de solicitud de turno', () => {
   }
 
   describe('prestación, día y huecos (12.3)', () => {
-    it('carga las prestaciones públicas como opciones', async () => {
+    it('ofrece un enlace a la inscripción en la lista de espera', async () => {
+    await montar();
+    expect(el<HTMLAnchorElement>('a[data-lista-espera]').getAttribute('href')).toBe('/publico/lista-espera');
+  });
+
+  it('carga las prestaciones públicas como opciones', async () => {
       await montar();
 
       const opciones = [...container.querySelectorAll<HTMLOptionElement>('select[name="prestacion"] option')];

@@ -7,7 +7,7 @@ Permite que el paciente, sin cuenta, confirme su solicitud, confirme su turno o 
 ## Requirements
 
 ### Requirement: Resumen de la acción sin consumir el token
-`GET /api/v1/acciones/{token}` SHALL devolver, para un token vigente de propósito `CONFIRMAR_SOLICITUD`, `CONFIRMAR_TURNO` o `CANCELAR_TURNO`, la acción, su vencimiento y un resumen del turno (consultorio, prestación, inicio, fin, estado), sin datos del paciente. MUST NOT consumir ni modificar el token ni el turno.
+`GET /api/v1/acciones/{token}` SHALL devolver, para un token vigente de propósito `CONFIRMAR_SOLICITUD`, `CONFIRMAR_TURNO` o `CANCELAR_TURNO`, la acción, su vencimiento y un resumen del turno (consultorio, prestación, inicio, fin, estado), sin datos del paciente; para `CONFIRMAR_LISTA_ESPERA`, la acción, su vencimiento y un resumen de la entrada (consultorio, prestación, `fechaDesde`, `fechaHasta`, estado) con `turno` nulo. MUST NOT consumir ni modificar el token, el turno ni la entrada.
 
 #### Scenario: Resumen de un token vigente
 - **GIVEN** un token `CANCELAR_TURNO` vigente para un turno `RESERVADO` de "Consulta"
@@ -23,6 +23,11 @@ Permite que el paciente, sin cuenta, confirme su solicitud, confirme su turno o 
 - **GIVEN** un token vigente de propósito `ACEPTAR_AVISO`
 - **WHEN** se envía `GET /api/v1/acciones/{token}`
 - **THEN** la respuesta es `410` y el token no se consume
+
+#### Scenario: Resumen de una inscripción en lista de espera
+- **GIVEN** un token `CONFIRMAR_LISTA_ESPERA` vigente para una entrada `PENDIENTE_CONFIRMACION` de "Consulta"
+- **WHEN** se envía `GET /api/v1/acciones/{token}` sin sesión
+- **THEN** la respuesta es `200` con `accion` `CONFIRMAR_LISTA_ESPERA`, `disponible` verdadero, `turno` nulo y una `entrada` con prestación "Consulta", `fechaDesde`, `fechaHasta` y `estado` `PENDIENTE_CONFIRMACION`, sin datos del paciente
 
 ### Requirement: Disponibilidad de la acción en el resumen
 El resumen SHALL indicar si la acción puede ejecutarse ahora (`disponible`) y, si no, el motivo: `ESTADO_NO_PERMITE` cuando el estado actual del turno no admite la acción, o `FUERA_DE_LIMITE` cuando una cancelación está fuera del límite de horas. Para `CANCELAR_TURNO` MUST incluir el instante límite de cancelación.
@@ -156,3 +161,16 @@ Ni las rutas por token ni la ejecución de sus acciones MUST registrar en logs l
 #### Scenario: Acción registrada sin token
 - **WHEN** se ejecutan un `GET` y un `POST` exitosos y uno con token inválido
 - **THEN** los logs de la aplicación no contienen el valor de ningún token
+
+### Requirement: Confirmar la inscripción en la lista de espera
+El `POST` de `/api/v1/acciones/{token}` con la acción `CONFIRMAR_LISTA_ESPERA` SHALL consumir el token y pasar la entrada de `PENDIENTE_CONFIRMACION` a `ACTIVA` en la misma transacción. Si la entrada ya no está pendiente (retirada o vencida) MUST responder `410` o `422` sin activarla.
+
+#### Scenario: Confirmación exitosa
+- **GIVEN** un token `CONFIRMAR_LISTA_ESPERA` vigente para una entrada `PENDIENTE_CONFIRMACION`
+- **WHEN** se envía el `POST` con la acción `CONFIRMAR_LISTA_ESPERA`
+- **THEN** la respuesta es `200` con la `entrada` en estado `ACTIVA` y el token queda usado
+
+#### Scenario: Entrada retirada antes de confirmar
+- **GIVEN** una entrada que el odontólogo pasó a `CANCELADA` antes de que el paciente confirme
+- **WHEN** se envía el `POST` con la acción `CONFIRMAR_LISTA_ESPERA`
+- **THEN** la respuesta es `410` y la entrada sigue `CANCELADA`

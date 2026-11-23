@@ -18,6 +18,15 @@ public record SolicitudReserva(Long pacienteId, Long prestacionId, Instant inici
         }
     }
 
+    /**
+     * Aceptación de un aviso de lista de espera (C-10): reservado, origen {@code LISTA_ESPERA}, sin anticipación mínima
+     * (se exigió al crear el aviso, que vence a más tardar al inicio del hueco).
+     */
+    public static SolicitudReserva desdeListaEspera(Long pacienteId, Long prestacionId, Instant inicio) {
+        return new SolicitudReserva(pacienteId, prestacionId, inicio, OrigenTurno.LISTA_ESPERA,
+                EstadoTurno.RESERVADO, PoliticaAnticipacion.odontologo());
+    }
+
     /** {@code POST /api/v1/turnos}: reservado, origen {@code ODONTOLOGO}, sin anticipación mínima. */
     public static SolicitudReserva delOdontologo(Long pacienteId, Long prestacionId, Instant inicio) {
         return new SolicitudReserva(pacienteId, prestacionId, inicio, OrigenTurno.ODONTOLOGO,

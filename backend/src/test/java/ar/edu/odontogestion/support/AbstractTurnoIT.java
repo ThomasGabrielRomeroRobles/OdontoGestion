@@ -45,6 +45,17 @@ public abstract class AbstractTurnoIT extends AbstractWebIntegrationTest {
                 + "WHERE dni LIKE '38%') OR t.prestacion_id IN (SELECT id FROM prestacion "
                 + "WHERE nombre LIKE 'IT-Turno-%') OR t.consultorio_id IN (SELECT id FROM consultorio "
                 + "WHERE nombre = '" + OTRO_CONSULTORIO + "')";
+        String idsEntrada = "SELECT e.id FROM entrada_lista_espera e WHERE e.paciente_id IN (SELECT id FROM paciente "
+                + "WHERE dni LIKE '38%') OR e.prestacion_id IN (SELECT id FROM prestacion WHERE nombre LIKE 'IT-Turno-%')";
+        jdbc.update("DELETE FROM entrada_lista_espera WHERE consultorio_id IN (SELECT id FROM consultorio WHERE "
+                + "nombre = '" + OTRO_CONSULTORIO + "')");
+        String idsAviso = "SELECT a.id FROM aviso_hueco a WHERE a.entrada_lista_espera_id IN (" + idsEntrada + ")";
+        jdbc.update("DELETE FROM notificacion WHERE aviso_id IN (" + idsAviso + ") OR entrada_lista_espera_id IN ("
+                + idsEntrada + ")");
+        jdbc.update("DELETE FROM token_acceso WHERE aviso_id IN (" + idsAviso + ") OR entrada_lista_espera_id IN ("
+                + idsEntrada + ")");
+        jdbc.update("DELETE FROM aviso_hueco WHERE id IN (" + idsAviso + ")");
+        jdbc.update("DELETE FROM entrada_lista_espera WHERE id IN (" + idsEntrada + ")");
         jdbc.update("DELETE FROM notificacion WHERE turno_id IN (" + idsTurno + ")");
         jdbc.update("DELETE FROM token_acceso WHERE turno_id IN (" + idsTurno + ")");
         jdbc.update("DELETE FROM turno WHERE id IN (" + idsTurno + ")");

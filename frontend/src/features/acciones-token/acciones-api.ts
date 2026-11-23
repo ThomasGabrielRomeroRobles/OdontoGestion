@@ -1,7 +1,8 @@
 import { apiRequest, type ApiError } from '../../shared/http/client';
+import { ESTADOS_ENTRADA, type EstadoEntrada as EstadoEntradaLista } from '../lista-espera/lista-espera-api';
 
 /** Contrato de C-09 (`contrato-c09.md`, secciones `GET`/`POST /acciones/{token}`). */
-export const ACCIONES = ['CONFIRMAR_SOLICITUD', 'CONFIRMAR_TURNO', 'CANCELAR_TURNO'] as const;
+export const ACCIONES = ['CONFIRMAR_SOLICITUD', 'CONFIRMAR_TURNO', 'CANCELAR_TURNO', 'CONFIRMAR_LISTA_ESPERA'] as const;
 export type Accion = (typeof ACCIONES)[number];
 
 export const ESTADOS_TURNO = [
@@ -15,6 +16,8 @@ export const ESTADOS_TURNO = [
 ] as const;
 export type EstadoTurno = (typeof ESTADOS_TURNO)[number];
 
+export type EstadoEntrada = EstadoEntradaLista;
+
 export type MotivoNoDisponible = 'ESTADO_NO_PERMITE' | 'FUERA_DE_LIMITE';
 
 export interface TurnoResumen {
@@ -26,13 +29,24 @@ export interface TurnoResumen {
   readonly estado: EstadoTurno;
 }
 
+/** Inscripción en la lista de espera (C-10): fechas locales `YYYY-MM-DD`; sin datos del paciente. */
+export interface EntradaResumen {
+  readonly consultorio: string;
+  readonly prestacion: string;
+  readonly fechaDesde: string;
+  readonly fechaHasta: string;
+  readonly estado: EstadoEntrada;
+}
+
+/** Exactamente uno de `turno` y `entrada` viene informado; el otro es `null`. */
 export interface ResumenAccion {
   readonly accion: Accion;
   readonly venceEn: string | null;
   readonly disponible: boolean;
   readonly motivo: MotivoNoDisponible | null;
   readonly limiteCancelacion: string | null;
-  readonly turno: TurnoResumen;
+  readonly turno: TurnoResumen | null;
+  readonly entrada: EntradaResumen | null;
 }
 
 /** `noDisponible` = `410`: enlace inexistente, vencido o usado (la causa nunca se distingue). */
@@ -63,6 +77,19 @@ function esTexto(valor: unknown): valor is string {
   return typeof valor === 'string';
 }
 
+function esEntrada(valor: unknown): valor is EntradaResumen {
+  if (typeof valor !== 'object' || valor === null) return false;
+  const e = valor as Record<string, unknown>;
+  return (
+    esTexto(e['consultorio']) &&
+    esTexto(e['prestacion']) &&
+    esTexto(e['fechaDesde']) &&
+    esTexto(e['fechaHasta']) &&
+    typeof e['estado'] === 'string' &&
+    (ESTADOS_ENTRADA as readonly string[]).includes(e['estado'])
+  );
+}
+
 function esTurno(valor: unknown): valor is TurnoResumen {
   if (typeof valor !== 'object' || valor === null) return false;
   const t = valor as Record<string, unknown>;
@@ -80,7 +107,7 @@ export function esResumenAccion(valor: unknown): valor is ResumenAccion {
     (motivo === null || motivo === 'ESTADO_NO_PERMITE' || motivo === 'FUERA_DE_LIMITE') &&
     (r['venceEn'] === null || esTexto(r['venceEn'])) &&
     (r['limiteCancelacion'] === null || esTexto(r['limiteCancelacion'])) &&
-    esTurno(r['turno'])
+    ((r['turno'] === null && esEntrada(r['entrada'])) || (esTurno(r['turno']) && r['entrada'] === null))
   );
 }
 

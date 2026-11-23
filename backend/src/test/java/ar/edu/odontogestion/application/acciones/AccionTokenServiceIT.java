@@ -15,7 +15,7 @@ import ar.edu.odontogestion.domain.turno.TransicionInvalidaException;
 import ar.edu.odontogestion.domain.turno.evento.HuecoLiberado;
 import ar.edu.odontogestion.domain.turno.evento.SolicitudConfirmada;
 import ar.edu.odontogestion.domain.turno.evento.TurnoCancelado;
-import ar.edu.odontogestion.support.AbstractTurnoIT;
+import ar.edu.odontogestion.support.AbstractListaEsperaIT;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -30,7 +30,7 @@ import org.springframework.test.context.event.RecordApplicationEvents;
  * adelante) salvo donde se mueve el reloj. Límite de cancelación del seed: 2 horas.
  */
 @RecordApplicationEvents
-class AccionTokenServiceIT extends AbstractTurnoIT {
+class AccionTokenServiceIT extends AbstractListaEsperaIT {
 
     @Autowired
     private AccionTokenService acciones;
@@ -126,16 +126,22 @@ class AccionTokenServiceIT extends AbstractTurnoIT {
 
     @Test
     void unTokenDeAvisoOInvalidoEsGoneSinConsumirse() {
-        TokenEmitido aviso = tokens.emitir(PropositoToken.ACEPTAR_AVISO, new ReferenciaToken.Aviso(900007),
+        Long paciente = crearPaciente();
+        Long prestacion = crearPrestacion(30);
+        Long turno = insertarTurno(paciente, prestacion, EstadoTurno.CANCELADO, lunes("10:00"), lunes("10:30"));
+        Long entrada = insertarEntrada(paciente, prestacion, "ACTIVA", java.time.LocalDate.of(2026, 11, 23),
+                java.time.LocalDate.of(2026, 11, 23));
+        Long avisoId = insertarAviso(entrada, turno, prestacion, lunes("10:00"), lunes("10:30"), "ENVIADO",
+                lunes("09:00"));
+        TokenEmitido aviso = tokens.emitir(PropositoToken.ACEPTAR_AVISO, new ReferenciaToken.Aviso(avisoId),
                 reloj.instant().plusSeconds(600));
 
         assertThatThrownBy(() -> acciones.resumen(aviso.valor())).isInstanceOf(TokenInvalidoException.class);
         assertThatThrownBy(() -> acciones.resumen("no-existe-" + "x".repeat(30)))
                 .isInstanceOf(TokenInvalidoException.class);
 
-        assertThat(jdbc.queryForObject("SELECT usado_en IS NULL FROM token_acceso WHERE aviso_id = 900007",
-                Boolean.class)).isTrue();
-        jdbc.update("DELETE FROM token_acceso WHERE aviso_id = 900007");
+        assertThat(jdbc.queryForObject("SELECT usado_en IS NULL FROM token_acceso WHERE aviso_id = ?",
+                Boolean.class, avisoId)).isTrue();
     }
 
     @Test

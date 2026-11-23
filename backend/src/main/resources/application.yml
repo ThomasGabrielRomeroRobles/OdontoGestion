@@ -56,6 +56,9 @@ app:
   turnos:
     # Cada cuánto corre el job que expira solicitudes pendientes vencidas (C-07 D8).
     expiracion-intervalo: PT1M
+  lista-espera:
+    # Cada cuánto corre el barrido que expira avisos de hueco vencidos (C-10 D6).
+    expiracion-intervalo: PT1M
   bootstrap:
     odontologo-email: ${BOOTSTRAP_ODONTOLOGO_EMAIL:odontologo@consultorio.example}
     odontologo-password: ${BOOTSTRAP_ODONTOLOGO_PASSWORD:}

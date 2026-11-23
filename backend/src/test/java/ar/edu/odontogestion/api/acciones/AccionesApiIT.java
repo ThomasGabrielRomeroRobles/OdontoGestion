@@ -78,7 +78,7 @@ class AccionesApiIT extends AbstractTurnoIT {
         assertThat(r.getStatus()).isEqualTo(200);
         JsonNode cuerpo = json.readTree(r.getContentAsString());
         assertThat(cuerpo.fieldNames()).toIterable().containsExactlyInAnyOrder("accion", "venceEn", "disponible",
-                "motivo", "limiteCancelacion", "turno");
+                "motivo", "limiteCancelacion", "turno", "entrada");
         assertThat(cuerpo.get("accion").asText()).isEqualTo("CANCELAR_TURNO");
         assertThat(cuerpo.get("venceEn").asText()).isEqualTo(lunes("10:00").toString());
         assertThat(cuerpo.get("disponible").asBoolean()).isTrue();

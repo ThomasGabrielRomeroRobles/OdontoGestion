@@ -303,7 +303,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 > C-10 y C-11 son independientes entre sí; C-11 puede hacerse mientras C-09/C-10 avanzan.
 
 ### [C-10] `lista-espera`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado 2026-11-23 en `openspec/changes/archive/2026-11-23-c-10-lista-espera/`; alcance mínimo, ver proposal: franja horaria, filtros, alta manual y vencimiento de entradas quedan como etapa posterior)
 - **Scope**:
   - Migración V10: tabla `entrada_lista_espera` (estados `PENDIENTE_CONFIRMACION | ACTIVA | CUBIERTA | CANCELADA | VENCIDA`, único activo/pendiente por paciente+prestación, `@Version`) y `aviso_hueco` (`ENVIADO | ACEPTADO | EXPIRADO | CERRADO`, `vence_en`, `@Version`)
   - `POST /api/v1/publico/lista-espera` (nace pendiente, token `CONFIRMAR_LISTA_ESPERA`) y confirmación vía `/acciones/{token}` → `ACTIVA` (US-040); `GET/POST/DELETE /api/v1/lista-espera` para el odontólogo (US-042); Strategy de compatibilidad (prestación, rango de fechas, franja) y vencimiento
