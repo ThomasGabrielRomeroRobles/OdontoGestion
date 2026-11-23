@@ -20,7 +20,7 @@ Cada regla tiene un código único `RN-{DOMINIO}-{NN}` para trazabilidad. Las re
 - **RN-AG-02**: La agenda trabaja con granularidad de **15 minutos**; todo inicio de turno y toda duración de prestación son múltiplos de 15 min. **Suposición:** configurable por el odontólogo.
 - **RN-AG-03**: Cada **prestación** (tipo de turno) tiene una duración fija; el turno ocupa `inicio` a `inicio + duración`.
 - **RN-AG-04**: Un turno ocupa la **agenda del odontólogo** durante todo su intervalo. No existen sillones ni otros recursos de agenda.
-- **RN-AG-05**: **El odontólogo no puede tener dos turnos activos superpuestos** (estados `PENDIENTE_CONFIRMACION`, `RESERVADO`, `CONFIRMADO`). Es la **única regla de no superposición** y se garantiza con restricción de exclusión (`btree_gist`) en la base de datos.
+- **RN-AG-05**: **El odontólogo no puede tener dos turnos superpuestos que ocupen agenda**: ocupan agenda **todos los estados salvo `CANCELADO` y `EXPIRADO`** (`PENDIENTE_CONFIRMACION`, `RESERVADO`, `CONFIRMADO`, `ATENDIDO` y `AUSENTE`; resolución de PA-06, 2026-11-22). Es la **única regla de no superposición** y se garantiza con restricción de exclusión (`btree_gist`) en la base de datos.
 - **RN-AG-06**: Ante reservas simultáneas del mismo horario **gana la primera** que llega a la base; las demás reciben `409 Conflict` (concurrencia resuelta por la restricción de exclusión, ver DD-06).
 - **RN-AG-07**: Un turno solo puede crearse dentro de un `horario_trabajo` y fuera de los bloqueos de agenda.
 - **RN-AG-08**: Todas las prestaciones activas del consultorio pueden agendarse (un solo odontólogo las realiza todas).

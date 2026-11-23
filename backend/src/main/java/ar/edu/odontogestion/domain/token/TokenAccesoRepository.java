@@ -17,4 +17,7 @@ public interface TokenAccesoRepository {
 
     /** Deja vencidos los tokens vigentes de la referencia (opcionalmente de un propósito); devuelve cuántos. */
     int revocar(ReferenciaToken referencia, Optional<PropositoToken> proposito, Instant ahora);
+
+    /** Deja vencido el token vigente con ese hash (uno solo); devuelve 1, o 0 si no existe, ya se usó o venció. */
+    int revocarPorHash(byte[] hash, Instant ahora);
 }

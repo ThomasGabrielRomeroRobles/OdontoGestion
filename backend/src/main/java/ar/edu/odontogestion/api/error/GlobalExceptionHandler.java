@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.api.error;
 
+import ar.edu.odontogestion.application.turno.HuecoDto;
 import ar.edu.odontogestion.domain.error.ConflictoException;
 import ar.edu.odontogestion.domain.error.CredencialesInvalidasException;
 import ar.edu.odontogestion.domain.error.DomainException;
@@ -8,10 +9,12 @@ import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
 import ar.edu.odontogestion.domain.error.ReglaNegocioException;
 import ar.edu.odontogestion.domain.error.TokenInvalidoException;
 import ar.edu.odontogestion.domain.error.ValidacionDominioException;
+import ar.edu.odontogestion.domain.turno.HuecoNoDisponibleException;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -30,6 +33,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     static final String DETALLE_GENERICO = "Ocurrió un error inesperado. Intente nuevamente más tarde.";
     static final String DETALLE_VALIDACION = "La solicitud contiene datos inválidos.";
+    static final String DETALLE_MODIFICACION_CONCURRENTE =
+            "El registro fue modificado por otra operación. Actualice la pantalla e intente de nuevo.";
     static final String DETALLE_CUERPO_ILEGIBLE = "El cuerpo de la solicitud no es un JSON válido.";
 
     static final String INSTANCE_TOKEN_INVALIDO = "urn:odontogestion:enlace-no-disponible";
@@ -59,6 +64,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(RecursoNoEncontradoException.class)
     ProblemDetail handleNoEncontrado(RecursoNoEncontradoException ex) {
         return dominio(HttpStatus.NOT_FOUND, "Recurso no encontrado", ex);
+    }
+
+    /** Conflicto de agenda: 409 con hasta 3 {@code alternativas} libres (C-07 D6). Antes del handler genérico. */
+    @ExceptionHandler(HuecoNoDisponibleException.class)
+    ProblemDetail handleHuecoNoDisponible(HuecoNoDisponibleException ex) {
+        ProblemDetail problem = dominio(HttpStatus.CONFLICT, "Horario no disponible", ex);
+        problem.setProperty("alternativas", ex.alternativas().stream().map(HuecoDto::de).toList());
+        return problem;
+    }
+
+    /**
+     * Dos operaciones sobre el mismo turno a la vez (C-07 D9): gana una, la otra recibe 409. El mensaje de Spring
+     * nombra la entidad y el id, así que el cuerpo lleva un texto fijo.
+     */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    ProblemDetail handleModificacionConcurrente(OptimisticLockingFailureException ex) {
+        return ProblemDetails.crear(HttpStatus.CONFLICT, "Modificación concurrente", "modificacion-concurrente",
+                DETALLE_MODIFICACION_CONCURRENTE);
     }
 
     @ExceptionHandler(ConflictoException.class)

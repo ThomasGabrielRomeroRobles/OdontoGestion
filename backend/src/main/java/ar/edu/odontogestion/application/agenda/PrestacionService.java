@@ -2,6 +2,7 @@ package ar.edu.odontogestion.application.agenda;
 
 import ar.edu.odontogestion.application.consultorio.ConsultorioActual;
 import ar.edu.odontogestion.application.consultorio.ConsultorioService;
+import ar.edu.odontogestion.application.comun.RestriccionesDb;
 import ar.edu.odontogestion.domain.agenda.Prestacion;
 import ar.edu.odontogestion.domain.agenda.PrestacionRepository;
 import ar.edu.odontogestion.domain.consultorio.ConsultorioRepository;

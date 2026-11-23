@@ -1,6 +1,7 @@
 import { createAgendaRoutes, createDefaultAgendaDeps, type AgendaDeps } from './features/agenda';
 import { login, logout, me, type SessionUser } from './features/auth/auth-api';
 import { createConfigRoutes, createDefaultConfigSections, type ConfigSections } from './features/config';
+import { createNotificacionesRoute, type NotificacionesApi } from './features/notificaciones';
 import { createLoginPage } from './pages/login-page';
 import { placeholderRoute, renderNotFound } from './pages/placeholder-pages';
 import { configureHttpClient } from './shared/http/client';
@@ -18,6 +19,8 @@ export interface BootstrapDeps {
   readonly configSections?: ConfigSections;
   /** Dependencias de la agenda; por defecto, la API real (C-08, design D2). */
   readonly agenda?: AgendaDeps;
+  /** API del registro de envíos (`/notificaciones`); los tests inyectan un doble. Por defecto, la real. */
+  readonly notificacionesApi?: NotificacionesApi;
 }
 
 export interface App {
@@ -52,6 +55,7 @@ export async function bootstrap(deps: BootstrapDeps): Promise<App> {
     ...createAgendaRoutes(deps.agenda ?? createDefaultAgendaDeps()),
     placeholderRoute('/pacientes', 'private', 'Pacientes'),
     ...createConfigRoutes(deps.configSections ?? createDefaultConfigSections()),
+    createNotificacionesRoute(deps.notificacionesApi),
   ];
 
   const router: Router = createRouter({

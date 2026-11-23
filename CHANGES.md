@@ -182,7 +182,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 > C-03, C-04 y C-06 corren en paralelo tras C-02. C-05 (historia clínica, **stretch "si llega"**) arranca al cerrar C-04 y sigue en carril paralelo hasta el cierre.
 
 ### [C-03] `notificaciones-tokens-registro`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado 2026-11-22 en `openspec/changes/archive/2026-11-22-c-03-notificaciones-tokens-registro/`)
 - **Scope**:
   - Migración V6: tabla `notificacion` (outbox) con índices únicos (`turno_id`, `tipo`) y (`aviso_id`) para idempotencia; puerto `NotificationChannel`, `EmailChannel` (Spring Mail, `MAIL_*`), adaptador falso en memoria para tests
   - `NotificationService.encolar(...)` + `procesarPendientes()` con 3 reintentos y espera creciente; el fallo de envío no revierte la operación origen; `@Scheduled` cada 5 min; plantillas por tipo (`CONFIRMAR_SOLICITUD`, `CONFIRMAR_LISTA_ESPERA`, `CONFIRMACION_TURNO`, `RECORDATORIO`, `AVISO_HUECO`, `CANCELACION`, `AUSENTE_REPROGRAMAR`) sin datos clínicos
@@ -239,7 +239,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 ## FASE 3 — Agenda y turnos (Épicas 3 y 7)
 
 ### [C-07] `turnos-agenda-core`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado 2026-11-22 en `openspec/changes/archive/2026-11-22-c-07-turnos-agenda-core/`)
 - **Scope**:
   - Migración V9: tabla `turno` con `EXCLUDE USING gist` (`consultorio_id`, `tstzrange(inicio, fin, '[)')`) para estados activos, `CHECK (inicio < fin)`, `@Version`, índices; agrega FK de `evolucion_clinica.turno_id`
   - Modelo `Turno` y máquina de estados (`PENDIENTE_CONFIRMACION, RESERVADO, CONFIRMADO, CANCELADO, AUSENTE, ATENDIDO, EXPIRADO`); resolver PA-06 sobre `ATENDIDO/AUSENTE` en la restricción
@@ -248,6 +248,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
   - `PUT /api/v1/turnos/{id}/mover`, `POST /api/v1/turnos/{id}/cancelar` (motivo, `cancelado_por`), `POST /api/v1/turnos/{id}/atendido`, `GET /api/v1/turnos/hoy` (US-022, US-023, US-024)
   - Eventos `TurnoCreado`, `HuecoLiberado`, `TurnoMovido` (`@TransactionalEventListener`); notificaciones `CONFIRMACION_TURNO` y `CANCELACION` vía `NotificationService`
   - Tests: no superposición bajo concurrencia (Testcontainers), disponibilidad, transiciones inválidas `422`, `409`, expiración con `Clock`, mover libera hueco y publica `HuecoLiberado`, notificación encolada, `@Version` concurrente
+  - V9 agrega `fk_token_acceso_turno` (CASCADE) y `fk_notificacion_turno` (RESTRICT), diferidas desde C-03
 - **Dependencias**: `C-03, C-04, C-06`
 - **Governance**: CRITICO
 - **Leer antes**:
@@ -310,6 +311,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
   - `GET /avisos/{token}` y `POST /avisos/{token}/aceptar`: el primero inserta el turno `RESERVADO` (origen `LISTA_ESPERA`), entrada a `CUBIERTA`, demás avisos `CERRADO`, confirmación al ganador, el resto `409`; vencimiento de avisos por scheduler; `410 Gone`
   - Frontend: formulario público de lista de espera, página `/avisos/{token}` (aceptar, "ya no disponible", vencido) y pantalla del odontólogo (listado filtrable, alta y baja)
   - Tests: compatibilidad, duplicado `409`, N avisos para N compatibles, dos aceptaciones simultáneas (solo una gana), vencimiento, hueco ocupado por reserva normal; Vitest de formulario, aceptación y conflicto
+  - agrega las FK de `aviso_id` y `entrada_lista_espera_id` en `token_acceso` y `notificacion`, diferidas desde C-03
 - **Dependencias**: `C-09`
 - **Governance**: ALTO
 - **Leer antes**:

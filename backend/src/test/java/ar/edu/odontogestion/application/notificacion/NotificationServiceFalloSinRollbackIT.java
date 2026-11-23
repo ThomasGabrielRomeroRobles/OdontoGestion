@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.application.notificacion;
 
+import ar.edu.odontogestion.support.TurnosFicticios;
 import static ar.edu.odontogestion.application.notificacion.NotificationServiceEncolarIT.DATOS_TURNO;
 import static ar.edu.odontogestion.support.FixedClockTestConfig.AHORA;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,6 +24,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /** RN-NO-06: el fallo del canal no revierte ni impide la operación de negocio que encoló la notificación. */
 @Import(FixedClockTestConfig.class)
+@TurnosFicticios
 class NotificationServiceFalloSinRollbackIT extends AbstractIntegrationTest {
 
     @Autowired

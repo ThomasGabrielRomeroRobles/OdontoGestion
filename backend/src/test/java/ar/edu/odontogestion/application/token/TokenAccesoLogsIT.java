@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.application.token;
 
+import ar.edu.odontogestion.support.TurnosFicticios;
 import static ar.edu.odontogestion.support.FixedClockTestConfig.AHORA;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,6 +29,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(OutputCaptureExtension.class)
 @Import(FixedClockTestConfig.class)
+@TurnosFicticios
 class TokenAccesoLogsIT extends AbstractIntegrationTest {
 
     private static final List<String> LOGGERS = List.of("ar.edu.odontogestion", "org.springframework.jdbc",

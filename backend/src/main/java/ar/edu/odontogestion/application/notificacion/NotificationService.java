@@ -155,8 +155,9 @@ public class NotificationService {
         }
 
         ResultadoEnvio resultado;
+        List<EnlaceRenderizado> renderizados = List.of();
         try {
-            List<EnlaceRenderizado> renderizados = emisorEnlaces.emitir(notificacion.referencia(), enlaces);
+            renderizados = emisorEnlaces.emitir(notificacion.referencia(), enlaces);
             MensajeRenderizado mensaje = PlantillaNotificacion.de(notificacion.getTipo()).renderizar(
                     notificacion.getDatos(), renderizados, appProperties.baseUrl(), appProperties.timezone());
             resultado = canal.enviar(new NotificacionSaliente(notificacion.getTipo(), notificacion.getDestinatario(),
@@ -169,6 +170,9 @@ public class NotificationService {
         switch (resultado) {
             case ResultadoEnvio.Enviado enviado -> notificacion.marcarEnviada(ahora);
             case ResultadoEnvio.Fallido(String motivo) -> {
+                // Los tokens de este intento nunca llegaron al paciente: se invalidan (solo ellos), en esta misma
+                // transacción. El próximo intento emite tokens nuevos.
+                emisorEnlaces.revocar(renderizados);
                 switch (politica.trasFallo(notificacion.getIntentos() + 1, ahora)) {
                     case PoliticaReintento.Decision.Reprogramar(Instant programadaPara) ->
                             notificacion.registrarFalloConReintento(motivo, programadaPara);

@@ -84,4 +84,14 @@ public class TokenAccesoService {
     public int revocar(ReferenciaToken referencia, Optional<PropositoToken> proposito) {
         return tokens.revocar(referencia, proposito, clock.instant());
     }
+
+    /**
+     * Deja vencido de inmediato un único token, identificado por su valor en claro (sin tocar otros tokens de la
+     * misma referencia y propósito). Para invalidar un token emitido que nunca llegó a entregarse. Devuelve 1 si
+     * lo revocó, 0 si no existe, ya se usó o ya venció.
+     */
+    @Transactional
+    public int revocarToken(String valor) {
+        return tokens.revocarPorHash(HashToken.sha256(valor), clock.instant());
+    }
 }
