@@ -60,4 +60,16 @@ public class TurnoController {
     public TurnoDto atendido(@PathVariable Long id) {
         return comandos.marcarAtendido(id);
     }
+
+    /** Marca ausente pasada la tolerancia (C-08, RN-AS-01). {@code 422} antes de la tolerancia o por transición. */
+    @PostMapping("/{id}/ausente")
+    public TurnoDto ausente(@PathVariable Long id) {
+        return comandos.marcarAusente(id);
+    }
+
+    /** Revierte la ausencia dentro de las 24 h (C-08, RN-AS-06): devuelve el turno en su estado previo. */
+    @PostMapping("/{id}/revertir-ausencia")
+    public TurnoDto revertirAusencia(@PathVariable Long id) {
+        return comandos.revertirAusencia(id);
+    }
 }

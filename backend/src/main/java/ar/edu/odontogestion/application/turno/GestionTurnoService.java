@@ -6,26 +6,34 @@ import ar.edu.odontogestion.domain.agenda.PoliticaAnticipacion;
 import ar.edu.odontogestion.domain.consultorio.Consultorio;
 import ar.edu.odontogestion.domain.consultorio.ConsultorioRepository;
 import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
+import ar.edu.odontogestion.domain.paciente.PacienteRepository;
 import ar.edu.odontogestion.domain.turno.CanceladoPor;
 import ar.edu.odontogestion.domain.turno.Turno;
 import ar.edu.odontogestion.domain.turno.TurnoRepository;
+import ar.edu.odontogestion.domain.turno.evento.AusenciaRevertida;
 import ar.edu.odontogestion.domain.turno.evento.HuecoLiberado;
+import ar.edu.odontogestion.domain.turno.evento.TurnoAusente;
 import ar.edu.odontogestion.domain.turno.evento.TurnoCancelado;
 import ar.edu.odontogestion.domain.turno.evento.TurnoMovido;
 import java.time.Clock;
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Cambios de un turno existente por el odontólogo: mover, cancelar y marcar atendido (design D9). Cada operación
+ * Cambios de un turno existente por el odontólogo: mover, cancelar, marcar atendido (design D9) y marcar o revertir
+ * una ausencia (C-08 design D4). Cada operación
  * carga el turno del consultorio actual (404 si no existe o es de otro), aplica el método de dominio y hace
  * {@code flush}; dos operaciones concurrentes sobre el mismo turno se resuelven con {@code @Version}
  * ({@code 409 modificacion-concurrente}) y un choque de agenda lo decide la base ({@code 409 hueco-no-disponible}).
  */
 @Service
 public class GestionTurnoService {
+
+    private static final Logger log = LoggerFactory.getLogger(GestionTurnoService.class);
 
     private final ConsultorioActual consultorioActual;
     private final ConsultorioRepository consultorios;
@@ -34,10 +42,11 @@ public class GestionTurnoService {
     private final TraductorViolacionAgenda traductor;
     private final ApplicationEventPublisher eventos;
     private final Clock clock;
+    private final PacienteRepository pacientes;
 
     public GestionTurnoService(ConsultorioActual consultorioActual, ConsultorioRepository consultorios,
             TurnoRepository turnos, ValidadorHorarioTurno validador, TraductorViolacionAgenda traductor,
-            ApplicationEventPublisher eventos, Clock clock) {
+            ApplicationEventPublisher eventos, Clock clock, PacienteRepository pacientes) {
         this.consultorioActual = consultorioActual;
         this.consultorios = consultorios;
         this.turnos = turnos;
@@ -45,6 +54,7 @@ public class GestionTurnoService {
         this.traductor = traductor;
         this.eventos = eventos;
         this.clock = clock;
+        this.pacientes = pacientes;
     }
 
     /**
@@ -87,10 +97,52 @@ public class GestionTurnoService {
         return TurnoDto.de(turnos.saveAndFlush(turno));
     }
 
+    /**
+     * Marca el turno ausente pasada la tolerancia del consultorio (RN-AS-01) y suma una ausencia al paciente
+     * (RN-AS-02) en la misma transacción. Publica {@link TurnoAusente} (encola {@code AUSENTE_REPROGRAMAR}); no hay
+     * hueco liberado porque el turno sigue ocupando su rango (RN-AS-04).
+     */
+    @Transactional
+    public TurnoDto marcarAusente(Long turnoId) {
+        Long consultorioId = consultorioActual.id();
+        Turno turno = cargar(turnoId, consultorioId);
+        int tolerancia = consultorios.findById(consultorioId).orElseThrow().getParametros().toleranciaAusenteMin();
+        turno.marcarAusente(clock.instant(), tolerancia);
+        Turno guardado = turnos.saveAndFlush(turno);
+        Long pacienteId = guardado.getPaciente().getId();
+        pacientes.incrementarAusencias(pacienteId);
+        eventos.publishEvent(new TurnoAusente(guardado.getId()));
+        return TurnoDto.de(recargar(turnoId, consultorioId));
+    }
+
+    /**
+     * Revierte una ausencia dentro de las 24 h (RN-AS-06): el turno vuelve a su estado previo y el paciente pierde
+     * una ausencia. Publica {@link AusenciaRevertida} (descarta el aviso pendiente).
+     */
+    @Transactional
+    public TurnoDto revertirAusencia(Long turnoId) {
+        Long consultorioId = consultorioActual.id();
+        Turno turno = cargar(turnoId, consultorioId);
+        turno.revertirAusencia(clock.instant());
+        Turno guardado = turnos.saveAndFlush(turno);
+        Long pacienteId = guardado.getPaciente().getId();
+        if (pacientes.decrementarAusencias(pacienteId) == 0) {
+            log.warn("El contador de ausencias del paciente {} ya estaba en cero al revertir el turno {}",
+                    pacienteId, turnoId);
+        }
+        eventos.publishEvent(new AusenciaRevertida(guardado.getId()));
+        return TurnoDto.de(recargar(turnoId, consultorioId));
+    }
+
     /** Prestación del turno, para calcular alternativas tras un conflicto (D6). */
     @Transactional(readOnly = true)
     public Long prestacionDe(Long turnoId) {
         return cargar(turnoId, consultorioActual.id()).getPrestacion().getId();
+    }
+
+    /** Relee el turno tras un {@code UPDATE} del contador, que limpió el contexto de persistencia (design D3). */
+    private Turno recargar(Long turnoId, Long consultorioId) {
+        return cargar(turnoId, consultorioId);
     }
 
     private Turno cargar(Long turnoId, Long consultorioId) {

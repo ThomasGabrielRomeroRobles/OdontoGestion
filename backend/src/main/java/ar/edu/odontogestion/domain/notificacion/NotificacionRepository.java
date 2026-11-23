@@ -68,4 +68,20 @@ public interface NotificacionRepository extends JpaRepository<Notificacion, Long
             @Param("canal") String canal, @Param("destinatario") String destinatario,
             @Param("turnoId") Long turnoId, @Param("avisoId") Long avisoId, @Param("entradaId") Long entradaId,
             @Param("datos") String datos, @Param("enlaces") String enlaces, @Param("ahora") Instant ahora);
+
+    /**
+     * Descarta las notificaciones todavía {@code PENDIENTE} de un turno y tipo (C-08 design D4): quedan
+     * {@code FALLIDA} con el motivo, sin borrar la fila (el registro de envíos no se pierde). Si el procesador tiene
+     * la fila tomada, el {@code UPDATE} espera su commit y una ya {@code ENVIADA} no se toca.
+     *
+     * @return filas descartadas
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(nativeQuery = true, value = """
+            UPDATE notificacion SET estado = 'FALLIDA', error = :motivo, actualizado_en = :ahora
+             WHERE consultorio_id = :consultorioId AND turno_id = :turnoId AND tipo = :tipo
+               AND estado = 'PENDIENTE'
+            """)
+    int descartarPendientes(@Param("consultorioId") Long consultorioId, @Param("turnoId") Long turnoId,
+            @Param("tipo") String tipo, @Param("motivo") String motivo, @Param("ahora") Instant ahora);
 }

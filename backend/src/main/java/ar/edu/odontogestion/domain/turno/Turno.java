@@ -31,6 +31,9 @@ public class Turno extends AuditableEntity {
     /** Largo máximo del motivo de cancelación ({@code ck_turno_motivo_largo}). */
     public static final int MOTIVO_MAX = 200;
 
+    /** Ventana para revertir una ausencia desde su marca (RN-AS-06, suposición del MVP). */
+    public static final Duration VENTANA_REVERSION_AUSENCIA = Duration.ofHours(24);
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "consultorio_id", nullable = false, updatable = false)
     private Consultorio consultorio;
@@ -66,6 +69,15 @@ public class Turno extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "cancelado_por")
     private CanceladoPor canceladoPor;
+
+    /** Instante de la marca de ausente; {@code null} si el turno no está {@code AUSENTE} (V11, RN-AS-06). */
+    @Column(name = "ausente_marcado_en")
+    private Instant ausenteMarcadoEn;
+
+    /** Estado al que vuelve el turno si se revierte la ausencia; {@code null} si no está {@code AUSENTE}. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_previo_ausencia")
+    private EstadoTurno estadoPrevioAusencia;
 
     @Version
     @Column(nullable = false)
@@ -113,9 +125,45 @@ public class Turno extends AuditableEntity {
         transicionarA(EstadoTurno.ATENDIDO);
     }
 
-    /** La transición a {@code AUSENTE} la dispara C-08; la máquina de estados ya la admite. */
-    public void marcarAusente() {
+    /**
+     * {@code RESERVADO | CONFIRMADO → AUSENTE} recién cuando {@code ahora >= inicio + toleranciaMin} (RN-AS-01). Guarda
+     * el instante de la marca y el estado previo para poder revertirla (V11). Valida todo antes de modificar nada:
+     * primero el estado, después la tolerancia.
+     *
+     * @throws TransicionInvalidaException       el estado actual no admite la marca
+     * @throws AusenteAntesDeToleranciaException todavía no pasó la tolerancia
+     */
+    public void marcarAusente(Instant ahora, int toleranciaMin) {
+        if (!estado.puedePasarA(EstadoTurno.AUSENTE)) {
+            throw new TransicionInvalidaException(estado, EstadoTurno.AUSENTE);
+        }
+        if (ahora.isBefore(inicio.plus(Duration.ofMinutes(toleranciaMin)))) {
+            throw new AusenteAntesDeToleranciaException();
+        }
+        EstadoTurno previo = estado;
         transicionarA(EstadoTurno.AUSENTE);
+        this.estadoPrevioAusencia = previo;
+        this.ausenteMarcadoEn = ahora;
+    }
+
+    /**
+     * Revierte una marca de ausente equivocada (RN-AS-06): vuelve exactamente al estado previo y limpia los datos de
+     * la marca, solo si {@code ahora < ausenteMarcadoEn + 24 h}. Es la única salida de {@code AUSENTE}: no pasa por
+     * {@link EstadoTurno#puedePasarA}, así ninguna otra operación puede sacar un turno de ese estado.
+     *
+     * @throws TransicionInvalidaException    el turno no está {@code AUSENTE}
+     * @throws ReversionFueraDePlazoException ya pasaron las 24 horas
+     */
+    public void revertirAusencia(Instant ahora) {
+        if (estado != EstadoTurno.AUSENTE) {
+            throw new TransicionInvalidaException(estado, EstadoTurno.RESERVADO);
+        }
+        if (!ahora.isBefore(ausenteMarcadoEn.plus(VENTANA_REVERSION_AUSENCIA))) {
+            throw new ReversionFueraDePlazoException();
+        }
+        this.estado = estadoPrevioAusencia;
+        this.estadoPrevioAusencia = null;
+        this.ausenteMarcadoEn = null;
     }
 
     /** {@code PENDIENTE_CONFIRMACION → EXPIRADO}: libera el hueco (la expiración masiva la hace el repositorio). */
@@ -188,6 +236,14 @@ public class Turno extends AuditableEntity {
             throw new TransicionInvalidaException(estado, destino);
         }
         this.estado = destino;
+    }
+
+    public Instant getAusenteMarcadoEn() {
+        return ausenteMarcadoEn;
+    }
+
+    public EstadoTurno getEstadoPrevioAusencia() {
+        return estadoPrevioAusencia;
     }
 
     public Consultorio getConsultorio() {

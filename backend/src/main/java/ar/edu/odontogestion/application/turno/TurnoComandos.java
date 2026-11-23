@@ -51,4 +51,12 @@ public class TurnoComandos {
     public TurnoDto marcarAtendido(Long turnoId) {
         return gestion.marcarAtendido(turnoId);
     }
+
+    public TurnoDto marcarAusente(Long turnoId) {
+        return gestion.marcarAusente(turnoId);
+    }
+
+    public TurnoDto revertirAusencia(Long turnoId) {
+        return gestion.revertirAusencia(turnoId);
+    }
 }

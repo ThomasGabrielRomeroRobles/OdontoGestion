@@ -30,6 +30,11 @@ class FlywayV9MigrationIT extends AbstractIntegrationTest {
             + "inicio, fin, estado, origen, pendiente_hasta) "
             + "VALUES (?, ?, ?, ?::timestamptz, ?::timestamptz, ?, ?, ?::timestamptz)";
 
+    /** V11 (C-08): un turno AUSENTE lleva siempre la marca y el estado previo. */
+    private static final String INSERT_TURNO_AUSENTE = "INSERT INTO turno (consultorio_id, paciente_id, "
+            + "prestacion_id, inicio, fin, estado, origen, ausente_marcado_en, estado_previo_ausencia) "
+            + "VALUES (?, ?, ?, ?::timestamptz, ?::timestamptz, 'AUSENTE', ?, ?::timestamptz, 'RESERVADO')";
+
     @Autowired
     private JdbcTemplate jdbc;
 
@@ -53,6 +58,10 @@ class FlywayV9MigrationIT extends AbstractIntegrationTest {
 
     private int turno(Base b, String estado, String inicio, String fin) {
         String pendienteHasta = "PENDIENTE_CONFIRMACION".equals(estado) ? "2040-03-04T00:00:00Z" : null;
+        if ("AUSENTE".equals(estado)) {
+            return jdbc.update(INSERT_TURNO_AUSENTE, b.consultorioId(), b.pacienteId(), b.prestacionId(), inicio, fin,
+                    "ODONTOLOGO", fin);
+        }
         return jdbc.update(INSERT_TURNO, b.consultorioId(), b.pacienteId(), b.prestacionId(), inicio, fin, estado,
                 "ODONTOLOGO", pendienteHasta);
     }

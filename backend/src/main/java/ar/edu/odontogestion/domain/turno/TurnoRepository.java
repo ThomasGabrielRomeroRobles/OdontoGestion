@@ -17,6 +17,17 @@ public interface TurnoRepository extends JpaRepository<Turno, Long> {
 
     Optional<Turno> findByIdAndConsultorio_Id(Long id, Long consultorioId);
 
+    /** Turnos {@code AUSENTE} de un paciente, del más reciente al más antiguo, con la prestación cargada (C-08 D6). */
+    @Query("""
+            select t from Turno t
+            join fetch t.prestacion
+            where t.consultorio.id = :consultorioId and t.paciente.id = :pacienteId
+              and t.estado = ar.edu.odontogestion.domain.turno.EstadoTurno.AUSENTE
+            order by t.inicio desc, t.id desc
+            """)
+    List<Turno> ausenciasDelPaciente(@Param("consultorioId") Long consultorioId,
+            @Param("pacienteId") Long pacienteId);
+
     /** Turnos que empiezan en {@code [desde, hasta)}, en todos los estados, con paciente y prestación cargados. */
     @Query("""
             select t from Turno t

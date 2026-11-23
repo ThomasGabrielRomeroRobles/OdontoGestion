@@ -16,6 +16,10 @@ class TurnoTest {
 
     private static final Instant INICIO = Instant.parse("2026-11-23T13:00:00Z");
     private static final Instant VENCE = Instant.parse("2026-11-20T12:30:00Z");
+    private static final int TOLERANCIA = 15;
+    /** Inicio + tolerancia exacto: el primer instante en que se puede marcar ausente (RN-AS-01). */
+    private static final Instant FIN_TOLERANCIA = INICIO.plus(Duration.ofMinutes(TOLERANCIA));
+    private static final Instant PASADA_TOLERANCIA = INICIO.plus(Duration.ofMinutes(20));
 
     private final Consultorio consultorio = Consultorio.nuevo("Consultorio Demo", "America/Argentina/Buenos_Aires");
     private final Paciente paciente = Paciente.nuevo(consultorio,
@@ -39,7 +43,7 @@ class TurnoTest {
             case RESERVADO -> { }
             case CONFIRMADO -> t.confirmar();
             case ATENDIDO -> t.marcarAtendido();
-            case AUSENTE -> t.marcarAusente();
+            case AUSENTE -> t.marcarAusente(PASADA_TOLERANCIA, TOLERANCIA);
             case CANCELADO -> t.cancelar(CanceladoPor.ODONTOLOGO, null);
             case PENDIENTE_CONFIRMACION -> t = pendiente();
             case EXPIRADO -> {
@@ -151,16 +155,128 @@ class TurnoTest {
         assertThatThrownBy(pendiente()::confirmar).isInstanceOf(TransicionInvalidaException.class);
     }
 
-    @Test
-    void marcarAusenteDesdeReservadoYConfirmadoPeroNoDesdePendiente() {
-        Turno r = enEstado(EstadoTurno.RESERVADO);
-        r.marcarAusente();
-        Turno c = enEstado(EstadoTurno.CONFIRMADO);
-        c.marcarAusente();
+    // ---- C-08: marcar ausente y revertir (design D2) ----
 
-        assertThat(r.getEstado()).isEqualTo(EstadoTurno.AUSENTE);
-        assertThat(c.getEstado()).isEqualTo(EstadoTurno.AUSENTE);
-        assertThatThrownBy(pendiente()::marcarAusente).isInstanceOf(TransicionInvalidaException.class);
+    @Test
+    void marcarAusenteDesdeReservadoYConfirmadoGuardaLaMarcaYElEstadoPrevio() {
+        for (EstadoTurno origen : new EstadoTurno[] {EstadoTurno.RESERVADO, EstadoTurno.CONFIRMADO}) {
+            Turno t = enEstado(origen);
+
+            t.marcarAusente(FIN_TOLERANCIA, TOLERANCIA);
+
+            assertThat(t.getEstado()).as(origen.name()).isEqualTo(EstadoTurno.AUSENTE);
+            assertThat(t.getAusenteMarcadoEn()).isEqualTo(FIN_TOLERANCIA);
+            assertThat(t.getEstadoPrevioAusencia()).isEqualTo(origen);
+        }
+    }
+
+    @Test
+    void marcarAusenteAntesDeLaToleranciaEsRechazadoSinCambios() {
+        Turno t = reservado();
+
+        assertThatThrownBy(() -> t.marcarAusente(FIN_TOLERANCIA.minusSeconds(1), TOLERANCIA))
+                .isInstanceOf(AusenteAntesDeToleranciaException.class);
+
+        assertThat(t.getEstado()).isEqualTo(EstadoTurno.RESERVADO);
+        assertThat(t.getAusenteMarcadoEn()).isNull();
+        assertThat(t.getEstadoPrevioAusencia()).isNull();
+    }
+
+    @Test
+    void laToleranciaDependeDelParametro() {
+        Turno t = reservado();
+
+        assertThatThrownBy(() -> t.marcarAusente(PASADA_TOLERANCIA, 30))
+                .isInstanceOf(AusenteAntesDeToleranciaException.class);
+        t.marcarAusente(PASADA_TOLERANCIA, 0);
+        assertThat(t.getEstado()).isEqualTo(EstadoTurno.AUSENTE);
+    }
+
+    @Test
+    void marcarAusenteDesdeOtrosEstadosEsTransicionInvalidaSinCambios() {
+        for (EstadoTurno origen : new EstadoTurno[] {EstadoTurno.PENDIENTE_CONFIRMACION, EstadoTurno.CANCELADO,
+                EstadoTurno.EXPIRADO, EstadoTurno.ATENDIDO, EstadoTurno.AUSENTE}) {
+            Turno t = enEstado(origen);
+            Instant marcaAntes = t.getAusenteMarcadoEn();
+
+            assertThatThrownBy(() -> t.marcarAusente(PASADA_TOLERANCIA.plusSeconds(60), TOLERANCIA))
+                    .as(origen.name()).isInstanceOf(TransicionInvalidaException.class);
+
+            assertThat(t.getEstado()).isEqualTo(origen);
+            assertThat(t.getAusenteMarcadoEn()).isEqualTo(marcaAntes);
+        }
+    }
+
+    @Test
+    void elEstadoSeValidaAntesQueLaTolerancia() {
+        // Un turno atendido antes de la tolerancia informa la transición, no la tolerancia.
+        Turno t = enEstado(EstadoTurno.ATENDIDO);
+
+        assertThatThrownBy(() -> t.marcarAusente(INICIO, TOLERANCIA)).isInstanceOf(TransicionInvalidaException.class);
+    }
+
+    @Test
+    void revertirDentroDeLas24HorasVuelveAlEstadoPrevioYLimpiaLaMarca() {
+        for (EstadoTurno origen : new EstadoTurno[] {EstadoTurno.RESERVADO, EstadoTurno.CONFIRMADO}) {
+            Turno t = enEstado(origen);
+            t.marcarAusente(PASADA_TOLERANCIA, TOLERANCIA);
+
+            t.revertirAusencia(PASADA_TOLERANCIA.plus(Duration.ofHours(24)).minusSeconds(1));
+
+            assertThat(t.getEstado()).as(origen.name()).isEqualTo(origen);
+            assertThat(t.getAusenteMarcadoEn()).isNull();
+            assertThat(t.getEstadoPrevioAusencia()).isNull();
+        }
+    }
+
+    @Test
+    void revertirAlCumplirseLas24HorasEsRechazadoSinCambios() {
+        Turno t = reservado();
+        t.marcarAusente(PASADA_TOLERANCIA, TOLERANCIA);
+
+        assertThatThrownBy(() -> t.revertirAusencia(PASADA_TOLERANCIA.plus(Duration.ofHours(24))))
+                .isInstanceOf(ReversionFueraDePlazoException.class);
+
+        assertThat(t.getEstado()).isEqualTo(EstadoTurno.AUSENTE);
+        assertThat(t.getAusenteMarcadoEn()).isEqualTo(PASADA_TOLERANCIA);
+        assertThat(t.getEstadoPrevioAusencia()).isEqualTo(EstadoTurno.RESERVADO);
+    }
+
+    @Test
+    void revertirUnTurnoQueNoEstaAusenteEsTransicionInvalida() {
+        for (EstadoTurno origen : new EstadoTurno[] {EstadoTurno.RESERVADO, EstadoTurno.ATENDIDO,
+                EstadoTurno.CANCELADO}) {
+            Turno t = enEstado(origen);
+
+            assertThatThrownBy(() -> t.revertirAusencia(PASADA_TOLERANCIA)).as(origen.name())
+                    .isInstanceOf(TransicionInvalidaException.class);
+            assertThat(t.getEstado()).isEqualTo(origen);
+        }
+    }
+
+    @Test
+    void despuesDeRevertirSePuedeVolverAMarcarAusente() {
+        Turno t = reservado();
+        t.marcarAusente(PASADA_TOLERANCIA, TOLERANCIA);
+        t.revertirAusencia(PASADA_TOLERANCIA.plusSeconds(60));
+
+        Instant segundaMarca = PASADA_TOLERANCIA.plusSeconds(120);
+        t.marcarAusente(segundaMarca, TOLERANCIA);
+
+        assertThat(t.getEstado()).isEqualTo(EstadoTurno.AUSENTE);
+        assertThat(t.getAusenteMarcadoEn()).isEqualTo(segundaMarca);
+    }
+
+    @Test
+    void unTurnoAusenteNoSeMueveNiSeCancelaNiSeAtiende() {
+        Turno t = enEstado(EstadoTurno.AUSENTE);
+
+        assertThatThrownBy(() -> t.mover(INICIO.plus(Duration.ofDays(1)))).isInstanceOf(TransicionInvalidaException.class);
+        assertThatThrownBy(() -> t.cancelar(CanceladoPor.ODONTOLOGO, null))
+                .isInstanceOf(TransicionInvalidaException.class);
+        assertThatThrownBy(t::marcarAtendido).isInstanceOf(TransicionInvalidaException.class);
+        assertThatThrownBy(t::confirmar).isInstanceOf(TransicionInvalidaException.class);
+        assertThat(t.getEstado()).isEqualTo(EstadoTurno.AUSENTE);
     }
 
     // ---- Grupo 7: cancelar y mover ----

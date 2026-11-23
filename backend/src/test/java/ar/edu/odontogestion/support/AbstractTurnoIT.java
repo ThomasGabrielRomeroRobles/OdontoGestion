@@ -126,11 +126,14 @@ public abstract class AbstractTurnoIT extends AbstractWebIntegrationTest {
 
     protected Long insertarTurno(Long pacienteId, Long prestacionId, EstadoTurno estado, Instant inicio,
             Instant fin, Instant pendienteHasta) {
+        // V11 (C-08): un turno AUSENTE lleva siempre la marca (al terminar el turno) y el estado previo.
+        boolean ausente = estado == EstadoTurno.AUSENTE;
         return jdbc.queryForObject("INSERT INTO turno (consultorio_id, paciente_id, prestacion_id, inicio, fin, "
-                + "estado, origen, pendiente_hasta) VALUES (?, ?, ?, ?::timestamptz, ?::timestamptz, ?, "
-                + "'ODONTOLOGO', ?::timestamptz) RETURNING id", Long.class, consultorioId(), pacienteId,
-                prestacionId, inicio.toString(), fin.toString(), estado.name(),
-                pendienteHasta == null ? null : pendienteHasta.toString());
+                + "estado, origen, pendiente_hasta, ausente_marcado_en, estado_previo_ausencia) VALUES (?, ?, ?, "
+                + "?::timestamptz, ?::timestamptz, ?, 'ODONTOLOGO', ?::timestamptz, ?::timestamptz, ?) RETURNING id",
+                Long.class, consultorioId(), pacienteId, prestacionId, inicio.toString(), fin.toString(),
+                estado.name(), pendienteHasta == null ? null : pendienteHasta.toString(),
+                ausente ? fin.toString() : null, ausente ? EstadoTurno.RESERVADO.name() : null);
     }
 
     protected int contarTurnos() {

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -53,4 +54,23 @@ public interface PacienteRepository extends JpaRepository<Paciente, Long> {
             """)
     List<Paciente> buscarPorTexto(@Param("consultorioId") Long consultorioId, @Param("patron") String patron,
             @Param("prefijoDni") String prefijoDni, Limit limit);
+
+    /**
+     * Suma una ausencia (RN-AS-02, C-08 design D3). {@code UPDATE} relativo: dos marcas simultáneas de turnos
+     * distintos del mismo paciente no se pisan (la entidad no tiene {@code @Version}). Limpia el contexto de
+     * persistencia para que una lectura posterior en la misma transacción vea el valor nuevo.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update Paciente p set p.cantidadAusencias = p.cantidadAusencias + 1 where p.id = :id")
+    int incrementarAusencias(@Param("id") Long id);
+
+    /**
+     * Resta una ausencia al revertir una marca (RN-AS-06), sin bajar de cero.
+     *
+     * @return 1 si restó, 0 si el contador ya estaba en cero
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update Paciente p set p.cantidadAusencias = p.cantidadAusencias - 1 "
+            + "where p.id = :id and p.cantidadAusencias > 0")
+    int decrementarAusencias(@Param("id") Long id);
 }

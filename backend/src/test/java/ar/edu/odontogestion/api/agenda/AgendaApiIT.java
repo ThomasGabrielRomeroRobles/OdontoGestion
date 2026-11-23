@@ -121,6 +121,30 @@ class AgendaApiIT extends AbstractTurnoIT {
     }
 
     @Test
+    void turnoAusenteTraeLaMarcaYElContadorDelPacienteSinDatosDeContacto() throws Exception {
+        Long paciente = crearPaciente();
+        Long prestacion = crearPrestacion(30);
+        jdbc.update("UPDATE paciente SET cantidad_ausencias = 2 WHERE id = ?", paciente);
+        insertarTurno(paciente, prestacion, EstadoTurno.AUSENTE, lunes("09:00"), lunes("09:30"));
+        insertarTurno(paciente, prestacion, EstadoTurno.RESERVADO, lunes("10:00"), lunes("10:30"));
+
+        String json = consultar(AGENDA + "?desde=" + LUNES_ISO + "&hasta=" + LUNES_ISO)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.estado == 'AUSENTE')].ausenteMarcadoEn")
+                        .value(org.hamcrest.Matchers.contains(lunes("09:30").toString())))
+                .andExpect(jsonPath("$[?(@.estado == 'RESERVADO')].ausenteMarcadoEn")
+                        .value(org.hamcrest.Matchers.contains(org.hamcrest.Matchers.nullValue())))
+                .andExpect(jsonPath("$[*].paciente.cantidadAusencias")
+                        .value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is(2))))
+                .andReturn().getResponse().getContentAsString();
+
+        String dni = jdbc.queryForObject("SELECT dni FROM paciente WHERE id = ?", String.class, paciente);
+        String email = jdbc.queryForObject("SELECT email FROM paciente WHERE id = ?", String.class, paciente);
+        org.assertj.core.api.Assertions.assertThat(json).doesNotContain(dni).doesNotContain(email)
+                .doesNotContain("\"dni\"").doesNotContain("\"telefono\"");
+    }
+
+    @Test
     void sinSesionAmbasConsultasDan401() throws Exception {
         mockMvc.perform(get(AGENDA + "?desde=" + LUNES_ISO + "&hasta=" + LUNES_ISO)).andExpect(status().isUnauthorized());
         mockMvc.perform(get(DISPONIBILIDAD + "?prestacionId=1&desde=" + LUNES_ISO + "&hasta=" + LUNES_ISO))
