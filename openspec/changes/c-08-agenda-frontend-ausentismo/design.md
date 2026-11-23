@@ -165,7 +165,7 @@ dev/agenda-mocks.ts    # implementación en memoria (solo DEV)
 | Error | Mensaje | Efecto |
 |---|---|---|
 | `409` con `alternativas` | `detail` o "Ese horario ya no está disponible." | Muestra las alternativas como opciones |
-| `422` | `detail` o `title` | En acciones sobre un turno: recarga la agenda (el estado pudo cambiar) |
+| `422` | `detail`; si falta, mensaje propio del `type` (`ausente-antes-de-tolerancia`, `reversion-fuera-de-plazo`, `transicion-invalida`, ver D12); si no, `title` | En acciones sobre un turno: recarga la agenda (el estado pudo cambiar) |
 | `404` | "El turno ya no existe." | Cierra el panel y recarga |
 | red | "No se pudo conectar. Reintentá." | Conserva lo cargado |
 | `401` | — | Lo resuelve el cliente HTTP global (redirección a login) |
@@ -209,6 +209,27 @@ dev/agenda-mocks.ts    # implementación en memoria (solo DEV)
 | Sincronizar `agenda-api.ts` con los DTOs finales y correr la demo end to end | — | Grupo 9 de `tasks.md` | C-07 + P3 archivados |
 
 **Regla de cierre**: el change se puede mergear parcial a `main` como "front contra mocks". Con el flag apagado, las rutas usan la API real y muestran el error de conexión o `404` hasta que exista el backend, sin romper nada. Pero **no se archiva ni se marca `[x]` en `CHANGES.md`** hasta completar el grupo 9.
+
+### D12. Diferencias con el contrato real (tarea 9.1)
+
+Comparación del contrato v0 (D1) con el código real: C-07 (`TurnoController`, `AgendaController`, `TurnoDto`) y el backend de ausentismo de C-08 de P3 (rama `feat/c-08-ausentismo-backend`: `TurnoController#ausente`/`#revertirAusencia`, `PacienteController#ausencias`, `AusenciasPacienteResponse`, excepciones de dominio).
+
+| Punto | Contrato v0 (D1) | Real | Ajuste en el front |
+|---|---|---|---|
+| `paciente.dni` en el turno | Venía | **No viene** (regla dura #10) | Fuera del tipo; el detalle no muestra DNI |
+| `paciente.cantidadAusencias` | Venía | Viene, `int` obligatorio (`TurnoDto.PacienteResumen`) | Tipo `number` obligatorio; sin `?? 0` |
+| `prestacion.duracionMin` | Venía | No viene (`{id, nombre}`) | Duración = `fin - inicio` |
+| `version` | No estaba | Viene (`long`) | Tipo `number`, solo informativo |
+| `ausenteMarcadoEn` | Venía | Viene, `Instant` o `null` | Tipo `string \| null` obligatorio |
+| `GET /agenda` | `desde`/`hasta` instantes | `desde`/`hasta` fechas `yyyy-MM-dd` inclusivas | `fechasInclusivas` |
+| `GET /agenda/disponibilidad` | `fecha`, `excluirTurnoId?` | `desde`/`hasta` fechas, **sin** `excluirTurnoId` | `desde = hasta = fecha`; al mover, el rango propio sigue ocupado (delta actualizado) |
+| `409` | Solo `hueco-no-disponible` + `alternativas` | También `modificacion-concurrente` sin `alternativas` | Se distinguen por el miembro `alternativas` |
+| `POST /turnos/{id}/ausente` | `200 TurnoResponse` | Igual; `422` `.../transicion-invalida` (se chequea primero) o `.../ausente-antes-de-tolerancia` | Mensaje de respaldo por `type` (D7) |
+| `POST /turnos/{id}/revertir-ausencia` | Estado previo (pregunta abierta) | **Estado previo real** (`estadoPrevioAusencia`: `RESERVADO` o `CONFIRMADO`); `422` `.../transicion-invalida` si no está `AUSENTE`, `.../reversion-fuera-de-plazo` a partir de las 24 h | La UI muestra el estado devuelto (escenario nuevo en el delta) |
+| `GET /pacientes/{id}/ausencias` | `{cantidad, ausencias: [{turnoId, inicio, prestacionNombre}]}` | Igual, la más reciente primero | Sin cambios |
+| `type` de los `422` | `about:blank` implícito | `https://odontogestion.example/problemas/<codigo>`, title "Regla de negocio incumplida" | `ApiError.code` (último segmento) + `MENSAJES_422` en `errores.ts` si falta `detail` |
+
+Los mocks de desarrollo (`dev/agenda-mocks.ts`) reproducen el contrato real: mismos campos, mismo `code` y mismo `detail` en cada `422`, y reversión al estado previo real.
 
 ## Risks / Trade-offs
 

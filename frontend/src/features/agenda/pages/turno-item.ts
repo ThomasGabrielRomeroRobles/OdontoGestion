@@ -27,7 +27,7 @@ export function crearItemTurno(turno: Turno, alAbrir: (turno: Turno) => void): H
     ' ',
     el('span', etiquetaEstado(turno.estado), { 'data-estado': '' }),
   );
-  const ausencias = turno.paciente.cantidadAusencias ?? 0;
+  const ausencias = turno.paciente.cantidadAusencias;
   if (ausencias > 0) {
     abrir.append(' ', el('span', `${ausencias} aus.`, { 'data-ausencias': '' }));
   }

@@ -111,8 +111,8 @@
 
 > Precondición: C-07 y el backend de C-08 (P3) archivados en `main`, y C-04 mergeado. Hasta entonces este grupo no se empieza.
 
-- [ ] 9.1 Comparar los DTOs y rutas reales de C-07 y P3 con el contrato v0 (design D1). Listar las diferencias en `design.md` (sección nueva "Diferencias con el contrato real") y ajustar `agenda-api.ts`, `pacientes-api.ts`, sus tests y `agenda-mocks.ts`. Verificar con `npm test` y `npm run typecheck` en verde
-- [ ] 9.2 Si alguna diferencia cambia comportamiento observable (por ejemplo, el estado al revertir o el parámetro de disponibilidad), actualizar el delta `specs/web-agenda/spec.md` y sus tests. Verificar con `openspec validate c-08-agenda-frontend-ausentismo --strict` sin errores
+- [x] 9.1 Comparar los DTOs y rutas reales de C-07 y P3 con el contrato v0 (design D1). Listar las diferencias en `design.md` (sección nueva "Diferencias con el contrato real") y ajustar `agenda-api.ts`, `pacientes-api.ts`, sus tests y `agenda-mocks.ts`. Verificar con `npm test` y `npm run typecheck` en verde
+- [x] 9.2 Si alguna diferencia cambia comportamiento observable (por ejemplo, el estado al revertir o el parámetro de disponibilidad), actualizar el delta `specs/web-agenda/spec.md` y sus tests. Verificar con `openspec validate c-08-agenda-frontend-ausentismo --strict` sin errores
 - [ ] 9.3 Prueba manual end to end contra el backend real con el seed ficticio (`npm run dev`, con el proxy a `:8080`): crear (incluido un `409` provocado con dos pestañas), mover, cancelar, atendido, ausente pasada la tolerancia, revertir, historial y hoy. Verificar registrando el resultado de cada paso en el PR
 - [ ] 9.4 Verificación final: todos los tests del repo en verde (`npm test` en `frontend/` y `./gradlew test` en `backend/`) y `npm run build` sin errores
 

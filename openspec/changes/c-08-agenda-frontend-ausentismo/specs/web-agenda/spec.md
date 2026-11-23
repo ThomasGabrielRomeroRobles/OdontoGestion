@@ -167,7 +167,7 @@ Al crear un turno, la aplicación SHALL buscar el paciente con `GET /api/v1/paci
 - **THEN** el mensaje aparece junto al campo de email y los valores cargados se conservan
 
 ### Requirement: Horarios libres para la prestación
-Al crear un turno, la aplicación SHALL ofrecer solo las prestaciones activas y, elegidas prestación y fecha, mostrar como opciones los huecos de `GET /api/v1/agenda/disponibilidad?prestacionId&fecha` en hora del consultorio.
+Al crear un turno, la aplicación SHALL ofrecer solo las prestaciones activas y, elegidas prestación y fecha, mostrar como opciones los huecos de `GET /api/v1/agenda/disponibilidad?prestacionId&desde&hasta` (con `desde` = `hasta` = la fecha elegida, en el calendario del consultorio) en hora del consultorio.
 
 #### Scenario: Solo prestaciones activas
 - **GIVEN** existen las prestaciones Consulta (activa) y Blanqueamiento (inactiva)
@@ -176,7 +176,7 @@ Al crear un turno, la aplicación SHALL ofrecer solo las prestaciones activas y,
 
 #### Scenario: Huecos de la fecha
 - **GIVEN** se eligieron Limpieza (id 3) y la fecha 24/11/2026
-- **WHEN** la API de `GET /api/v1/agenda/disponibilidad?prestacionId=3&fecha=2026-11-24` responde huecos con inicio `12:00Z` y `13:00Z`
+- **WHEN** la API de `GET /api/v1/agenda/disponibilidad?prestacionId=3&desde=2026-11-24&hasta=2026-11-24` responde huecos con inicio `12:00Z` y `13:00Z`
 - **THEN** se ofrecen las opciones "09:00" y "10:00"
 
 #### Scenario: Sin huecos
@@ -216,12 +216,12 @@ Ante un `409` al crear o mover un turno, la aplicación SHALL informar que el ho
 - **THEN** se muestra el mensaje de conflicto y los huecos actualizados, sin opciones adicionales
 
 ### Requirement: Mover un turno
-Desde el detalle, "Mover" SHALL pedir una fecha, mostrar los huecos de `GET /api/v1/agenda/disponibilidad` con la prestación del turno y `excluirTurnoId`, y enviar `PUT /api/v1/turnos/{id}/mover` con `{inicio}`. Ante `409` aplica el conflicto con alternativas.
+Desde el detalle, "Mover" SHALL pedir una fecha, mostrar los huecos de `GET /api/v1/agenda/disponibilidad` con la prestación del turno (la API no excluye el rango del propio turno), y enviar `PUT /api/v1/turnos/{id}/mover` con `{inicio}`. Ante `409` aplica el conflicto con alternativas.
 
-#### Scenario: Huecos excluyendo el propio turno
+#### Scenario: Huecos con la prestación del turno
 - **GIVEN** el turno 41 de Limpieza (id 3) está abierto en "Mover"
 - **WHEN** el usuario elige la fecha 24/11/2026
-- **THEN** se solicita `GET /api/v1/agenda/disponibilidad?prestacionId=3&fecha=2026-11-24&excluirTurnoId=41`
+- **THEN** se solicita `GET /api/v1/agenda/disponibilidad?prestacionId=3&desde=2026-11-24&hasta=2026-11-24`, sin `excluirTurnoId`
 
 #### Scenario: Movimiento exitoso
 - **GIVEN** el usuario eligió el hueco de las 11:00 del 24/11/2026 para el turno 41
@@ -274,11 +274,11 @@ Desde el detalle, "Mover" SHALL pedir una fecha, mostrar los huecos de `GET /api
 
 #### Scenario: Rechazo del servidor
 - **GIVEN** "Marcar ausente" está habilitado
-- **WHEN** la API responde `422` con detail "Todavía no pasó la tolerancia"
+- **WHEN** la API responde `422` con `type` terminado en `/ausente-antes-de-tolerancia` y detail "Todavía no pasó la tolerancia"
 - **THEN** se muestra ese mensaje y la agenda se recarga
 
 ### Requirement: Revertir una ausencia dentro de 24 horas
-Un turno `AUSENTE` SHALL ofrecer "Revertir ausencia" solo mientras ahora es anterior a `ausenteMarcadoEn` más 24 horas, y enviar `POST /api/v1/turnos/{id}/revertir-ausencia`. Ante `200`, se recargan la vista y el historial de ausencias.
+Un turno `AUSENTE` SHALL ofrecer "Revertir ausencia" solo mientras ahora es anterior a `ausenteMarcadoEn` más 24 horas, y enviar `POST /api/v1/turnos/{id}/revertir-ausencia`. Ante `200`, el turno MUST mostrarse en el estado que devuelve la API (su estado previo real, `RESERVADO` o `CONFIRMADO`) y se recargan la vista y el historial de ausencias.
 
 #### Scenario: Dentro de la ventana
 - **GIVEN** un turno `AUSENTE` con `ausenteMarcadoEn` hace 23 h 59 min
@@ -294,6 +294,16 @@ Un turno `AUSENTE` SHALL ofrecer "Revertir ausencia" solo mientras ahora es ante
 - **GIVEN** el detalle del turno 41 `AUSENTE` ofrece "Revertir ausencia" y el paciente tiene 2 ausencias
 - **WHEN** el usuario confirma y la API responde `200` con estado `RESERVADO`
 - **THEN** se envió `POST /api/v1/turnos/41/revertir-ausencia`, el turno muestra "Reservado" y el historial se recarga
+
+#### Scenario: Reversión de un turno que estaba confirmado
+- **GIVEN** el turno 41 estaba `CONFIRMADO` antes de marcarse ausente y su detalle ofrece "Revertir ausencia"
+- **WHEN** el usuario confirma y la API responde `200` con estado `CONFIRMADO`
+- **THEN** el turno muestra "Confirmado"
+
+#### Scenario: Reversión fuera de plazo según el servidor
+- **GIVEN** el detalle ofrece "Revertir ausencia"
+- **WHEN** la API responde `422` con `type` terminado en `/reversion-fuera-de-plazo` y sin detail
+- **THEN** se muestra "Ya pasaron 24 horas desde la marca: la ausencia no se puede revertir." y la agenda se recarga
 
 ### Requirement: Historial de ausencias del paciente
 El detalle de un turno SHALL mostrar la cantidad y las fechas de las ausencias del paciente desde `GET /api/v1/pacientes/{id}/ausencias`, en hora del consultorio, y la agenda MUST indicar la cantidad en el ítem del turno cuando es mayor que cero.
@@ -314,12 +324,16 @@ El detalle de un turno SHALL mostrar la cantidad y las fechas de las ausencias d
 - **THEN** el ítem del turno muestra "2 aus."
 
 ### Requirement: Errores al operar un turno
-Ante un error de una acción sobre un turno, la aplicación SHALL mostrar el `detail` (o el `title`) de un `422` y recargar la agenda, informar "El turno ya no existe." y recargar ante `404`, y ante una falla de red mostrar un mensaje de conexión sin perder lo cargado.
+Ante un error de una acción sobre un turno, la aplicación SHALL mostrar el `detail` de un `422` (si falta, un mensaje propio según el último segmento de su `type`: `ausente-antes-de-tolerancia`, `reversion-fuera-de-plazo` o `transicion-invalida`; si el `type` no es conocido, el `title`) y recargar la agenda, informar "El turno ya no existe." y recargar ante `404`, y ante una falla de red mostrar un mensaje de conexión sin perder lo cargado.
 
 #### Scenario: Transición inválida
 - **GIVEN** el detalle muestra un turno `RESERVADO` que otro proceso ya canceló
 - **WHEN** el usuario elige "Marcar atendido" y la API responde `422` con detail "Transición inválida"
 - **THEN** se muestra "Transición inválida" y la agenda se recarga mostrando el estado actual
+
+#### Scenario: Transición inválida sin detail
+- **WHEN** una acción responde `422` con `type` terminado en `/transicion-invalida` y sin detail
+- **THEN** se muestra "El turno cambió de estado y esa acción ya no corresponde." y la agenda se recarga
 
 #### Scenario: Turno inexistente
 - **WHEN** una acción responde `404`

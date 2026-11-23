@@ -148,6 +148,25 @@ describe('detalle del turno (grupo 5)', () => {
       expect(deps.api.ausenciasPaciente).toHaveBeenCalledTimes(2);
     });
 
+    it('Revertir ausencia de un CONFIRMADO: muestra el estado previo real que devuelve la API', async () => {
+      const marcado = new Date(INICIO + 20 * MIN).toISOString();
+      await abrir(turnoEn('AUSENTE', { ausenteMarcadoEn: marcado }), INICIO + 60 * MIN);
+      deps.api.revertirAusencia.mockResolvedValue(turnoEn('CONFIRMADO'));
+      boton('Revertir ausencia').click();
+      await flush();
+      expect(host.querySelector('[data-estado]')?.textContent).toBe('Confirmado');
+    });
+
+    it('rechazo 422 reversion-fuera-de-plazo sin detail: mensaje del type y recarga la agenda', async () => {
+      const marcado = new Date(INICIO + 20 * MIN).toISOString();
+      await abrir(turnoEn('AUSENTE', { ausenteMarcadoEn: marcado }), INICIO + 60 * MIN);
+      deps.api.revertirAusencia.mockRejectedValue(errorHttp(422, { code: 'reversion-fuera-de-plazo', title: 'Regla de negocio incumplida' }));
+      boton('Revertir ausencia').click();
+      await flush();
+      expect(aviso()).toBe('Ya pasaron 24 horas desde la marca: la ausencia no se puede revertir.');
+      expect(alCambiar).toHaveBeenCalledWith({ cerrar: false });
+    });
+
     it('ausente fuera de la ventana de 24 h: sin acciones', async () => {
       const marcado = new Date(INICIO + 20 * MIN).toISOString();
       await abrir(turnoEn('AUSENTE', { ausenteMarcadoEn: marcado }), INICIO + 20 * MIN + 24 * 60 * MIN);

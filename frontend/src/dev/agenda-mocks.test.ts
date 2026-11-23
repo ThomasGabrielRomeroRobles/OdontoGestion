@@ -121,13 +121,19 @@ describe('mocks de desarrollo de la agenda (8.2, design D10)', () => {
     const pac = semana[0]!.paciente;
     const turno = await api.crearTurno({ pacienteId: pac.id, prestacionId: consulta, inicio: '2026-11-24T13:00:00Z' });
     ahora = new Date(Date.parse(turno.inicio) + 14 * MIN);
-    expect(await rechazo(api.marcarAusente(turno.id))).toMatchObject({ status: 422 });
+    expect(await rechazo(api.marcarAusente(turno.id))).toMatchObject({
+      status: 422,
+      code: 'ausente-antes-de-tolerancia',
+      detail: 'Todavía no pasó la tolerancia desde el inicio del turno: no se puede marcar ausente.',
+    });
     const antes = (await api.ausenciasPaciente(pac.id)).cantidad;
     ahora = new Date(Date.parse(turno.inicio) + 15 * MIN);
     const ausente = await api.marcarAusente(turno.id);
     expect(ausente.estado).toBe('AUSENTE');
     expect(ausente.ausenteMarcadoEn).toBe(ahora.toISOString());
     expect((await api.ausenciasPaciente(pac.id)).cantidad).toBe(antes + 1);
+    expect(ausente.paciente.cantidadAusencias).toBe(antes + 1);
+    expect(ausente.paciente).not.toHaveProperty('dni');
   });
 
   it('revertir fuera de 24 h → 422; dentro vuelve al estado previo y resta 1', async () => {
@@ -140,7 +146,11 @@ describe('mocks de desarrollo de la agenda (8.2, design D10)', () => {
 
     const marcado = ahora.getTime();
     ahora = new Date(marcado + 24 * 60 * MIN);
-    expect(await rechazo(api.revertirAusencia(turno.id))).toMatchObject({ status: 422 });
+    expect(await rechazo(api.revertirAusencia(turno.id))).toMatchObject({
+      status: 422,
+      code: 'reversion-fuera-de-plazo',
+      detail: 'La ausencia solo se puede revertir dentro de las 24 horas desde que se marcó.',
+    });
 
     ahora = new Date(marcado + 60 * MIN);
     await expect(api.revertirAusencia(turno.id)).resolves.toMatchObject({ estado: 'RESERVADO', ausenteMarcadoEn: null });
@@ -149,7 +159,23 @@ describe('mocks de desarrollo de la agenda (8.2, design D10)', () => {
 
   it('transición inválida → 422 (atender un cancelado)', async () => {
     const cancelado = semana.find((t) => t.estado === 'CANCELADO')!;
-    expect(await rechazo(api.marcarAtendido(cancelado.id))).toMatchObject({ status: 422 });
+    expect(await rechazo(api.marcarAtendido(cancelado.id))).toMatchObject({
+      status: 422,
+      code: 'transicion-invalida',
+      detail: 'No se puede pasar un turno de CANCELADO a ATENDIDO.',
+    });
+  });
+
+  it('revertir un turno que no está AUSENTE → 422 transicion-invalida', async () => {
+    const reservado = semana.find((t) => t.estado === 'RESERVADO')!;
+    expect(await rechazo(api.revertirAusencia(reservado.id))).toMatchObject({ status: 422, code: 'transicion-invalida' });
+  });
+
+  it('revertir vuelve al estado previo REAL: un CONFIRMADO marcado ausente vuelve a CONFIRMADO', async () => {
+    const confirmado = semana.find((t) => t.estado === 'CONFIRMADO')!;
+    ahora = new Date(Date.parse(confirmado.inicio) + 30 * MIN);
+    await api.marcarAusente(confirmado.id);
+    await expect(api.revertirAusencia(confirmado.id)).resolves.toMatchObject({ estado: 'CONFIRMADO', ausenteMarcadoEn: null });
   });
 
   it('cancelar guarda el motivo y quién canceló', async () => {

@@ -83,7 +83,7 @@ export function accionesHabilitadas(turno: Turno, ahora: Date, toleranciaMin: nu
     );
   }
   const marcadoEn = turno.ausenteMarcadoEn;
-  if (turno.estado === 'AUSENTE' && typeof marcadoEn === 'string') {
+  if (turno.estado === 'AUSENTE' && marcadoEn !== null) {
     if (t < Date.parse(marcadoEn) + VENTANA_REVERSION_MS) {
       acciones.push(habilitada('revertir', 'Revertir ausencia'));
     }

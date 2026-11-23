@@ -1,6 +1,7 @@
 /**
- * SOLO DESARROLLO (design.md D10 de C-08): implementación en memoria del contrato provisional v0
- * de la agenda y de la API de pacientes de C-04. Se carga con import dinámico detrás de
+ * SOLO DESARROLLO (design.md D10 de C-08): implementación en memoria del contrato REAL de la agenda
+ * (C-07 + backend de ausentismo de C-08, P3) y de la API de pacientes de C-04. Los `422` llevan el mismo
+ * `code` (último segmento del `type`) y el mismo `detail` que el backend. Se carga con import dinámico detrás de
  * `import.meta.env.DEV`, así que no entra en el build de producción. Datos 100 % ficticios.
  */
 import type { Bloqueo, Horario, Prestacion } from '../features/config/agenda-config-api';
@@ -57,6 +58,11 @@ function error(
 ): ApiError {
   const base = { kind: 'http', status, title, fieldErrors, extensions } as const;
   return detail === undefined ? base : { ...base, detail };
+}
+
+/** `422` de regla de negocio como lo emite `GlobalExceptionHandler` (title fijo, `type` → `code`). */
+function reglaIncumplida(code: string, detail: string): ApiError {
+  return { kind: 'http', status: 422, title: 'Regla de negocio incumplida', detail, fieldErrors: [], extensions: {}, code };
 }
 
 const falla = (e: ApiError): Promise<never> => Promise.reject(e);
@@ -283,7 +289,9 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
     return hueco;
   }
 
-  const transicionInvalida = (): ApiError => error(422, 'Regla de negocio incumplida', 'Transición inválida');
+  /** Mismo texto que `TransicionInvalidaException` (solo nombra estados). */
+  const transicionInvalida = (desde: EstadoTurno, hacia: EstadoTurno): ApiError =>
+    reglaIncumplida('transicion-invalida', `No se puede pasar un turno de ${desde} a ${hacia}.`);
 
   const api: AgendaApi = {
     async listarAgenda(desde, hasta) {
@@ -324,14 +332,16 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
     },
     async moverTurno(id, inicio) {
       const turno = await buscarTurno(id);
-      if (!CONFIRMABLES.has(turno.estado)) return falla(transicionInvalida());
+      if (!CONFIRMABLES.has(turno.estado)) {
+        return falla(reglaIncumplida('transicion-invalida', `No se puede mover un turno en estado ${turno.estado}.`));
+      }
       // Mover sobre el propio rango es válido en C-07 (es un UPDATE del mismo registro).
       const hueco = await validarIntervalo(duracionDe(turno), inicio, id);
       return guardar({ ...turno, ...hueco });
     },
     async cancelarTurno(id, motivo) {
       const turno = await buscarTurno(id);
-      if (!ACTIVOS.has(turno.estado)) return falla(transicionInvalida());
+      if (!ACTIVOS.has(turno.estado)) return falla(transicionInvalida(turno.estado, 'CANCELADO'));
       if (motivo !== null && motivo.length > 200) {
         // Como C-07: 400 por campo (Bean Validation), no 422.
         return falla(error(400, 'Datos inválidos', undefined, {}, [{ field: 'motivo', message: 'Máximo 200 caracteres.' }]));
@@ -340,15 +350,17 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
     },
     async marcarAtendido(id) {
       const turno = await buscarTurno(id);
-      if (!CONFIRMABLES.has(turno.estado)) return falla(transicionInvalida());
+      if (!CONFIRMABLES.has(turno.estado)) return falla(transicionInvalida(turno.estado, 'ATENDIDO'));
       return guardar({ ...turno, estado: 'ATENDIDO' });
     },
     async marcarAusente(id) {
       const turno = await buscarTurno(id);
-      if (!CONFIRMABLES.has(turno.estado)) return falla(transicionInvalida());
+      if (!CONFIRMABLES.has(turno.estado)) return falla(transicionInvalida(turno.estado, 'AUSENTE'));
       const { parametros } = await deps.obtenerConsultorio();
       if (ahora().getTime() < Date.parse(turno.inicio) + parametros.toleranciaAusenteMin * MIN) {
-        return falla(error(422, 'Regla de negocio incumplida', 'Todavía no pasó la tolerancia'));
+        return falla(
+          reglaIncumplida('ausente-antes-de-tolerancia', 'Todavía no pasó la tolerancia desde el inicio del turno: no se puede marcar ausente.'),
+        );
       }
       const paciente = pacientes.find((p) => p.id === turno.paciente.id);
       if (paciente !== undefined) registrarAusencia(paciente, { turnoId: id, inicio: turno.inicio, prestacionNombre: turno.prestacion.nombre });
@@ -358,9 +370,9 @@ export function crearAgendaMocks(deps: AgendaMocksDeps): AgendaMocks {
     async revertirAusencia(id) {
       const turno = await buscarTurno(id);
       const marcadoEn = turno.ausenteMarcadoEn;
-      if (turno.estado !== 'AUSENTE' || typeof marcadoEn !== 'string') return falla(transicionInvalida());
+      if (turno.estado !== 'AUSENTE' || marcadoEn === null) return falla(transicionInvalida(turno.estado, 'RESERVADO'));
       if (ahora().getTime() >= Date.parse(marcadoEn) + VENTANA_REVERSION_MS) {
-        return falla(error(422, 'Regla de negocio incumplida', 'Pasaron más de 24 horas desde la marca'));
+        return falla(reglaIncumplida('reversion-fuera-de-plazo', 'La ausencia solo se puede revertir dentro de las 24 horas desde que se marcó.'));
       }
       const paciente = pacientes.find((p) => p.id === turno.paciente.id);
       if (paciente !== undefined) {
