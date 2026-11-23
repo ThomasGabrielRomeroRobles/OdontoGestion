@@ -37,7 +37,7 @@ class FlywayDesdeCeroIT {
                         versiones.add(rs.getString(1));
                     }
                 }
-                assertThat(versiones).containsExactly("1", "2", "3", "4", "6", "7", "8", "9");
+                assertThat(versiones).containsExactly("1", "2", "3", "4", "6", "7", "8", "9", "10");
                 try (ResultSet rs = s.executeQuery("SELECT count(*) FROM pg_constraint WHERE conname IN "
                         + "('ex_turno_sin_superposicion', 'fk_notificacion_turno', 'fk_token_acceso_turno')")) {
                     rs.next();

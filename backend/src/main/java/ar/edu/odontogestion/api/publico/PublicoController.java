@@ -2,6 +2,8 @@ package ar.edu.odontogestion.api.publico;
 
 import ar.edu.odontogestion.application.agenda.DisponibilidadService;
 import ar.edu.odontogestion.application.agenda.PrestacionService;
+import ar.edu.odontogestion.api.listaespera.InscripcionListaEsperaRequest;
+import ar.edu.odontogestion.application.listaespera.ListaEsperaPublicaComandos;
 import ar.edu.odontogestion.application.turno.HuecoDto;
 import ar.edu.odontogestion.application.publico.DatosSolicitudPublica;
 import ar.edu.odontogestion.application.publico.SolicitudPublicaComandos;
@@ -30,12 +32,14 @@ public class PublicoController {
     private final PrestacionService prestaciones;
     private final DisponibilidadService disponibilidad;
     private final SolicitudPublicaComandos comandos;
+    private final ListaEsperaPublicaComandos listaEspera;
 
     public PublicoController(PrestacionService prestaciones, DisponibilidadService disponibilidad,
-            SolicitudPublicaComandos comandos) {
+            SolicitudPublicaComandos comandos, ListaEsperaPublicaComandos listaEspera) {
         this.prestaciones = prestaciones;
         this.disponibilidad = disponibilidad;
         this.comandos = comandos;
+        this.listaEspera = listaEspera;
     }
 
     /**
@@ -50,6 +54,18 @@ public class PublicoController {
         comandos.solicitar(http.getRemoteAddr(),
                 new DatosSolicitudPublica(request.prestacionId(), request.inicio(), request.aDatos()),
                 request.senuelo());
+        return SolicitudRecibidaResponse.generica();
+    }
+
+    /**
+     * Se anota en la lista de espera sin cuenta (C-10 D2): igual que la solicitud de turno, {@code 202} con el mismo cuerpo
+     * genérico para DNI nuevo, existente, de baja, duplicado o señuelo; la IP es la de la conexión.
+     */
+    @PostMapping("/lista-espera")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public SolicitudRecibidaResponse inscribirListaEspera(
+            @Valid @RequestBody InscripcionListaEsperaRequest request, HttpServletRequest http) {
+        listaEspera.inscribir(http.getRemoteAddr(), request.aDatos(), request.senuelo());
         return SolicitudRecibidaResponse.generica();
     }
 

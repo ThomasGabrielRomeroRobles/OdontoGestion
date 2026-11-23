@@ -6,7 +6,9 @@ import {
   problema410,
   problema422Transicion,
   resumenCancelar,
+  resumenConfirmarListaEspera,
   resumenConfirmarSolicitud,
+  resumenListaEsperaActiva,
 } from './test-fixtures';
 
 type FetchMock = ReturnType<typeof vi.fn<typeof fetch>>;
@@ -109,5 +111,34 @@ describe('acciones-api', () => {
       mockFetch(json({ title: 'Acceso denegado', status: 403 }, 403));
       await expect(ejecutar('abc', 'CANCELAR_TURNO')).rejects.toMatchObject({ kind: 'http', status: 403 });
     });
+  });
+});
+
+describe('acciones-api: confirmación de lista de espera (C-10)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('el resumen con entrada y turno nulo cumple el contrato', async () => {
+    mockFetch(json(resumenConfirmarListaEspera));
+    await expect(obtenerResumen('abc')).resolves.toEqual({ tipo: 'resumen', resumen: resumenConfirmarListaEspera });
+  });
+
+  it('un resumen sin turno ni entrada, o con ambos, es una respuesta inesperada', async () => {
+    mockFetch(json({ ...resumenConfirmarListaEspera, entrada: null }));
+    await expect(obtenerResumen('abc')).rejects.toMatchObject({ kind: 'http', status: 502 });
+    mockFetch(json({ ...resumenConfirmarListaEspera, turno: resumenCancelar.turno }));
+    await expect(obtenerResumen('abc')).rejects.toMatchObject({ kind: 'http', status: 502 });
+  });
+
+  it('ejecutar CONFIRMAR_LISTA_ESPERA envía la acción y devuelve la entrada activa', async () => {
+    const fn = mockFetch(json(resumenListaEsperaActiva));
+    await expect(ejecutar('abc', 'CONFIRMAR_LISTA_ESPERA')).resolves.toEqual({ tipo: 'ejecutada', resumen: resumenListaEsperaActiva });
+    expect(lastCall(fn)).toMatchObject({ url: '/api/v1/acciones/abc', method: 'POST', body: { accion: 'CONFIRMAR_LISTA_ESPERA' } });
+  });
+
+  it('las acciones de turno siguen exigiendo turno informado y entrada nula', async () => {
+    mockFetch(json({ ...resumenCancelar, entrada: undefined }));
+    await expect(obtenerResumen('abc')).rejects.toMatchObject({ kind: 'http', status: 502 });
   });
 });

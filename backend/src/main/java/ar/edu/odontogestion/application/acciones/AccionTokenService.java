@@ -4,6 +4,7 @@ import ar.edu.odontogestion.application.acciones.ResumenAccionResponse.Motivo;
 import ar.edu.odontogestion.application.acciones.ResumenAccionResponse.TurnoResumen;
 import ar.edu.odontogestion.application.consultorio.ConsultorioActual;
 import ar.edu.odontogestion.application.consultorio.ConsultorioService;
+import ar.edu.odontogestion.application.listaespera.ListaEsperaService;
 import ar.edu.odontogestion.application.token.TokenAccesoService;
 import ar.edu.odontogestion.domain.agenda.Hueco;
 import ar.edu.odontogestion.domain.error.TokenInvalidoException;
@@ -43,17 +44,21 @@ public class AccionTokenService {
 
     /** Propósitos que atiende {@code /acciones/{token}}: los de turno. */
     static final Set<PropositoToken> ACCIONES = EnumSet.of(PropositoToken.CONFIRMAR_SOLICITUD,
-            PropositoToken.CONFIRMAR_TURNO, PropositoToken.CANCELAR_TURNO);
+            PropositoToken.CONFIRMAR_TURNO, PropositoToken.CANCELAR_TURNO,
+            PropositoToken.CONFIRMAR_LISTA_ESPERA);
 
     private final TokenAccesoService tokens;
     private final TurnoRepository turnos;
     private final ConsultorioActual consultorioActual;
     private final ConsultorioService consultorioService;
     private final ApplicationEventPublisher eventos;
+    private final ListaEsperaService listaEspera;
     private final Clock clock;
 
     public AccionTokenService(TokenAccesoService tokens, TurnoRepository turnos, ConsultorioActual consultorioActual,
-            ConsultorioService consultorioService, ApplicationEventPublisher eventos, Clock clock) {
+            ConsultorioService consultorioService, ApplicationEventPublisher eventos, ListaEsperaService listaEspera,
+            Clock clock) {
+        this.listaEspera = listaEspera;
         this.tokens = tokens;
         this.turnos = turnos;
         this.consultorioActual = consultorioActual;
@@ -71,6 +76,9 @@ public class AccionTokenService {
     @Transactional(readOnly = true)
     public ResumenAccionResponse resumen(String token) {
         TokenIdentificado identificado = tokens.identificar(token, ACCIONES);
+        if (identificado.referencia() instanceof ReferenciaToken.EntradaListaEspera ref) {
+            return listaEspera.resumenConfirmacion(ref, identificado.venceEn());
+        }
         Turno turno = cargar(identificado.referencia());
         Instant ahora = clock.instant();
         if (identificado.proposito() == PropositoToken.CONFIRMAR_SOLICITUD && turno.pendienteVencida(ahora)) {
@@ -94,6 +102,9 @@ public class AccionTokenService {
             throw new TokenInvalidoException();
         }
         ReferenciaToken referencia = tokens.consumir(token, accion);
+        if (referencia instanceof ReferenciaToken.EntradaListaEspera ref) {
+            return listaEspera.confirmar(ref); // el token ya se consumió en esta misma transacción
+        }
         if (!(referencia instanceof ReferenciaToken.Turno ref)) {
             throw new TokenInvalidoException();
         }
@@ -107,7 +118,7 @@ public class AccionTokenService {
         Turno turno = cargar(ref);
         return new ResumenAccionResponse(accion, null, false, Motivo.ESTADO_NO_PERMITE,
                 accion == PropositoToken.CANCELAR_TURNO ? turno.limiteCancelacion(limiteHoras()) : null,
-                turnoResumen(turno));
+                turnoResumen(turno), null);
     }
 
     private void confirmarSolicitud(Turno turno, Instant ahora) {
@@ -149,7 +160,7 @@ public class AccionTokenService {
         } else if (limite != null && ahora.isAfter(limite)) {
             motivo = Motivo.FUERA_DE_LIMITE;
         }
-        return new ResumenAccionResponse(accion, venceEn, motivo == null, motivo, limite, turnoResumen(turno));
+        return new ResumenAccionResponse(accion, venceEn, motivo == null, motivo, limite, turnoResumen(turno), null);
     }
 
     private static TurnoResumen turnoResumen(Turno turno) {

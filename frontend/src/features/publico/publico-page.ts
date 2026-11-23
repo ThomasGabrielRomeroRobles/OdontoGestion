@@ -127,6 +127,11 @@ export function createPublicoPage(api: PublicoApi): (container: HTMLElement) => 
     enviar.textContent = 'Solicitar turno';
 
     form.append(elegido, ...filas, envoltorioSenuelo, enviar);
+    const enlaceListaEspera = document.createElement('a');
+    enlaceListaEspera.href = '/publico/lista-espera';
+    enlaceListaEspera.dataset['link'] = '';
+    enlaceListaEspera.dataset['listaEspera'] = '';
+    enlaceListaEspera.textContent = '¿No hay horario que te sirva? Anotarme en lista de espera';
     container.replaceChildren(
       titulo,
       estado,
@@ -137,6 +142,7 @@ export function createPublicoPage(api: PublicoApi): (container: HTMLElement) => 
       sinHuecos,
       alternativasEl,
       form,
+      enlaceListaEspera,
     );
     container.dataset['estadoCarga'] = 'cargando';
 

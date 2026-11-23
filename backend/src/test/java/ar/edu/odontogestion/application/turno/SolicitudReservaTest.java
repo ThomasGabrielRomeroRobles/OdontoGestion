@@ -39,4 +39,26 @@ class SolicitudReservaTest {
         assertThat(s.estadoInicial()).isEqualTo(EstadoTurno.RESERVADO);
         assertThat(s.politica().minimoInicio(AHORA)).isEqualTo(AHORA);
     }
+
+    @Test
+    void desdeListaEsperaNaceReservadaConOrigenListaEsperaYSinAnticipacion() {
+        SolicitudReserva s = SolicitudReserva.desdeListaEspera(7L, 3L, INICIO);
+
+        assertThat(s.pacienteId()).isEqualTo(7L);
+        assertThat(s.prestacionId()).isEqualTo(3L);
+        assertThat(s.inicio()).isEqualTo(INICIO);
+        assertThat(s.origen()).isEqualTo(OrigenTurno.LISTA_ESPERA);
+        assertThat(s.estadoInicial()).isEqualTo(EstadoTurno.RESERVADO);
+        assertThat(s.politica().minimoInicio(AHORA)).isEqualTo(AHORA);
+    }
+
+    @Test
+    void desdeListaEsperaConservaLosIdsYElInicioRecibidos() {
+        Instant otro = Instant.parse("2026-12-01T13:00:00Z");
+        SolicitudReserva s = SolicitudReserva.desdeListaEspera(9L, 4L, otro);
+
+        assertThat(s.pacienteId()).isEqualTo(9L);
+        assertThat(s.prestacionId()).isEqualTo(4L);
+        assertThat(s.inicio()).isEqualTo(otro);
+    }
 }

@@ -1,3 +1,4 @@
+import { crearListaEsperaApiMock } from './dev/lista-espera-mocks';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { bootstrap, type BootstrapDeps } from './bootstrap';
 import { crearAgendaDepsDoble } from './features/agenda/deps-test-helpers';
@@ -186,6 +187,34 @@ describe('bootstrap', () => {
     expect(accionesApi.obtenerResumen).toHaveBeenCalledWith('tok-123');
     expect(accionesApi.ejecutar).not.toHaveBeenCalled();
     expect(root.querySelector('header, nav')).toBeNull();
+  });
+
+  it('/avisos/:token sin sesión no redirige, no usa el layout y consulta el aviso sin aceptarlo', async () => {
+    me.mockResolvedValue(null);
+    history.replaceState(null, '', '/avisos/tok-aviso');
+    const listaEsperaApi = crearListaEsperaApiMock();
+    const obtenerAviso = vi.spyOn(listaEsperaApi, 'obtenerAviso');
+    const aceptarAviso = vi.spyOn(listaEsperaApi, 'aceptarAviso');
+
+    stop = (await bootstrap({ ...deps(), listaEsperaApi })).stop;
+
+    expect(session.get()).toEqual({ status: 'anonymous' });
+    await vi.waitFor(() => expect(root.querySelector('button[data-accion="aceptar"]')).toBeNull());
+    expect(obtenerAviso).toHaveBeenCalledWith('tok-aviso');
+    expect(aceptarAviso).not.toHaveBeenCalled();
+    expect(root.querySelector('header, nav')).toBeNull();
+  });
+
+  it('/publico/lista-espera es pública y /lista-espera exige sesión', async () => {
+    me.mockResolvedValue(null);
+    history.replaceState(null, '', '/publico/lista-espera');
+    stop = (await bootstrap({ ...deps(), listaEsperaApi: crearListaEsperaApiMock() })).stop;
+    expect(location.pathname).toBe('/publico/lista-espera');
+    expect(root.querySelector('form')).not.toBeNull();
+    stop();
+    history.replaceState(null, '', '/lista-espera');
+    stop = (await bootstrap({ ...deps(), listaEsperaApi: crearListaEsperaApiMock() })).stop;
+    expect(location.pathname).toBe('/login');
   });
 
   it('/acciones/ sin token es una página no encontrada', async () => {

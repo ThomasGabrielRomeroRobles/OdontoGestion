@@ -25,6 +25,7 @@ export function createAppLayout(
     nav.append(
       navLink('/agenda', 'Agenda'),
       navLink('/pacientes', 'Pacientes'),
+      navLink('/lista-espera', 'Lista de espera'),
       navLink('/notificaciones', 'Notificaciones'),
       navLink('/configuracion', 'Configuración'),
     );

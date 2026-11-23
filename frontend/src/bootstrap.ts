@@ -2,6 +2,7 @@ import { createAgendaRoutes, createDefaultAgendaDeps, type AgendaDeps } from './
 import { login, logout, me, type SessionUser } from './features/auth/auth-api';
 import { createAccionesRoute, type AccionesApi } from './features/acciones-token';
 import { createConfigRoutes, createDefaultConfigSections, type ConfigSections } from './features/config';
+import { createListaEsperaRoutes, type ListaEsperaApi } from './features/lista-espera';
 import { createNotificacionesRoute, type NotificacionesApi } from './features/notificaciones';
 import { createPublicoRoute, type PublicoApi } from './features/publico';
 import { createLoginPage } from './pages/login-page';
@@ -27,6 +28,8 @@ export interface BootstrapDeps {
   readonly publicoApi?: PublicoApi;
   /** API de las acciones por token (`/acciones/:token`); los tests inyectan un doble. Por defecto, la real. */
   readonly accionesApi?: AccionesApi;
+  /** API de la lista de espera (`/lista-espera`, `/avisos/:token`, `/publico/lista-espera`); los tests inyectan un doble. */
+  readonly listaEsperaApi?: ListaEsperaApi;
 }
 
 export interface App {
@@ -59,6 +62,7 @@ export async function bootstrap(deps: BootstrapDeps): Promise<App> {
     { path: '/login', access: 'public', render: createLoginPage({ session, login: deps.login }) },
     createPublicoRoute(deps.publicoApi),
     createAccionesRoute(deps.accionesApi),
+    ...createListaEsperaRoutes(deps.listaEsperaApi),
     ...createAgendaRoutes(deps.agenda ?? createDefaultAgendaDeps()),
     placeholderRoute('/pacientes', 'private', 'Pacientes'),
     ...createConfigRoutes(deps.configSections ?? createDefaultConfigSections()),
