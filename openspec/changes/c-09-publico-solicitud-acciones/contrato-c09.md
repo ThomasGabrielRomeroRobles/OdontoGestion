@@ -166,4 +166,15 @@ Cada escenario de `specs/public-booking` y `specs/token-actions` tiene su respue
 
 ## Diferencias entre el contrato publicado y lo implementado
 
-_(Se completa en la tarea 14.2.)_
+Verificado el 2026-11-22 contra el backend implementado (grupos 2–10) y contra el frontend (grupos 11–13). Ningún campo, código HTTP ni `type` cambió respecto de lo publicado en el grupo 1; las diferencias son aclaraciones:
+
+| # | Publicado (grupo 1) | Real | Qué ajustar en `publico-api.ts` / `acciones-api.ts` |
+|---|---|---|---|
+| 1 | `instance` constante `urn:odontogestion:ruta-por-token` en los errores de las rutas por token | Además de `/api/v1/acciones/**`, el saneamiento (`RutasPorTokenAdvice`) cubre `/api/v1/avisos/**` (rutas por token de C-10); el `410` usa `urn:odontogestion:enlace-no-disponible` como estaba | Nada: el cliente no lee `instance` |
+| 2 | Formato del DNI "igual a `PacienteRequest`" | `PacienteRequest.PATRON_DNI` pasó a `public` para compartirlo con `SolicitudTurnoPublicaRequest`; mismo patrón | `validators.ts` espeja el mismo patrón (`^\s*[0-9]{1,2}\.?[0-9]{3}\.?[0-9]{3}\s*$`) |
+| 3 | `409` de la solicitud con `alternativas` (puede ser `[]`) | Confirmado; el cliente descarta elementos que no sean `{inicio, fin}` de texto y, si no hay alternativas, recarga los huecos del día | Ninguno |
+| 4 | `422`/`409` al ejecutar: "token vigente, recargar con `GET`" | El cliente trata `422` (`transicion-invalida`, `limite-cancelacion`) y `409` (`modificacion-concurrente`) como `estadoCambiado`: avisa y vuelve a pedir el resumen; si esa recarga da `410` muestra la página genérica | Ninguno |
+| 5 | `429` con `Retry-After` en segundos | El cliente HTTP lo expone como `retryAfterSeconds` solo si es un entero (una fecha HTTP o un valor vacío se ignoran) y la página redondea a minutos hacia arriba; sin cabecera muestra "unos minutos" | Ninguno |
+| 6 | Cuerpo de éxito de la solicitud `{ "mensaje": … }` | La página **no usa** el texto del servidor: muestra siempre su propia constante (idéntica al texto del contrato) para que un cambio de redacción en el backend no pueda distinguir casos | Ninguno |
+
+Revisión de P5 (Juan Ignacio): pendiente de confirmar en el PR (el cliente ya está alineado con esta tabla).

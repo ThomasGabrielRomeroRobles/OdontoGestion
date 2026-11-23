@@ -126,8 +126,21 @@
 ## 14. [Todos] Integración y cierre
 
 - [ ] 14.1 Integración backend + frontend en desarrollo (`APP_BASE_URL=http://localhost:5173`, canal de email en memoria o SMTP de prueba): solicitar desde `/publico`, abrir el enlace de `CONFIRMAR_SOLICITUD`, confirmar y ver el turno `RESERVADO` en la agenda; emitir a mano tokens `CONFIRMAR_TURNO`/`CANCELAR_TURNO` y ejecutarlos desde `/acciones/{token}`; verificar en las herramientas del navegador que no se envía `Referer` y que el token no aparece en logs
-- [ ] 14.2 Actualizar el contrato `contrato-c09.md` con cualquier diferencia entre lo publicado en el grupo 1 y lo implementado (tabla "diferencias", como en C-07); verificar que P5 la revisó
-- [ ] 14.3 Verificación completa: `cd backend && ./gradlew test` y `cd frontend && npm run typecheck && npm test` en verde; `openspec validate c-09-publico-solicitud-acciones --strict` válido
+- [x] 14.2 Actualizar el contrato `contrato-c09.md` con cualquier diferencia entre lo publicado en el grupo 1 y lo implementado (tabla "diferencias", como en C-07); verificar que P5 la revisó
+- [x] 14.3 Verificación completa: `cd backend && ./gradlew test` y `cd frontend && npm run typecheck && npm test` en verde; `openspec validate c-09-publico-solicitud-acciones --strict` válido
+
+> **Nota 14.1 (pendiente de prueba manual)**: no se ejecutó en un navegador real (requiere Postgres + SMTP/canal en memoria con credenciales que no se tocan desde la sesión del agente). Verificación automatizada equivalente: `SolicitudPublicaApiIT` (solicitud → `PENDIENTE_CONFIRMACION` + email `CONFIRMAR_SOLICITUD`), `AccionesApiIT` (confirmar solicitud → `RESERVADO`, confirmar y cancelar con tokens emitidos), `RutasPorTokenIT` (`Referrer-Policy: no-referrer`, token fuera de cuerpos y logs), `index-html.test.ts` (meta `referrer`), `bootstrap.test.ts` (`/publico` y `/acciones/:token` sin sesión ni layout) y los tests de páginas (un solo `POST`, mensajes). Falta confirmar a mano con `APP_BASE_URL=http://localhost:5173`: que el navegador no envíe `Referer` al abrir el enlace y que el token no aparezca en logs.
+
+## Archivos compartidos del frontend tocados por C-09 (para C-08 / Juan Ignacio)
+
+- `frontend/index.html`: `<meta name="referrer" content="no-referrer">` (el token de `/acciones/:token` no sale en `Referer`).
+- `frontend/src/shared/router/router.ts`: rutas con segmentos variables (`/acciones/:token`) y `RouteContext.params` (`{}` en rutas exactas); las exactas tienen prioridad.
+- `frontend/src/shared/http/client.ts`: `ApiError` (`kind: 'http'`) suma `extensions` (miembros no estándar, p. ej. `alternativas`), `code` (último segmento de `type`) y `retryAfterSeconds` (cabecera `Retry-After` de un `429`).
+- `frontend/src/shared/http/problem.ts`: `extensionMembers()` para extraer esos miembros.
+- `frontend/src/bootstrap.ts`: `BootstrapDeps` suma `publicoApi?` y `accionesApi?` (dobles para tests); registra `createPublicoRoute` (reemplaza el placeholder de `/publico`) y `createAccionesRoute` (`/acciones/:token`), ambas `public`.
+- `frontend/src/main.ts`: con `VITE_CONFIG_MOCKS=true` (solo desarrollo) también inyecta `dev/publico-mocks.ts` y `dev/acciones-mocks.ts`.
+- `frontend/src/dev/config-mocks.ts` y los tests `features/config/form-errors.test.ts`, `features/config/pages/config-page.test.ts`, `features/notificaciones/notificaciones-api.test.ts`, `features/notificaciones/notificaciones-page.test.ts`, `pages/login-page.test.ts`, `shared/layout/app-layout.test.ts`: solo se agregó `extensions: {}` a los `ApiError` de fixtures por el campo nuevo.
+- Tests nuevos/ampliados: `shared/router/router.test.ts`, `shared/http/client.test.ts`, `index-html.test.ts`, `bootstrap.test.ts`.
 
 ## Workflow follow-up
 
