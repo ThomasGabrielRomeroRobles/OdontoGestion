@@ -67,6 +67,15 @@ public class Turno extends AuditableEntity {
     @Column(name = "cancelado_por")
     private CanceladoPor canceladoPor;
 
+    /** Instante de la marca de ausente; {@code null} si el turno no está {@code AUSENTE} (V11, RN-AS-06). */
+    @Column(name = "ausente_marcado_en")
+    private Instant ausenteMarcadoEn;
+
+    /** Estado al que vuelve el turno si se revierte la ausencia; {@code null} si no está {@code AUSENTE}. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_previo_ausencia")
+    private EstadoTurno estadoPrevioAusencia;
+
     @Version
     @Column(nullable = false)
     private long version;
@@ -188,6 +197,14 @@ public class Turno extends AuditableEntity {
             throw new TransicionInvalidaException(estado, destino);
         }
         this.estado = destino;
+    }
+
+    public Instant getAusenteMarcadoEn() {
+        return ausenteMarcadoEn;
+    }
+
+    public EstadoTurno getEstadoPrevioAusencia() {
+        return estadoPrevioAusencia;
     }
 
     public Consultorio getConsultorio() {
