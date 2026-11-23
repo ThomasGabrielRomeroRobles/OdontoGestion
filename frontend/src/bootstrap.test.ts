@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { bootstrap, type BootstrapDeps } from './bootstrap';
 import type { NotificacionesApi } from './features/notificaciones/notificaciones-api';
+import type { PublicoApi } from './features/publico/publico-api';
+import { huecos, prestaciones } from './features/publico/test-fixtures';
 import { apiRequest, configureHttpClient } from './shared/http/client';
 import { createSessionStore, type SessionStore } from './shared/state/session';
 
@@ -126,6 +128,42 @@ describe('bootstrap', () => {
     expect(root.textContent).toContain('odontologo@consultorio.example');
     await vi.waitFor(() => expect(root.textContent).toContain('No hay envíos registrados'));
     expect(notificacionesApi.listar).toHaveBeenCalledWith({ page: 0, size: 20 });
+  });
+
+  it('/publico sin sesión no redirige, no usa el layout del odontólogo y solo llama a /api/v1/publico', async () => {
+    me.mockResolvedValue(null);
+    history.replaceState(null, '', '/publico');
+    const publicoApi: PublicoApi = {
+      listarPrestaciones: vi.fn<PublicoApi['listarPrestaciones']>().mockResolvedValue(prestaciones),
+      consultarDisponibilidad: vi.fn<PublicoApi['consultarDisponibilidad']>().mockResolvedValue(huecos),
+      solicitarTurno: vi.fn<PublicoApi['solicitarTurno']>(),
+    };
+    const fetchMock = vi.fn<typeof fetch>();
+    vi.stubGlobal('fetch', fetchMock);
+
+    stop = (await bootstrap({ ...deps(), publicoApi })).stop;
+
+    expect(location.pathname).toBe('/publico');
+    expect(root.querySelector('h1')?.textContent).toBe('Solicitá tu turno');
+    expect(root.querySelector('nav, header')).toBeNull();
+    expect(root.querySelector('select[name="prestacion"]')).not.toBeNull();
+    await vi.waitFor(() => expect(publicoApi.listarPrestaciones).toHaveBeenCalledTimes(1));
+    // La única llamada de red del arranque es la de la sesión (mockeada); la página usa la API inyectada.
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('/publico con sesión activa sigue siendo pública y no se envuelve en el layout', async () => {
+    me.mockResolvedValue({ email: 'odontologo@consultorio.example' });
+    history.replaceState(null, '', '/publico');
+    const publicoApi: PublicoApi = {
+      listarPrestaciones: vi.fn<PublicoApi['listarPrestaciones']>().mockResolvedValue([]),
+      consultarDisponibilidad: vi.fn<PublicoApi['consultarDisponibilidad']>(),
+      solicitarTurno: vi.fn<PublicoApi['solicitarTurno']>(),
+    };
+
+    stop = (await bootstrap({ ...deps(), publicoApi })).stop;
+
+    expect(root.textContent).not.toContain('odontologo@consultorio.example');
   });
 
   it('una ruta pública se renderiza sin sesión y sin redirigir', async () => {

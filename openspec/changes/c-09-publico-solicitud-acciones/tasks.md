@@ -110,11 +110,11 @@
 
 ## 12. [P5 Juan Ignacio] Feature `publico`
 
-- [ ] 12.1 RED → GREEN: `features/publico/test-fixtures.ts` tipadas desde el contrato y `publico-api.test.ts`: `listarPrestaciones`, `consultarDisponibilidad`, `solicitarTurno` con resultado discriminado (`aceptada | conflicto(alternativas) | limite(retryAfterSeconds) | invalida(fieldErrors) | horarioInvalido`) y narrowing de `alternativas` desde `unknown`; sin `any`
-- [ ] 12.2 RED → GREEN: `validators.test.ts`: DNI 7–8 dígitos con o sin puntos (`12AB` y `123456` inválidos), email, teléfono y obligatorios [web-public-booking › DNI inválido en el cliente]
-- [ ] 12.3 RED → GREEN: `publico-page.test.ts` (jsdom): prestación → día → huecos en hora de Buenos Aires (reutilizar `zoned-time`), sin huecos → mensaje y sin formulario; formulario con señuelo `sitioWeb` oculto (`tabindex=-1`, `aria-hidden`, `autocomplete=off`) enviado vacío [web-public-booking › Huecos mostrados en hora local, Sin horarios, Señuelo no visible]
-- [ ] 12.4 RED → GREEN: resultados: `202` → mensaje genérico y formulario limpio; `409` → alternativas seleccionables conservando datos; `422 inicio` → aviso y recarga de huecos; `429` → minutos de espera y envío deshabilitado; red → genérico con reintento [web-public-booking › Solicitud aceptada, Conflicto con alternativas, Límite excedido, Horario rechazado por la agenda]
-- [ ] 12.5 RED → GREEN: ruta `/publico` pública en `bootstrap.ts` (reemplaza el placeholder) sin layout autenticado y llamando solo a `/api/v1/publico/**`; mocks de desarrollo para trabajar sin backend [web-public-booking › Acceso sin sesión]; verificar con `npm test && npm run typecheck`
+- [x] 12.1 RED → GREEN: `features/publico/test-fixtures.ts` tipadas desde el contrato y `publico-api.test.ts`: `listarPrestaciones`, `consultarDisponibilidad`, `solicitarTurno` con resultado discriminado (`aceptada | conflicto(alternativas) | limite(retryAfterSeconds) | invalida(fieldErrors) | horarioInvalido`) y narrowing de `alternativas` desde `unknown`; sin `any`
+- [x] 12.2 RED → GREEN: `validators.test.ts`: DNI 7–8 dígitos con o sin puntos (`12AB` y `123456` inválidos), email, teléfono y obligatorios [web-public-booking › DNI inválido en el cliente]
+- [x] 12.3 RED → GREEN: `publico-page.test.ts` (jsdom): prestación → día → huecos en hora de Buenos Aires (reutilizar `zoned-time`), sin huecos → mensaje y sin formulario; formulario con señuelo `sitioWeb` oculto (`tabindex=-1`, `aria-hidden`, `autocomplete=off`) enviado vacío [web-public-booking › Huecos mostrados en hora local, Sin horarios, Señuelo no visible]
+- [x] 12.4 RED → GREEN: resultados: `202` → mensaje genérico y formulario limpio; `409` → alternativas seleccionables conservando datos; `422 inicio` → aviso y recarga de huecos; `429` → minutos de espera y envío deshabilitado; red → genérico con reintento [web-public-booking › Solicitud aceptada, Conflicto con alternativas, Límite excedido, Horario rechazado por la agenda]
+- [x] 12.5 RED → GREEN: ruta `/publico` pública en `bootstrap.ts` (reemplaza el placeholder) sin layout autenticado y llamando solo a `/api/v1/publico/**`; mocks de desarrollo para trabajar sin backend [web-public-booking › Acceso sin sesión]; verificar con `npm test && npm run typecheck`
 
 ## 13. [P5 Juan Ignacio] Feature `acciones-token`
 
