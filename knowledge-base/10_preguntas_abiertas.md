@@ -46,6 +46,8 @@ Resueltas el 2026-11-19 por decisión del equipo:
 | IN-01 / PA-01 | **Corte por valor**: obligatorio para el 2026-11-25 los 11 changes core (C-01, C-02, C-03, C-04, C-06, C-07, C-08, C-09, C-10, C-11, C-12: épicas 1-7); "si llega" (stretch) C-05 historia clínica (épica 8). Lo no entregado se documenta como etapa posterior. | DD-16, SU-08 |
 | PA-02 | **Anti-abuso confirmado**: la solicitud pública crea turno/entrada de espera `PENDIENTE_CONFIRMACION`, retiene el hueco 30 min y pasa a `RESERVADO`/`ACTIVA` solo tras confirmar por enlace de token de un solo uso enviado por email; límite de 5 solicitudes/hora por IP y máximo 2 pendientes por DNI o email (429 al exceder); campo señuelo (honeypot) y validación estricta de formato; respuestas sin enumeración. CAPTCHA/OTP queda como mejora posterior (US-113). | DD-14, SU-09, RN-PU-02/03/06 |
 
+> **Nota de implementación de PA-02 (C-09, 2026-11-22, decisión D7):** se mantiene la protección CSRF de C-02 también en los `POST` públicos (`/publico/solicitudes-turno` y `/acciones/{token}`): exigen la cabecera `X-XSRF-TOKEN` con el valor de la cookie `XSRF-TOKEN`, que toda respuesta del backend (incluido el `GET` previo de cada página pública) ya entrega. Sin CSRF, otro sitio podría disparar solicitudes desde el navegador de una víctima y consumir su cupo por IP. Los límites de PA-02 se implementan en memoria (ventana de 1 h por IP, DNI y email, sin `X-Forwarded-For`) y el máximo de 2 pendientes por DNI o email en la base; el `429` es idéntico para todos los límites.
+
 Resueltas el 2026-11-22 por decisión del equipo:
 
 | ID | Decisión | Referencia |

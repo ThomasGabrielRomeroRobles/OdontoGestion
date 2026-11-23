@@ -29,7 +29,7 @@ public record PacienteRequest(
     }
 
     /** 7 u 8 dígitos, con puntos de miles opcionales (30.123.456 / 7.123.456). */
-    static final String PATRON_DNI = "^\\s*[0-9]{1,2}\\.?[0-9]{3}\\.?[0-9]{3}\\s*$";
+    public static final String PATRON_DNI = "^\\s*[0-9]{1,2}\\.?[0-9]{3}\\.?[0-9]{3}\\s*$";
 
     public DatosPaciente aDatos() {
         return new DatosPaciente(nombre, apellido, dni, fechaNacimiento, telefono, email, direccion);

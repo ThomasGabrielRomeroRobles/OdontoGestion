@@ -13,7 +13,7 @@ describe('pantalla /login', () => {
   let login: ReturnType<typeof vi.fn<LoginFn>>;
 
   function show(search = ''): void {
-    const context: RouteContext = { url: new URL(`http://localhost/login${search}`), navigate };
+    const context: RouteContext = { url: new URL(`http://localhost/login${search}`), params: {}, navigate };
     createLoginPage({ session, login })(container, context);
   }
 

@@ -50,6 +50,13 @@ public class PrestacionService {
                 .map(PrestacionVista::de).toList();
     }
 
+    /** Solo las activas, ordenadas por nombre (página pública, C-09). */
+    @Transactional(readOnly = true)
+    public List<PrestacionVista> listarActivas() {
+        return prestaciones.findByConsultorio_IdAndActivaTrueOrderByNombreAsc(consultorioActual.id()).stream()
+                .map(PrestacionVista::de).toList();
+    }
+
     @Transactional
     public PrestacionVista crear(DatosPrestacion datos) {
         String nombre = validar(datos, null);

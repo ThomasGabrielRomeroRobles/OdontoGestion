@@ -122,9 +122,7 @@ export function crearMocksDesarrollo(): MocksDesarrollo {
     auth: {
       me: () => ok(sesion),
       login: (email, pass) => {
-        if (pass !== password) {
-          return falla({ kind: 'http', status: 401, title: 'No autenticado', fieldErrors: [], extensions: {} });
-        }
+        if (pass !== password) return falla({ kind: 'http', status: 401, title: 'No autenticado', fieldErrors: [], extensions: {} });
         sesion = { email };
         return ok(sesion);
       },
@@ -141,13 +139,7 @@ export function crearMocksDesarrollo(): MocksDesarrollo {
           .filter(([, valor]) => valor <= 0)
           .map(([campo]) => ({ field: `parametros.${campo}`, message: 'Debe ser mayor que cero.' }));
         if (errores.length > 0) {
-          return falla({
-            kind: 'http',
-            status: 422,
-            title: 'Regla de negocio incumplida',
-            fieldErrors: errores,
-            extensions: {},
-          });
+          return falla({ kind: 'http', status: 422, title: 'Regla de negocio incumplida', fieldErrors: errores, extensions: {} });
         }
         consultorio = { ...input, zonaHoraria: consultorio.zonaHoraria };
         return ok(consultorio);

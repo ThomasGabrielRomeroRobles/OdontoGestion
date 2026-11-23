@@ -27,7 +27,7 @@ describe('vista /agenda (grupo 4)', () => {
   async function abrir(url: string, api: Partial<AgendaApi> = {}, paneles: PanelesAgenda = {}): Promise<void> {
     Object.assign(deps.api, api);
     history.replaceState(null, '', url);
-    const context: RouteContext = { url: new URL(location.href), navigate };
+    const context: RouteContext = { url: new URL(location.href), navigate, params: {} };
     createAgendaPage(deps, paneles)(container, context);
     await flush();
   }

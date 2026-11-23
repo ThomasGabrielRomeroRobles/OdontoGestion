@@ -61,7 +61,7 @@ Ante una respuesta `401` de una solicitud que no sea la de inicio de sesión, el
 - **THEN** el cliente devuelve el cuerpo JSON decodificado y no navega
 
 ### Requirement: Errores tipados desde ProblemDetail
-Ante una respuesta de error, el cliente SHALL rechazar con un error tipado que expone `status`, `title`, `detail` y los errores por campo cuando el cuerpo es `application/problem+json`, y un error genérico con el `status` cuando no lo es.
+Ante una respuesta de error, el cliente SHALL rechazar con un error tipado que expone `status`, `title`, `detail` y los errores por campo cuando el cuerpo es `application/problem+json`, y un error genérico con el `status` cuando no lo es. El error MUST exponer además el código del problema (último segmento de `type`), las propiedades adicionales del cuerpo como datos `unknown` y, en un `429`, los segundos de `Retry-After`.
 
 #### Scenario: Error 422 con ProblemDetail
 - **WHEN** la API responde `422` con `{"title":"Regla incumplida","detail":"Duración inválida","status":422}`
@@ -78,3 +78,15 @@ Ante una respuesta de error, el cliente SHALL rechazar con un error tipado que e
 #### Scenario: Falla de red
 - **WHEN** la solicitud no puede completarse por un problema de red
 - **THEN** el cliente rechaza con un error de red distinguible de los errores HTTP
+
+#### Scenario: Código y propiedades adicionales
+- **WHEN** la API responde `409` con `type` `https://odontogestion.example/problemas/hueco-no-disponible` y `alternativas: [{"inicio":"2026-11-23T13:30:00Z","fin":"2026-11-23T14:00:00Z"}]`
+- **THEN** el error entregado tiene código `hueco-no-disponible` y expone `alternativas` entre sus propiedades adicionales sin validar su forma
+
+#### Scenario: Retry-After en un 429
+- **WHEN** la API responde `429` con la cabecera `Retry-After: 120`
+- **THEN** el error entregado expone 120 segundos de espera
+
+#### Scenario: Retry-After ausente o inválido
+- **WHEN** la API responde `429` sin cabecera `Retry-After` o con un valor no numérico
+- **THEN** el error entregado no informa segundos de espera

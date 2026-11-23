@@ -13,6 +13,10 @@ export type ApiError =
       readonly fieldErrors: readonly FieldError[];
       /** Miembros del ProblemDetail que no son estándar (p. ej. `alternativas` en un 409). `{}` si no hay. */
       readonly extensions: Readonly<Record<string, unknown>>;
+      /** Último segmento de `type` (p. ej. `hueco-no-disponible`); ausente si el problema no trae un `type` útil. */
+      readonly code?: string;
+      /** Segundos de espera de la cabecera `Retry-After` de un 429; ausente si falta o no es un entero. */
+      readonly retryAfterSeconds?: number;
     }
   | { readonly kind: 'network' };
 
@@ -94,8 +98,12 @@ async function toHttpError(response: Response): Promise<ApiError> {
   } catch {
     body = undefined;
   }
+  const retryAfterSeconds = readRetryAfter(response);
   if (!isProblemDetail(body)) {
-    return { kind: 'http', status: response.status, title: GENERIC_TITLE, fieldErrors: [], extensions: {} };
+    return withRetryAfter(
+      { kind: 'http', status: response.status, title: GENERIC_TITLE, fieldErrors: [], extensions: {} },
+      retryAfterSeconds,
+    );
   }
   const base = {
     kind: 'http',
@@ -104,5 +112,25 @@ async function toHttpError(response: Response): Promise<ApiError> {
     fieldErrors: body.errors ?? [],
     extensions: extensionMembers(body),
   } as const;
-  return body.detail === undefined ? base : { ...base, detail: body.detail };
+  const code = problemCode(body.type);
+  const withDetail = body.detail === undefined ? base : { ...base, detail: body.detail };
+  return withRetryAfter(code === undefined ? withDetail : { ...withDetail, code }, retryAfterSeconds);
+}
+
+/** Último segmento del `type` de un ProblemDetail (`.../problemas/hueco-no-disponible`); `about:blank` no tiene. */
+function problemCode(type: string | undefined): string | undefined {
+  if (type === undefined || !/^https?:\/\//.test(type)) return undefined;
+  const segment = type.slice(type.lastIndexOf('/') + 1);
+  return segment === '' ? undefined : segment;
+}
+
+/** `Retry-After` en segundos enteros de un 429; una fecha HTTP, un valor vacío o no numérico se ignoran. */
+function readRetryAfter(response: Response): number | undefined {
+  if (response.status !== 429) return undefined;
+  const raw = response.headers.get('Retry-After')?.trim();
+  return raw !== undefined && /^\d+$/.test(raw) ? Number(raw) : undefined;
+}
+
+function withRetryAfter(error: Extract<ApiError, { kind: 'http' }>, seconds: number | undefined): ApiError {
+  return seconds === undefined ? error : { ...error, retryAfterSeconds: seconds };
 }

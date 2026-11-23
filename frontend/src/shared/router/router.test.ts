@@ -166,3 +166,148 @@ describe('router', () => {
     expect(location.search).toBe('?next=%2Fpacientes');
   });
 });
+
+describe('router: segmentos variables', () => {
+  let root: HTMLElement;
+  let session: SessionStore;
+  let router: Router;
+  let stop: () => void;
+  let token: string | undefined;
+
+  beforeEach(() => {
+    document.body.replaceChildren();
+    root = document.createElement('div');
+    document.body.append(root);
+    session = createSessionStore();
+    session.clear();
+    token = undefined;
+    history.replaceState(null, '', '/');
+    router = createRouter({
+      root,
+      session,
+      routes: [
+        textRoute('/acciones/nuevo', 'public', 'VISTA-EXACTA'),
+        {
+          path: '/acciones/:token',
+          access: 'public',
+          render(container, context) {
+            token = context.params['token'];
+            container.textContent = `VISTA-TOKEN:${token ?? ''}`;
+          },
+        },
+        {
+          path: '/turnos/:turnoId/notas/:notaId',
+          access: 'private',
+          render(container, context) {
+            container.textContent = `${context.params['turnoId']}/${context.params['notaId']}`;
+          },
+        },
+        textRoute('/login', 'public', 'VISTA-LOGIN'),
+      ],
+      notFound: (container) => {
+        container.textContent = 'PAGINA-NO-ENCONTRADA';
+      },
+      layout: (host) => {
+        host.replaceChildren();
+        const frame = document.createElement('div');
+        frame.dataset['layout'] = 'si';
+        const main = document.createElement('main');
+        frame.append(main);
+        host.append(frame);
+        return main;
+      },
+    });
+  });
+  afterEach(() => stop?.());
+
+  it('/acciones/:token resuelve /acciones/abc123 con params.token sin sesión ni layout', () => {
+    stop = router.start();
+    router.navigate('/acciones/abc123');
+
+    expect(location.pathname).toBe('/acciones/abc123');
+    expect(token).toBe('abc123');
+    expect(root.textContent).toBe('VISTA-TOKEN:abc123');
+    expect(root.querySelector('[data-layout]')).toBeNull();
+  });
+
+  it('otro valor del segmento entrega otro parámetro', () => {
+    stop = router.start();
+    router.navigate('/acciones/Zx_9-Y');
+    expect(token).toBe('Zx_9-Y');
+  });
+
+  it('el segmento llega decodificado', () => {
+    stop = router.start();
+    router.navigate('/acciones/a%20b');
+    expect(token).toBe('a b');
+  });
+
+  it('una ruta pública con segmento variable no usa el layout autenticado aunque haya sesión', () => {
+    session.setAuthenticated('odontologo@consultorio.example');
+    stop = router.start();
+    router.navigate('/acciones/abc123');
+
+    expect(root.textContent).toBe('VISTA-TOKEN:abc123');
+    expect(root.querySelector('[data-layout]')).toBeNull();
+  });
+
+  it('segmento vacío o segmentos de más o de menos → no encontrada', () => {
+    stop = router.start();
+    for (const ruta of ['/acciones/', '/acciones', '/acciones/abc/extra']) {
+      router.navigate(ruta);
+      expect(root.textContent, ruta).toBe('PAGINA-NO-ENCONTRADA');
+    }
+    expect(token).toBeUndefined();
+  });
+
+  it('una codificación inválida no coincide en lugar de fallar', () => {
+    stop = router.start();
+    router.navigate('/acciones/%E0%A4%A');
+    expect(root.textContent).toBe('PAGINA-NO-ENCONTRADA');
+  });
+
+  it('una ruta exacta tiene prioridad sobre una con segmento variable', () => {
+    stop = router.start();
+    router.navigate('/acciones/nuevo');
+    expect(root.textContent).toBe('VISTA-EXACTA');
+  });
+
+  it('varios segmentos variables y ruta privada sin sesión redirige a login', () => {
+    stop = router.start();
+    router.navigate('/turnos/7/notas/3');
+
+    expect(location.pathname).toBe('/login');
+    expect(location.search).toBe('?next=%2Fturnos%2F7%2Fnotas%2F3');
+  });
+
+  it('varios segmentos variables con sesión llegan como parámetros', () => {
+    session.setAuthenticated('a@b.c');
+    stop = router.start();
+    router.navigate('/turnos/7/notas/3');
+
+    expect(root.querySelector('[data-layout] main')?.textContent).toBe('7/3');
+  });
+
+  it('las rutas exactas existentes entregan params vacíos', () => {
+    let recibido: Readonly<Record<string, string>> | undefined;
+    const exacto = createRouter({
+      root,
+      session,
+      routes: [
+        {
+          path: '/publico',
+          access: 'public',
+          render(_container, context) {
+            recibido = context.params;
+          },
+        },
+      ],
+      notFound: () => undefined,
+      layout: (host) => host,
+    });
+    history.replaceState(null, '', '/publico');
+    stop = exacto.start();
+
+    expect(recibido).toEqual({});
+  });
+});

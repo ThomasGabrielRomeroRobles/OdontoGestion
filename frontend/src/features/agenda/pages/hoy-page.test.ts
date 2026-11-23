@@ -20,7 +20,7 @@ describe('vista /agenda/hoy (8.1, US-024)', () => {
 
   async function abrir(): Promise<void> {
     history.replaceState(null, '', '/agenda/hoy');
-    const context: RouteContext = { url: new URL(location.href), navigate: vi.fn() };
+    const context: RouteContext = { url: new URL(location.href), navigate: vi.fn(), params: {} };
     createHoyPage(deps, createTurnoDetalle(deps))(container, context);
     await flush();
   }
