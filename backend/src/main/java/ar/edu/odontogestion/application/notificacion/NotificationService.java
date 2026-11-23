@@ -191,6 +191,18 @@ public class NotificationService {
      * @param estado filtro opcional ({@code null} = todos)
      * @param tipo filtro opcional ({@code null} = todos)
      */
+    /**
+     * Descarta la notificación de un turno que todavía no se envió (p. ej. la invitación a reprogramar de una
+     * ausencia revertida, C-08 design D4). Una ya enviada no se toca.
+     *
+     * @return cantidad de notificaciones descartadas
+     */
+    @Transactional
+    public int descartarPendiente(ReferenciaToken.Turno turno, TipoNotificacion tipo, String motivo) {
+        return repository.descartarPendientes(consultorioActual.id(), turno.id(), tipo.name(), motivo,
+                clock.instant());
+    }
+
     @Transactional(readOnly = true)
     public Page<NotificacionVista> listar(EstadoNotificacion estado, TipoNotificacion tipo, int pagina, int tamanio) {
         PageRequest pageable = PageRequest.of(pagina, tamanio,

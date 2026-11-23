@@ -32,8 +32,8 @@
 
 ## 5. Notificaciones
 
-- [ ] 5.1 RED → GREEN: en `NotificacionesTurnoIT`, marcar ausente un turno de un paciente con email → una `AUSENTE_REPROGRAMAR` `PENDIENTE` del turno con las variables `consultorio`, `inicio`, `prestacion` y sin enlaces; procesada con `CanalEnMemoria`, el cuerpo contiene `APP_BASE_URL/` y no contiene el DNI; con el canal fallando el turno sigue `AUSENTE`; implementar `alMarcarAusente` en `NotificacionesTurnoListener`; verificar que pasa [patient-absenteeism › Notificación encolada, Canal caído; turno-lifecycle › Invitación a reprogramar encolada]
-- [ ] 5.2 RED → GREEN: revertir con la `AUSENTE_REPROGRAMAR` todavía `PENDIENTE` → queda `FALLIDA` con error `AUSENCIA_REVERTIDA` y el siguiente `procesarPendientes()` no envía nada; con la notificación ya `ENVIADA` → sigue `ENVIADA`; implementar `NotificationService.descartarPendiente` y `alRevertirAusencia` según design D4; verificar que pasa [patient-absenteeism › Aviso todavía pendiente, Aviso ya enviado]
+- [x] 5.1 RED → GREEN: en `NotificacionesTurnoIT`, marcar ausente un turno de un paciente con email → una `AUSENTE_REPROGRAMAR` `PENDIENTE` del turno con las variables `consultorio`, `inicio`, `prestacion` y sin enlaces; procesada con `CanalEnMemoria`, el cuerpo contiene `APP_BASE_URL/` y no contiene el DNI; con el canal fallando el turno sigue `AUSENTE`; implementar `alMarcarAusente` en `NotificacionesTurnoListener`; verificar que pasa [patient-absenteeism › Notificación encolada, Canal caído; turno-lifecycle › Invitación a reprogramar encolada] — _En un IT propio, `NotificacionesAusenciaIT`, que usa `TurnoComandos` porque los endpoints llegan en el grupo 6; `NotificacionesTurnoIT` sigue en verde_
+- [x] 5.2 RED → GREEN: revertir con la `AUSENTE_REPROGRAMAR` todavía `PENDIENTE` → queda `FALLIDA` con error `AUSENCIA_REVERTIDA` y el siguiente `procesarPendientes()` no envía nada; con la notificación ya `ENVIADA` → sigue `ENVIADA`; implementar `NotificationService.descartarPendiente` y `alRevertirAusencia` según design D4; verificar que pasa [patient-absenteeism › Aviso todavía pendiente, Aviso ya enviado]
 
 ## 6. API
 

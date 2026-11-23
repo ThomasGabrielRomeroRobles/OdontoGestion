@@ -8,7 +8,9 @@ import ar.edu.odontogestion.domain.turno.EstadoTurno;
 import ar.edu.odontogestion.domain.turno.Turno;
 import ar.edu.odontogestion.domain.turno.TurnoRepository;
 import ar.edu.odontogestion.domain.turno.OrigenTurno;
+import ar.edu.odontogestion.domain.turno.evento.AusenciaRevertida;
 import ar.edu.odontogestion.domain.turno.evento.SolicitudConfirmada;
+import ar.edu.odontogestion.domain.turno.evento.TurnoAusente;
 import ar.edu.odontogestion.domain.turno.evento.TurnoCancelado;
 import ar.edu.odontogestion.domain.turno.evento.TurnoCreado;
 import ar.edu.odontogestion.domain.turno.evento.TurnoMovido;
@@ -35,6 +37,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class NotificacionesTurnoListener {
 
     private static final Logger log = LoggerFactory.getLogger(NotificacionesTurnoListener.class);
+    /** Error con que queda la invitación a reprogramar descartada al revertir la ausencia. */
+    static final String MOTIVO_AUSENCIA_REVERTIDA = "AUSENCIA_REVERTIDA";
 
     private final TurnoRepository turnos;
     private final NotificationService notificaciones;
@@ -82,6 +86,23 @@ public class NotificacionesTurnoListener {
             return;
         }
         encolar(TipoNotificacion.CANCELACION, turno.get(), turno.get().getInicio(), List.of());
+    }
+
+    /**
+     * Marcado ausente: se invita al paciente a reprogramar (RN-AS-03). La plantilla {@code AUSENTE_REPROGRAMAR} no
+     * lleva enlaces con token: agrega sola el enlace a la página pública (C-08 design D4).
+     */
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    public void alMarcarAusente(TurnoAusente evento) {
+        turnos.findById(evento.turnoId()).ifPresent(t -> encolar(TipoNotificacion.AUSENTE_REPROGRAMAR, t,
+                t.getInicio(), List.of()));
+    }
+
+    /** Ausencia revertida: la invitación que todavía no salió se descarta; una ya enviada queda como está. */
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    public void alRevertirAusencia(AusenciaRevertida evento) {
+        notificaciones.descartarPendiente(new ReferenciaToken.Turno(evento.turnoId()),
+                TipoNotificacion.AUSENTE_REPROGRAMAR, MOTIVO_AUSENCIA_REVERTIDA);
     }
 
     private void encolar(TipoNotificacion tipo, Turno turno, Instant inicio, List<EnlaceProgramado> enlaces) {
