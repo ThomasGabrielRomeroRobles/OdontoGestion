@@ -1,6 +1,8 @@
 import { login, logout, me, type SessionUser } from './features/auth/auth-api';
+import { createAccionesRoute, type AccionesApi } from './features/acciones-token';
 import { createConfigRoutes, createDefaultConfigSections, type ConfigSections } from './features/config';
 import { createNotificacionesRoute, type NotificacionesApi } from './features/notificaciones';
+import { createPublicoRoute, type PublicoApi } from './features/publico';
 import { createLoginPage } from './pages/login-page';
 import { placeholderRoute, renderNotFound } from './pages/placeholder-pages';
 import { configureHttpClient } from './shared/http/client';
@@ -18,6 +20,10 @@ export interface BootstrapDeps {
   readonly configSections?: ConfigSections;
   /** API del registro de envíos (`/notificaciones`); los tests inyectan un doble. Por defecto, la real. */
   readonly notificacionesApi?: NotificacionesApi;
+  /** API pública de solicitud de turno (`/publico`); los tests inyectan un doble. Por defecto, la real. */
+  readonly publicoApi?: PublicoApi;
+  /** API de las acciones por token (`/acciones/:token`); los tests inyectan un doble. Por defecto, la real. */
+  readonly accionesApi?: AccionesApi;
 }
 
 export interface App {
@@ -48,7 +54,8 @@ export async function bootstrap(deps: BootstrapDeps): Promise<App> {
       render: (_container, context) => context.navigate(session.get().status === 'authenticated' ? '/agenda' : '/login'),
     },
     { path: '/login', access: 'public', render: createLoginPage({ session, login: deps.login }) },
-    placeholderRoute('/publico', 'public', 'Solicitud de turno'),
+    createPublicoRoute(deps.publicoApi),
+    createAccionesRoute(deps.accionesApi),
     placeholderRoute('/agenda', 'private', 'Agenda'),
     placeholderRoute('/pacientes', 'private', 'Pacientes'),
     ...createConfigRoutes(deps.configSections ?? createDefaultConfigSections()),

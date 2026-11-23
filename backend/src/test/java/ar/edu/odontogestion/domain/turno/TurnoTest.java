@@ -264,4 +264,89 @@ class TurnoTest {
             assertThat(t.getEstado()).isEqualTo(origen);
         }
     }
+
+    // --- C-09: acciones del paciente ---
+
+    private static final int LIMITE_HORAS = 2;
+
+    @Test
+    void limiteCancelacionEsElInicioMenosLasHorasDelLimite() {
+        Turno t = reservado();
+
+        assertThat(t.limiteCancelacion(2)).isEqualTo(INICIO.minus(Duration.ofHours(2)));
+        assertThat(t.limiteCancelacion(24)).isEqualTo(INICIO.minus(Duration.ofHours(24)));
+    }
+
+    @Test
+    void cancelarPorPacienteDentroDelLimiteCancelaConPacienteYSinMotivo() {
+        for (EstadoTurno origen : new EstadoTurno[] {EstadoTurno.RESERVADO, EstadoTurno.CONFIRMADO}) {
+            Turno t = enEstado(origen);
+
+            t.cancelarPorPaciente(INICIO.minus(Duration.ofHours(3)), LIMITE_HORAS);
+
+            assertThat(t.getEstado()).as(origen.name()).isEqualTo(EstadoTurno.CANCELADO);
+            assertThat(t.getCanceladoPor()).isEqualTo(CanceladoPor.PACIENTE);
+            assertThat(t.getMotivoCancelacion()).isNull();
+        }
+    }
+
+    @Test
+    void cancelarPorPacienteJustoEnElLimiteEsInclusivo() {
+        Turno t = reservado();
+
+        t.cancelarPorPaciente(INICIO.minus(Duration.ofHours(LIMITE_HORAS)), LIMITE_HORAS);
+
+        assertThat(t.getEstado()).isEqualTo(EstadoTurno.CANCELADO);
+    }
+
+    @Test
+    void cancelarPorPacienteFueraDelLimiteLanzaYNoCambiaNada() {
+        for (EstadoTurno origen : new EstadoTurno[] {EstadoTurno.RESERVADO, EstadoTurno.CONFIRMADO}) {
+            Turno t = enEstado(origen);
+
+            assertThatThrownBy(() -> t.cancelarPorPaciente(
+                    INICIO.minus(Duration.ofHours(LIMITE_HORAS)).plusSeconds(1), LIMITE_HORAS))
+                    .isInstanceOf(LimiteCancelacionException.class);
+            assertThatThrownBy(() -> t.cancelarPorPaciente(INICIO.minus(Duration.ofMinutes(119)), LIMITE_HORAS))
+                    .isInstanceOf(LimiteCancelacionException.class);
+
+            assertThat(t.getEstado()).isEqualTo(origen);
+            assertThat(t.getCanceladoPor()).isNull();
+        }
+    }
+
+    @Test
+    void cancelarPorPacienteDesdeOtrosEstadosEsTransicionInvalidaAunDentroDelLimite() {
+        for (EstadoTurno origen : new EstadoTurno[] {EstadoTurno.ATENDIDO, EstadoTurno.AUSENTE,
+                EstadoTurno.CANCELADO, EstadoTurno.EXPIRADO, EstadoTurno.PENDIENTE_CONFIRMACION}) {
+            Turno t = enEstado(origen);
+
+            assertThatThrownBy(() -> t.cancelarPorPaciente(INICIO.minus(Duration.ofHours(10)), LIMITE_HORAS))
+                    .as(origen.name()).isInstanceOf(TransicionInvalidaException.class);
+            assertThat(t.getEstado()).isEqualTo(origen);
+        }
+    }
+
+    @Test
+    void transicionInvalidaGanaSobreElLimiteCuandoElEstadoYaNoAdmiteCancelar() {
+        Turno atendido = enEstado(EstadoTurno.ATENDIDO);
+
+        assertThatThrownBy(() -> atendido.cancelarPorPaciente(INICIO.plus(Duration.ofHours(1)), LIMITE_HORAS))
+                .isInstanceOf(TransicionInvalidaException.class);
+    }
+
+    @Test
+    void pendienteVencidaEsVerdaderaDesdeElInstanteDeVencimiento() {
+        Turno t = pendiente();
+
+        assertThat(t.pendienteVencida(VENCE.minusSeconds(1))).isFalse();
+        assertThat(t.pendienteVencida(VENCE)).isTrue();
+        assertThat(t.pendienteVencida(VENCE.plusSeconds(1))).isTrue();
+    }
+
+    @Test
+    void pendienteVencidaEsFalsaParaTurnosQueNoSonPendientes() {
+        assertThat(reservado().pendienteVencida(VENCE.plus(Duration.ofDays(30)))).isFalse();
+        assertThat(enEstado(EstadoTurno.EXPIRADO).pendienteVencida(VENCE.plus(Duration.ofDays(30)))).isFalse();
+    }
 }

@@ -9,6 +9,8 @@ public interface PrestacionRepository extends JpaRepository<Prestacion, Long> {
 
     List<Prestacion> findByConsultorio_IdOrderByNombreAsc(Long consultorioId);
 
+    List<Prestacion> findByConsultorio_IdAndActivaTrueOrderByNombreAsc(Long consultorioId);
+
     Optional<Prestacion> findByIdAndConsultorio_Id(Long id, Long consultorioId);
 
     boolean existsByConsultorio_IdAndNombreIgnoreCase(Long consultorioId, String nombre);

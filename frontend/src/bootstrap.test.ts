@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { bootstrap, type BootstrapDeps } from './bootstrap';
 import type { NotificacionesApi } from './features/notificaciones/notificaciones-api';
+import type { AccionesApi } from './features/acciones-token/acciones-api';
+import { resumenCancelar } from './features/acciones-token/test-fixtures';
+import type { PublicoApi } from './features/publico/publico-api';
+import { huecos, prestaciones } from './features/publico/test-fixtures';
 import { apiRequest, configureHttpClient } from './shared/http/client';
 import { createSessionStore, type SessionStore } from './shared/state/session';
 
@@ -126,6 +130,69 @@ describe('bootstrap', () => {
     expect(root.textContent).toContain('odontologo@consultorio.example');
     await vi.waitFor(() => expect(root.textContent).toContain('No hay envíos registrados'));
     expect(notificacionesApi.listar).toHaveBeenCalledWith({ page: 0, size: 20 });
+  });
+
+  it('/publico sin sesión no redirige, no usa el layout del odontólogo y solo llama a /api/v1/publico', async () => {
+    me.mockResolvedValue(null);
+    history.replaceState(null, '', '/publico');
+    const publicoApi: PublicoApi = {
+      listarPrestaciones: vi.fn<PublicoApi['listarPrestaciones']>().mockResolvedValue(prestaciones),
+      consultarDisponibilidad: vi.fn<PublicoApi['consultarDisponibilidad']>().mockResolvedValue(huecos),
+      solicitarTurno: vi.fn<PublicoApi['solicitarTurno']>(),
+    };
+    const fetchMock = vi.fn<typeof fetch>();
+    vi.stubGlobal('fetch', fetchMock);
+
+    stop = (await bootstrap({ ...deps(), publicoApi })).stop;
+
+    expect(location.pathname).toBe('/publico');
+    expect(root.querySelector('h1')?.textContent).toBe('Solicitá tu turno');
+    expect(root.querySelector('nav, header')).toBeNull();
+    expect(root.querySelector('select[name="prestacion"]')).not.toBeNull();
+    await vi.waitFor(() => expect(publicoApi.listarPrestaciones).toHaveBeenCalledTimes(1));
+    // La única llamada de red del arranque es la de la sesión (mockeada); la página usa la API inyectada.
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('/publico con sesión activa sigue siendo pública y no se envuelve en el layout', async () => {
+    me.mockResolvedValue({ email: 'odontologo@consultorio.example' });
+    history.replaceState(null, '', '/publico');
+    const publicoApi: PublicoApi = {
+      listarPrestaciones: vi.fn<PublicoApi['listarPrestaciones']>().mockResolvedValue([]),
+      consultarDisponibilidad: vi.fn<PublicoApi['consultarDisponibilidad']>(),
+      solicitarTurno: vi.fn<PublicoApi['solicitarTurno']>(),
+    };
+
+    stop = (await bootstrap({ ...deps(), publicoApi })).stop;
+
+    expect(root.textContent).not.toContain('odontologo@consultorio.example');
+  });
+
+  it('/acciones/:token sin sesión no redirige a login, no usa el layout y pasa el token a la página', async () => {
+    me.mockResolvedValue(null);
+    history.replaceState(null, '', '/acciones/tok-123');
+    const accionesApi: AccionesApi = {
+      obtenerResumen: vi.fn<AccionesApi['obtenerResumen']>().mockResolvedValue({ tipo: 'resumen', resumen: resumenCancelar }),
+      ejecutar: vi.fn<AccionesApi['ejecutar']>(),
+    };
+
+    stop = (await bootstrap({ ...deps(), accionesApi })).stop;
+
+    expect(location.pathname).toBe('/acciones/tok-123');
+    expect(session.get()).toEqual({ status: 'anonymous' });
+    await vi.waitFor(() => expect(root.querySelector('button[data-accion="CANCELAR_TURNO"]')).not.toBeNull());
+    expect(accionesApi.obtenerResumen).toHaveBeenCalledWith('tok-123');
+    expect(accionesApi.ejecutar).not.toHaveBeenCalled();
+    expect(root.querySelector('header, nav')).toBeNull();
+  });
+
+  it('/acciones/ sin token es una página no encontrada', async () => {
+    me.mockResolvedValue(null);
+    history.replaceState(null, '', '/acciones/');
+
+    stop = (await bootstrap(deps())).stop;
+
+    expect(root.querySelector('h1')?.textContent).toBe('Página no encontrada');
   });
 
   it('una ruta pública se renderiza sin sesión y sin redirigir', async () => {

@@ -6,7 +6,12 @@ public class DemasiadosIntentosException extends DomainException {
     private final double segundosRestantes;
 
     public DemasiadosIntentosException(double segundosRestantes) {
-        super("Demasiados intentos. Intente nuevamente más tarde.");
+        this("Demasiados intentos. Intente nuevamente más tarde.", segundosRestantes);
+    }
+
+    /** Para las subclases con un mensaje fijo propio (nunca con datos del cliente). */
+    protected DemasiadosIntentosException(String mensaje, double segundosRestantes) {
+        super(mensaje);
         this.segundosRestantes = segundosRestantes;
     }
 

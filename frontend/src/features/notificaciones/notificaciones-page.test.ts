@@ -98,7 +98,7 @@ describe('página Registro de envíos', () => {
     });
 
     it('si la carga falla muestra el error de la API', async () => {
-      const error: ApiError = { kind: 'http', status: 500, title: 'Error interno', fieldErrors: [] };
+      const error: ApiError = { kind: 'http', status: 500, title: 'Error interno', fieldErrors: [], extensions: {} };
       listar.mockRejectedValueOnce(error);
       createNotificacionesPage(api())(container);
 
@@ -177,6 +177,7 @@ describe('página Registro de envíos', () => {
         title: 'Regla de negocio',
         detail: 'La notificación ya se reintentó 3 veces manualmente.',
         fieldErrors: [],
+        extensions: {},
       };
       reintentar.mockRejectedValueOnce(error);
 

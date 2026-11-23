@@ -280,7 +280,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 ## FASE 4 — Página pública y acciones del paciente (Épica 4)
 
 ### [C-09] `publico-solicitud-acciones`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado 2026-11-22 en `openspec/changes/archive/2026-11-22-c-09-publico-solicitud-acciones/`)
 - **Scope**:
   - `GET /api/v1/publico/disponibilidad` (solo huecos libres) y `POST /api/v1/publico/solicitudes-turno` → `202` genérico (sin enumerar DNI/email); transacción: expirar pendientes, `buscarOCrearPorDni`, turno `PENDIENTE_CONFIRMACION` con `pendiente_hasta` (TTL 30 min), token `CONFIRMAR_SOLICITUD`, notificación
   - Anti-abuso: limitación de tasa por IP y por DNI/email (`PUBLIC_RATE_LIMIT_PER_HOUR`, `429`), campo señuelo, `409` con alternativas, `422` fuera de horario/bloqueo; scheduler de expiración a `EXPIRADO`

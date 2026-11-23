@@ -30,6 +30,6 @@ public class ProblemDetailAccessDeniedHandler implements AccessDeniedHandler {
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
         objectMapper.writeValue(response.getWriter(), ProblemDetails.crear(HttpStatus.FORBIDDEN,
-                "Acceso denegado", "acceso-denegado", DETALLE, request.getRequestURI()));
+                "Acceso denegado", "acceso-denegado", DETALLE, ProblemDetails.instanceDe(request.getRequestURI())));
     }
 }

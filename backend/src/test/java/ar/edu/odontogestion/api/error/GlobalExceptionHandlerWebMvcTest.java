@@ -50,6 +50,23 @@ class GlobalExceptionHandlerWebMvcTest {
     }
 
     @Test
+    void demasiadasSolicitudesDa429ConRetryAfterYElMismoCuerpoParaCualquierLimite() throws Exception {
+        String porIp = mockMvc.perform(get("/api/v1/recurso-de-prueba/1/demasiadas-solicitudes?segundos=59.2"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "60"))
+                .andExpect(jsonPath("$.type").value("https://odontogestion.example/problemas/demasiadas-solicitudes"))
+                .andExpect(jsonPath("$.title").value("Demasiadas solicitudes"))
+                .andExpect(jsonPath("$.detail").value("Demasiadas solicitudes. Intente nuevamente más tarde."))
+                .andReturn().getResponse().getContentAsString();
+        String porIdentidad = mockMvc.perform(get("/api/v1/recurso-de-prueba/1/demasiadas-solicitudes?segundos=1800"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "1800"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(porIdentidad).isEqualTo(porIp);
+    }
+
+    @Test
     void tituloEsBreveYNoVacio() throws Exception {
         var body = mockMvc.perform(get("/api/v1/recurso-de-prueba/1/explota"))
                 .andReturn().getResponse().getContentAsString();

@@ -133,8 +133,90 @@ describe('apiRequest: errores tipados', () => {
       title: 'Regla incumplida',
       detail: 'Duración inválida',
       fieldErrors: [],
+      extensions: {},
     });
   });
+
+  it('409 conserva los miembros de extensión sin repetir los estándar', async () => {
+    const alternativas = [{ inicio: '2026-11-24T13:00:00Z', fin: '2026-11-24T13:45:00Z' }];
+    mockFetch(problemResponse({ title: 'Conflicto de agenda', status: 409, alternativas }, 409));
+    const error = await rejection(apiRequest('POST', 'turnos', {}));
+    expect(error.kind === 'http' && error.extensions).toEqual({ alternativas });
+  });
+
+  it('un ProblemDetail sin extensiones entrega extensiones vacías', async () => {
+    mockFetch(
+      problemResponse(
+        { type: 'about:blank', title: 'X', status: 422, detail: 'Y', instance: '/api/v1/turnos', errors: [] },
+        422,
+      ),
+    );
+    const error = await rejection(apiRequest('POST', 'turnos', {}));
+    expect(error.kind === 'http' && error.extensions).toEqual({});
+  });
+
+  it('el código es el último segmento de type y las alternativas quedan como datos sin validar', async () => {
+    const alternativas = [{ inicio: '2026-11-23T13:30:00Z', fin: '2026-11-23T14:00:00Z' }];
+    mockFetch(
+      problemResponse(
+        { type: 'https://odontogestion.example/problemas/hueco-no-disponible', title: 'Horario no disponible', status: 409, alternativas },
+        409,
+      ),
+    );
+    const error = await rejection(apiRequest('POST', 'publico/solicitudes-turno', {}));
+    expect(error).toMatchObject({ kind: 'http', status: 409, code: 'hueco-no-disponible' });
+    expect(error.kind === 'http' && error.extensions).toEqual({ alternativas });
+  });
+
+  it('otro tipo entrega su propio código y about:blank o la ausencia de type no entregan código', async () => {
+    mockFetch(
+      problemResponse({ type: 'https://odontogestion.example/problemas/limite-cancelacion', title: 'T', status: 422 }, 422),
+    );
+    expect(await rejection(apiRequest('POST', 'acciones/x', {}))).toMatchObject({ code: 'limite-cancelacion' });
+
+    mockFetch(problemResponse({ type: 'about:blank', title: 'T', status: 400 }, 400));
+    expect((await rejection(apiRequest('POST', 'x', {}))) as object).not.toHaveProperty('code');
+
+    mockFetch(problemResponse({ title: 'T', status: 400 }, 400));
+    expect((await rejection(apiRequest('POST', 'x', {}))) as object).not.toHaveProperty('code');
+  });
+
+  it('un 429 con Retry-After numérico expone los segundos de espera', async () => {
+    mockFetch(
+      new Response(JSON.stringify({ type: 'https://odontogestion.example/problemas/demasiadas-solicitudes', title: 'Demasiadas solicitudes', status: 429 }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/problem+json', 'Retry-After': '120' },
+      }),
+    );
+    const error = await rejection(apiRequest('POST', 'publico/solicitudes-turno', {}));
+    expect(error).toMatchObject({ kind: 'http', status: 429, code: 'demasiadas-solicitudes', retryAfterSeconds: 120 });
+  });
+
+  it('un 429 sin Retry-After o con un valor no numérico no informa espera', async () => {
+    const cuerpo = JSON.stringify({ title: 'Demasiadas solicitudes', status: 429 });
+    const headers = (retryAfter?: string): HeadersInit =>
+      retryAfter === undefined
+        ? { 'Content-Type': 'application/problem+json' }
+        : { 'Content-Type': 'application/problem+json', 'Retry-After': retryAfter };
+
+    for (const valor of [undefined, 'pronto', 'Wed, 21 Oct 2026 07:28:00 GMT', '-5', '1.5', '']) {
+      mockFetch(new Response(cuerpo, { status: 429, headers: headers(valor) }));
+      const error = await rejection(apiRequest('POST', 'x', {}));
+      expect(error, String(valor)).toMatchObject({ kind: 'http', status: 429 });
+      expect(error as object, String(valor)).not.toHaveProperty('retryAfterSeconds');
+    }
+  });
+
+  it('Retry-After solo se lee en un 429', async () => {
+    mockFetch(
+      new Response(JSON.stringify({ title: 'No disponible', status: 503 }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/problem+json', 'Retry-After': '30' },
+      }),
+    );
+    expect((await rejection(apiRequest('GET', 'x'))) as object).not.toHaveProperty('retryAfterSeconds');
+  });
+
 
   it('400 con errors expone los errores por campo', async () => {
     mockFetch(
@@ -151,7 +233,7 @@ describe('apiRequest: errores tipados', () => {
   it('502 con cuerpo HTML devuelve status y título genérico', async () => {
     mockFetch(new Response('<html>Bad Gateway</html>', { status: 502, headers: { 'Content-Type': 'text/html' } }));
     const error = await rejection(apiRequest('GET', 'pacientes'));
-    expect(error).toEqual({ kind: 'http', status: 502, title: 'Error en la solicitud', fieldErrors: [] });
+    expect(error).toEqual({ kind: 'http', status: 502, title: 'Error en la solicitud', fieldErrors: [], extensions: {} });
   });
 
   it('JSON de error que no es ProblemDetail también cae al título genérico', async () => {

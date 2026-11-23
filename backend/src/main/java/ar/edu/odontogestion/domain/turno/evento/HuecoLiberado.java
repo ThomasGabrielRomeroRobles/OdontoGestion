@@ -1,5 +1,7 @@
 package ar.edu.odontogestion.domain.turno.evento;
 
+import ar.edu.odontogestion.domain.agenda.Hueco;
+import ar.edu.odontogestion.domain.turno.Turno;
 import java.time.Instant;
 
 /**
@@ -7,4 +9,10 @@ import java.time.Instant;
  * lista de espera. La expiración de pendientes no lo emite (D8).
  */
 public record HuecoLiberado(long consultorioId, long turnoOrigenId, long prestacionId, Instant inicio, Instant fin) {
+
+    /** Evento del turno {@code turno} que dejó libre {@code rango} (puede no ser su rango actual, p. ej. al mover). */
+    public static HuecoLiberado de(Turno turno, Hueco rango) {
+        return new HuecoLiberado(turno.getConsultorio().getId(), turno.getId(), turno.getPrestacion().getId(),
+                rango.inicio(), rango.fin());
+    }
 }

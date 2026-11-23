@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,6 +59,21 @@ public class DisponibilidadService {
      */
     @Transactional(readOnly = true)
     public List<Hueco> huecosLibres(Long prestacionId, LocalDate desde, LocalDate hasta) {
+        return huecosLibres(prestacionId, desde, hasta, c -> PoliticaAnticipacion.odontologo());
+    }
+
+    /**
+     * Huecos libres para el público (C-09 D3): igual que {@link #huecosLibres} pero con la anticipación mínima de
+     * reserva pública del consultorio ({@link PoliticaAnticipacion#publica(int)}).
+     */
+    @Transactional(readOnly = true)
+    public List<Hueco> huecosLibresPublicos(Long prestacionId, LocalDate desde, LocalDate hasta) {
+        return huecosLibres(prestacionId, desde, hasta,
+                c -> PoliticaAnticipacion.publica(c.getParametros().anticipacionMinReservaMin()));
+    }
+
+    private List<Hueco> huecosLibres(Long prestacionId, LocalDate desde, LocalDate hasta,
+            Function<Consultorio, PoliticaAnticipacion> politica) {
         RangoConsulta.validar(desde, hasta);
         Long consultorioId = consultorioActual.id();
         Consultorio consultorio = consultorios.findById(consultorioId).orElseThrow();
@@ -67,7 +83,7 @@ public class DisponibilidadService {
             throw new ValidacionDominioException("prestacionId", "La prestación está desactivada.");
         }
         return calcular(consultorio, prestacion, desde, hasta,
-                PoliticaAnticipacion.odontologo().minimoInicio(clock.instant()));
+                politica.apply(consultorio).minimoInicio(clock.instant()));
     }
 
     /**
@@ -77,13 +93,27 @@ public class DisponibilidadService {
      */
     @Transactional(readOnly = true)
     public List<Hueco> alternativas(Long prestacionId, Instant desde, int maximo) {
+        return alternativas(prestacionId, desde, maximo, PoliticaAnticipacion.odontologo());
+    }
+
+    /** Igual que {@link #alternativas(Long, Instant, int)} con la anticipación pública del consultorio (C-09). */
+    @Transactional(readOnly = true)
+    public List<Hueco> alternativasPublicas(Long prestacionId, Instant desde, int maximo) {
+        Consultorio consultorio = consultorios.findById(consultorioActual.id()).orElseThrow();
+        return alternativas(prestacionId, desde, maximo,
+                PoliticaAnticipacion.publica(consultorio.getParametros().anticipacionMinReservaMin()));
+    }
+
+    /** Igual que {@link #alternativas(Long, Instant, int)} pero exigiendo la anticipación de {@code politica}. */
+    @Transactional(readOnly = true)
+    public List<Hueco> alternativas(Long prestacionId, Instant desde, int maximo, PoliticaAnticipacion politica) {
         Long consultorioId = consultorioActual.id();
         Consultorio consultorio = consultorios.findById(consultorioId).orElseThrow();
         Prestacion prestacion = prestaciones.findByIdAndConsultorio_Id(prestacionId, consultorioId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Prestación no encontrada"));
         LocalDate primerDia = desde.atZone(ZoneId.of(consultorio.getZonaHoraria())).toLocalDate();
-        Instant ahora = clock.instant();
-        Instant minimo = ahora.isAfter(desde) ? ahora : desde;
+        Instant desdePolitica = politica.minimoInicio(clock.instant());
+        Instant minimo = desdePolitica.isAfter(desde) ? desdePolitica : desde;
         return calcular(consultorio, prestacion, primerDia, primerDia.plusDays(VENTANA_ALTERNATIVAS_DIAS - 1), minimo)
                 .stream().limit(maximo).toList();
     }

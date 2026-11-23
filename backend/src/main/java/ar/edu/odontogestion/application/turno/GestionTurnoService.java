@@ -65,7 +65,7 @@ public class GestionTurnoService {
         // Se publica el rango anterior completo aunque el nuevo lo solape: C-10 recalcula la disponibilidad (D10).
         eventos.publishEvent(new TurnoMovido(guardado.getId(), anterior.inicio(), anterior.fin(),
                 guardado.getInicio(), guardado.getFin()));
-        eventos.publishEvent(huecoLiberado(guardado, anterior));
+        eventos.publishEvent(HuecoLiberado.de(guardado, anterior));
         return TurnoDto.de(guardado);
     }
 
@@ -76,7 +76,7 @@ public class GestionTurnoService {
         turno.cancelar(CanceladoPor.ODONTOLOGO, motivo);
         Turno guardado = turnos.saveAndFlush(turno);
         eventos.publishEvent(new TurnoCancelado(guardado.getId(), CanceladoPor.ODONTOLOGO));
-        eventos.publishEvent(huecoLiberado(guardado, liberado));
+        eventos.publishEvent(HuecoLiberado.de(guardado, liberado));
         return TurnoDto.de(guardado);
     }
 
@@ -91,11 +91,6 @@ public class GestionTurnoService {
     @Transactional(readOnly = true)
     public Long prestacionDe(Long turnoId) {
         return cargar(turnoId, consultorioActual.id()).getPrestacion().getId();
-    }
-
-    private static HuecoLiberado huecoLiberado(Turno turno, Hueco rango) {
-        return new HuecoLiberado(turno.getConsultorio().getId(), turno.getId(), turno.getPrestacion().getId(),
-                rango.inicio(), rango.fin());
     }
 
     private Turno cargar(Long turnoId, Long consultorioId) {

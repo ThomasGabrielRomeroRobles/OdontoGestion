@@ -2,6 +2,7 @@ package ar.edu.odontogestion.api.error;
 
 import ar.edu.odontogestion.domain.agenda.Hueco;
 import ar.edu.odontogestion.domain.error.ConflictoException;
+import ar.edu.odontogestion.domain.error.DemasiadasSolicitudesException;
 import ar.edu.odontogestion.domain.error.DemasiadosIntentosException;
 import ar.edu.odontogestion.domain.error.ErrorCampo;
 import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
@@ -73,6 +74,12 @@ class ErrorTestController {
     @GetMapping("/{id}/demasiados-intentos")
     String demasiadosIntentos(@PathVariable long id) {
         throw new DemasiadosIntentosException(59.2);
+    }
+
+    /** Exceso de solicitudes públicas (C-09): la causa (IP, DNI, email, pendientes) no cambia el cuerpo. */
+    @GetMapping("/{id}/demasiadas-solicitudes")
+    String demasiadasSolicitudes(@PathVariable long id, @RequestParam(defaultValue = "59.2") double segundos) {
+        throw new DemasiadasSolicitudesException(segundos);
     }
 
     /** Simula un caso de uso que informa un token inválido; la causa nunca llega al cliente. */

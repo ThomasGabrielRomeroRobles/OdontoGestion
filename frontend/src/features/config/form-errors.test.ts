@@ -45,6 +45,7 @@ describe('toFormErrors', () => {
         { field: 'duracionMin', message: 'Debe ser múltiplo de 15' },
         { field: 'nombre', message: 'Ya existe' },
       ],
+      extensions: {},
     };
     expect(toFormErrors(error)).toEqual({
       byField: { duracionMin: 'Debe ser múltiplo de 15', nombre: 'Ya existe' },
@@ -53,12 +54,12 @@ describe('toFormErrors', () => {
   });
 
   it('error sin campos: usa el detalle si existe, si no el título', () => {
-    expect(toFormErrors({ kind: 'http', status: 409, title: 'Conflicto', fieldErrors: [] })).toEqual({
+    expect(toFormErrors({ kind: 'http', status: 409, title: 'Conflicto', fieldErrors: [], extensions: {} })).toEqual({
       byField: {},
       general: 'Conflicto',
     });
     expect(
-      toFormErrors({ kind: 'http', status: 409, title: 'Conflicto', detail: 'Se superpone', fieldErrors: [] }),
+      toFormErrors({ kind: 'http', status: 409, title: 'Conflicto', detail: 'Se superpone', fieldErrors: [], extensions: {} }),
     ).toEqual({ byField: {}, general: 'Se superpone' });
   });
 
@@ -79,6 +80,7 @@ describe('toFormErrors', () => {
         { field: 'nombre', message: 'Obligatorio' },
         { field: 'nombre', message: 'Muy largo' },
       ],
+      extensions: {},
     };
     expect(toFormErrors(error).byField).toEqual({ nombre: 'Obligatorio' });
   });
