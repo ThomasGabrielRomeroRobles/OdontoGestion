@@ -13,6 +13,7 @@ describe('quitarPrefijoCampos (D10)', () => {
         { field: 'parametros.toleranciaAusenteMin', message: 'Debe ser mayor que cero.' },
         { field: 'nombre', message: 'Es obligatorio.' },
       ],
+      extensions: {},
     });
     expect(quitarPrefijoCampos(errores, 'parametros.')).toEqual({
       byField: {

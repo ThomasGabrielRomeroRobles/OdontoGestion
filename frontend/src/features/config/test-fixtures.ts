@@ -27,7 +27,7 @@ export function consultorioCon(parametros: Partial<Consultorio['parametros']>): 
 
 /** Error 400 de Bean Validation con un campo, como lo entrega `apiRequest`. */
 export function error400(field: string, message: string): unknown {
-  return { kind: 'http', status: 400, title: 'Bad Request', fieldErrors: [{ field, message }] };
+  return { kind: 'http', status: 400, title: 'Bad Request', fieldErrors: [{ field, message }], extensions: {} };
 }
 
 export const perfilFicticio: Perfil = {
@@ -55,7 +55,7 @@ export const bloqueosFicticios: readonly Bloqueo[] = [
 
 /** Error 422 con un campo, como lo entrega `apiRequest`. */
 export function error422(field: string, message: string): unknown {
-  return { kind: 'http', status: 422, title: 'Datos inválidos', fieldErrors: [{ field, message }] };
+  return { kind: 'http', status: 422, title: 'Datos inválidos', fieldErrors: [{ field, message }], extensions: {} };
 }
 
 /** Promesa controlable para verificar estados intermedios (botón deshabilitado). */

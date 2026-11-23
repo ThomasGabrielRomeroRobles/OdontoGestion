@@ -138,6 +138,7 @@ describe('sección Consultorio (8.1)', () => {
         { field: 'parametros.limiteCancelacionHoras', message: 'Debe ser mayor que cero.' },
         { field: 'parametros.toleranciaAusenteMin', message: 'Debe ser mayor que cero.' },
       ],
+      extensions: {},
     });
     await montar();
     enviar(form());
