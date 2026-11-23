@@ -20,8 +20,8 @@
 
 ## 3. Contador de ausencias
 
-- [ ] 3.1 RED → GREEN: `PacienteRepositoryAusenciasIT`: `incrementarAusencias(id)` suma 1; `decrementarAusencias(id)` resta 1 y devuelve 1; con el contador en 0 devuelve 0 y no viola el `CHECK`; implementar los dos `@Modifying` según design D3; verificar que pasa
-- [ ] 3.2 RED → GREEN: concurrencia: dos hilos (latch) incrementan el mismo paciente en transacciones separadas, 10 rondas → el contador sube exactamente 2 por ronda; mutación: reemplazar el `UPDATE` relativo por leer-y-guardar la entidad y confirmar que el test falla; verificar que pasa con el `UPDATE` [patient-absenteeism › Marcas simultáneas del mismo paciente]
+- [x] 3.1 RED → GREEN: `PacienteRepositoryAusenciasIT`: `incrementarAusencias(id)` suma 1; `decrementarAusencias(id)` resta 1 y devuelve 1; con el contador en 0 devuelve 0 y no viola el `CHECK`; implementar los dos `@Modifying` según design D3; verificar que pasa
+- [x] 3.2 RED → GREEN: concurrencia: dos hilos (latch) incrementan el mismo paciente en transacciones separadas, 10 rondas → el contador sube exactamente 2 por ronda; mutación: reemplazar el `UPDATE` relativo por leer-y-guardar la entidad y confirmar que el test falla; verificar que pasa con el `UPDATE` [patient-absenteeism › Marcas simultáneas del mismo paciente]
 
 ## 4. Casos de uso y eventos
 
