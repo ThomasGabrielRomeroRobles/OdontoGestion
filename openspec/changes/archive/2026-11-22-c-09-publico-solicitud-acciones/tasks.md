@@ -125,7 +125,7 @@
 
 ## 14. [Todos] Integración y cierre
 
-- [ ] 14.1 Integración backend + frontend en desarrollo (`APP_BASE_URL=http://localhost:5173`, canal de email en memoria o SMTP de prueba): solicitar desde `/publico`, abrir el enlace de `CONFIRMAR_SOLICITUD`, confirmar y ver el turno `RESERVADO` en la agenda; emitir a mano tokens `CONFIRMAR_TURNO`/`CANCELAR_TURNO` y ejecutarlos desde `/acciones/{token}`; verificar en las herramientas del navegador que no se envía `Referer` y que el token no aparece en logs
+- [x] 14.1 Integración backend + frontend en desarrollo (`APP_BASE_URL=http://localhost:5173`, canal de email en memoria o SMTP de prueba): solicitar desde `/publico`, abrir el enlace de `CONFIRMAR_SOLICITUD`, confirmar y ver el turno `RESERVADO` en la agenda; emitir a mano tokens `CONFIRMAR_TURNO`/`CANCELAR_TURNO` y ejecutarlos desde `/acciones/{token}`; verificar en las herramientas del navegador que no se envía `Referer` y que el token no aparece en logs — Prueba manual omitida por decisión de P2 (Martina) el 2026-11-22, igual que la 11.1 de C-03; cubierta por los ITs de punta a punta del backend y los tests de Vitest de ambas pantallas (backend 1001 tests, frontend 347, typecheck y build OK).
 - [x] 14.2 Actualizar el contrato `contrato-c09.md` con cualquier diferencia entre lo publicado en el grupo 1 y lo implementado (tabla "diferencias", como en C-07); verificar que P5 la revisó
 - [x] 14.3 Verificación completa: `cd backend && ./gradlew test` y `cd frontend && npm run typecheck && npm test` en verde; `openspec validate c-09-publico-solicitud-acciones --strict` válido
 

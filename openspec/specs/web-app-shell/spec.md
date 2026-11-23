@@ -7,7 +7,7 @@ Define la estructura navegable de la SPA del odontólogo: rutas públicas y priv
 ## Requirements
 
 ### Requirement: Rutas públicas y privadas
-La aplicación SHALL clasificar cada ruta como pública o privada; una ruta privada solo SHALL mostrarse con sesión activa y, sin sesión, MUST redirigir a `/login?next=<ruta>`.
+La aplicación SHALL clasificar cada ruta como pública o privada; una ruta privada solo SHALL mostrarse con sesión activa y, sin sesión, MUST redirigir a `/login?next=<ruta>`. Una ruta SHALL poder declarar segmentos variables (por ejemplo `/acciones/{token}`), que se entregan a la vista sin pasar por la verificación de sesión cuando la ruta es pública.
 
 #### Scenario: Ruta privada sin sesión
 - **GIVEN** no hay sesión activa
@@ -27,6 +27,15 @@ La aplicación SHALL clasificar cada ruta como pública o privada; una ruta priv
 #### Scenario: Ruta desconocida
 - **WHEN** el usuario navega a `/no-existe`
 - **THEN** se muestra una vista de "página no encontrada"
+
+#### Scenario: Ruta pública con segmento variable
+- **GIVEN** no hay sesión activa
+- **WHEN** el usuario navega a `/acciones/abc123`
+- **THEN** se renderiza la vista de acciones por token con el parámetro `token` igual a `abc123`, sin redirigir a `/login` y sin el layout autenticado
+
+#### Scenario: Segmento variable vacío
+- **WHEN** el usuario navega a `/acciones/`
+- **THEN** se muestra la vista de "página no encontrada"
 
 ### Requirement: Navegación sin recarga
 La aplicación SHALL cambiar de vista usando el historial del navegador sin recargar la página, y MUST responder a los botones atrás/adelante.
