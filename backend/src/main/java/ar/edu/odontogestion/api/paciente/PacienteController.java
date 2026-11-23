@@ -1,5 +1,6 @@
 package ar.edu.odontogestion.api.paciente;
 
+import ar.edu.odontogestion.application.paciente.AusenciaPacienteService;
 import ar.edu.odontogestion.application.paciente.PacienteService;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -20,9 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class PacienteController {
 
     private final PacienteService servicio;
+    private final AusenciaPacienteService ausencias;
 
-    public PacienteController(PacienteService servicio) {
+    public PacienteController(PacienteService servicio, AusenciaPacienteService ausencias) {
         this.servicio = servicio;
+        this.ausencias = ausencias;
     }
 
     /** Con {@code dni} manda la búsqueda exacta y {@code q} se ignora; como máximo 20 resultados. */
@@ -40,6 +43,12 @@ public class PacienteController {
     @GetMapping("/{id}")
     public PacienteResponse obtener(@PathVariable Long id) {
         return PacienteResponse.from(servicio.obtener(id));
+    }
+
+    /** Historial de ausencias del paciente (US-061, C-08). */
+    @GetMapping("/{id}/ausencias")
+    public AusenciasPacienteResponse ausencias(@PathVariable Long id) {
+        return AusenciasPacienteResponse.from(ausencias.historial(id));
     }
 
     @PutMapping("/{id}")
