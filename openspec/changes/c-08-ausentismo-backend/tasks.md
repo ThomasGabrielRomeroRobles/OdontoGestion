@@ -44,7 +44,7 @@
 
 ## 7. Integración y cierre
 
-- [ ] 7.1 Suite completa en verde: `cd backend && ./gradlew test`; comparar con el baseline de 0.1 (sin tests rotos) y `openspec validate c-08-ausentismo-backend --strict` sin errores
+- [x] 7.1 Suite completa en verde: `cd backend && ./gradlew test`; comparar con el baseline de 0.1 (sin tests rotos) y `openspec validate c-08-ausentismo-backend --strict` sin errores — _2026-11-23: backend 1140 tests en verde (baseline 1087, +53, ninguno roto); `openspec validate --strict` válido_
 - [ ] 7.2 Prueba manual con P5 contra el backend real (perfil `dev`, seed ficticio): marcar ausente pasada la tolerancia, ver el contador en la agenda, revertir dentro de 24 h y ver el historial en el detalle del turno; anotar el resultado en el PR
 
 ## Workflow follow-up
