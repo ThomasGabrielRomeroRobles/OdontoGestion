@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import ar.edu.odontogestion.infrastructure.notificacion.ProcesadorNotificacionesJob;
+import ar.edu.odontogestion.infrastructure.scheduling.RecordatoriosScheduler;
 import ar.edu.odontogestion.support.AbstractWebIntegrationTest;
 import ar.edu.odontogestion.support.MutableClock;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,17 +15,20 @@ import com.icegreen.greenmail.util.ServerSetupTest;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.servlet.http.Cookie;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrint;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -59,7 +63,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
         "spring.mail.properties.mail.smtp.auth=false",
         "spring.mail.properties.mail.smtp.starttls.enable=false",
         "spring.mail.properties.mail.smtp.starttls.required=false"})
-@AutoConfigureMockMvc
+// Sin volcado de MockMvc: las aserciones sobre la salida capturada miran solo los logs de la aplicación.
+@AutoConfigureMockMvc(print = MockMvcPrint.NONE)
 @ActiveProfiles("demo")
 @Import(DemoSmokeIT.RelojMiercoles.class)
 @ExtendWith(OutputCaptureExtension.class)
@@ -105,6 +110,10 @@ class DemoSmokeIT {
     private JdbcTemplate jdbc;
     @Autowired
     private ProcesadorNotificacionesJob outbox;
+    @Autowired
+    private RecordatoriosScheduler recordatorios;
+    @Autowired
+    private MutableClock reloj;
 
     /** Resultado de los pasos 1 a 5: el turno confirmado y el token usado. */
     private record TurnoConfirmado(Long id, Instant inicio, String token) {
@@ -112,7 +121,7 @@ class DemoSmokeIT {
 
     @Test
     void solicitudYConfirmacionPorEmail(CapturedOutput salida) throws Exception {
-        TurnoConfirmado turno = solicitarYConfirmar();
+        TurnoConfirmado turno = solicitarYConfirmar("2026-11-30");
 
         assertThat(estado(turno.id())).isEqualTo("RESERVADO");
         MimeMessage confirmar = mensajes("Confirmá tu solicitud").get(0);
@@ -129,7 +138,7 @@ class DemoSmokeIT {
     @Test
     void elAvisoDeTurnoConfirmadoTampocoLlevaDatosPersonalesYElEnlaceEsDeUnSoloUso(CapturedOutput salida)
             throws Exception {
-        TurnoConfirmado turno = solicitarYConfirmar();
+        TurnoConfirmado turno = solicitarYConfirmar("2026-12-01");
 
         outbox.ejecutar();
 
@@ -142,14 +151,50 @@ class DemoSmokeIT {
         assertThat(salida.getAll()).doesNotContain(turno.token()).doesNotContain(EMAIL);
     }
 
+    /** C-12 grupo 5 (design D4 paso 6): con C-11 en {@code main}, el turno confirmado recibe un único recordatorio. */
+    @Test
+    void recordatorioDelTurnoConfirmado(CapturedOutput salida) throws Exception {
+        // Día propio y posterior a los de los otros tests: en su ventana, los turnos de esos tests ya empezaron.
+        TurnoConfirmado turno = solicitarYConfirmar("2026-12-03");
+        outbox.ejecutar();
+        SMTP.purgeEmailFromAllMailboxes();
+        Instant ventana = turno.inicio().minus(Duration.ofHours(24));
+
+        reloj.set(ventana.minus(Duration.ofMinutes(1)));
+        recordatorios.ejecutar();
+        outbox.ejecutar();
+        assertThat(mensajes("Recordatorio:")).as("antes de la ventana no hay recordatorio").isEmpty();
+
+        reloj.set(ventana.plus(Duration.ofMinutes(1)));
+        recordatorios.ejecutar();
+        outbox.ejecutar();
+        recordatorios.ejecutar();
+        outbox.ejecutar();
+
+        List<MimeMessage> recibidos = mensajes("Recordatorio:");
+        assertThat(recibidos).as("un único recordatorio aunque el job corra dos veces").hasSize(1);
+        MimeMessage recordatorio = recibidos.get(0);
+        assertThat(((InternetAddress) recordatorio.getAllRecipients()[0]).getAddress()).isEqualTo(EMAIL);
+        String cuerpo = texto(recordatorio);
+        assertThat(cuerpo).contains("Consulta").contains("/acciones/")
+                .doesNotContain(DNI).doesNotContain(TELEFONO).doesNotContain("Ficticia");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM notificacion WHERE turno_id = ? AND tipo = 'RECORDATORIO' "
+                + "AND estado = 'ENVIADA'", Integer.class, turno.id())).isEqualTo(1);
+        Matcher m = ENLACE.matcher(cuerpo);
+        while (m.find()) {
+            assertThat(salida.getAll()).doesNotContain(m.group(1));
+        }
+    }
+
     // --- Pasos del recorrido -----------------------------------------------------------------------------------
 
-    private TurnoConfirmado solicitarYConfirmar() throws Exception {
+    /** Cada test usa su propio día para que sus turnos (y sus recordatorios) no se mezclen. */
+    private TurnoConfirmado solicitarYConfirmar(String dia) throws Exception {
         MockHttpSession sesion = new MockHttpSession();
         Cookie xsrf = mockMvc.perform(get("/api/v1/auth/me").session(sesion)).andReturn().getResponse()
                 .getCookie("XSRF-TOKEN");
 
-        // 1. Disponibilidad pública: primer hueco de "Consulta" del lunes siguiente.
+        // 1. Disponibilidad pública: primer hueco de "Consulta" del día pedido (a más de 24 h del reloj).
         long prestacionId = 0;
         for (JsonNode p : leer(mockMvc.perform(get("/api/v1/publico/prestaciones")).andReturn().getResponse())) {
             if ("Consulta".equals(p.get("nombre").asText())) {
@@ -159,7 +204,7 @@ class DemoSmokeIT {
         assertThat(prestacionId).isPositive();
         JsonNode huecos = leer(mockMvc.perform(get("/api/v1/publico/disponibilidad")
                 .param("prestacionId", String.valueOf(prestacionId))
-                .param("desde", "2026-11-30").param("hasta", "2026-11-30")).andReturn().getResponse());
+                .param("desde", dia).param("hasta", dia)).andReturn().getResponse());
         assertThat(huecos.size()).isPositive();
         Instant inicio = Instant.parse(huecos.get(0).get("inicio").asText());
 
@@ -169,7 +214,7 @@ class DemoSmokeIT {
                 "email", EMAIL, "telefono", TELEFONO));
         MockHttpServletResponse recibida = mockMvc.perform(post("/api/v1/publico/solicitudes-turno").session(sesion)
                 .cookie(xsrf).header("X-XSRF-TOKEN", xsrf.getValue()).with(r -> {
-                    r.setRemoteAddr("10.99.0.1");
+                    r.setRemoteAddr("10.99.0." + dia.substring(8));
                     return r;
                 }).contentType("application/json").content(solicitud)).andReturn().getResponse();
         assertThat(recibida.getStatus()).as(recibida.getContentAsString()).isBetween(200, 202);
@@ -194,6 +239,11 @@ class DemoSmokeIT {
     }
 
     // --- Apoyo -----------------------------------------------------------------------------------------------
+
+    @AfterEach
+    void restaurarReloj() {
+        reloj.set(MIERCOLES);
+    }
 
     @BeforeEach
     void vaciarBuzon() throws Exception {

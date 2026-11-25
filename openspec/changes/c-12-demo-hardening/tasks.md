@@ -30,12 +30,14 @@
 - [x] 4.1 Crear `README.md` en la raíz según design D5: requisitos (Java 21, Node LTS, PostgreSQL con `btree_gist`, Docker para tests), `.env` desde `.env.example`, levantar la demo (`./gradlew bootJar -PwithFrontend` + perfil `demo`, y con `run-local.ps1`), cómo recrear la base, checklist de los flujos 2, 3 y 5, y cómo correr los tests. Verificar siguiendo la guía paso a paso en una PC limpia del equipo
 - [x] 4.2 Ajustar `.env.example` (comentario de `SPRING_PROFILES_ACTIVE=demo` para la demo y `NOTIFICATION_POLL_INTERVAL=PT1M` recomendado) y enlazar la guía desde `backend/README.md` y `frontend/README.md`. Verificar que `ConfiguracionSinSecretosTest` sigue verde
 
-## 5. Recordatorio en el smoke (BLOQUEADO por C-11) — P1
+## 5. Recordatorio en el smoke (requería C-11)
 
-> Precondición: C-11 `recordatorios-scheduler` mergeado en `main`. Hasta entonces este grupo no se empieza.
+> Precondición cumplida: C-11 `recordatorios-scheduler` mergeado en `main` (PR #15) y archivado el 2026-11-25; integrado en esta rama con `git merge origin/main`.
 
-- [ ] 5.1 RED → GREEN: extender `DemoSmokeIT` con el paso 6 de design D4. Verificar con el escenario "Recordatorio del turno confirmado" en verde
-- [ ] 5.2 Revisar el riesgo de recordatorios a emails `.example` de design D3/Riesgos y ajustar las fechas del seed si hace falta. Verificar con `DemoSeedIT` verde
+- [x] 5.1 RED → GREEN: extender `DemoSmokeIT` con el paso 6 de design D4. Verificar con el escenario "Recordatorio del turno confirmado" en verde
+  - Un minuto antes de `inicio − H` no sale nada; un minuto después, con el scheduler y el outbox corriendo dos veces, llega **un único** email de recordatorio al paciente, con los enlaces y sin DNI, teléfono ni apellido, y queda una sola fila `RECORDATORIO` `ENVIADA`. Los tokens de esos enlaces no aparecen en los logs. El RED inicial expuso que los turnos de otros tests del mismo día entraban antes en la ventana: cada test del smoke usa ahora su propio día.
+- [x] 5.2 Revisar el riesgo de recordatorios a emails `.example` de design D3/Riesgos y ajustar las fechas del seed si hace falta. Verificar con `DemoSeedIT` verde
+  - Ajuste aplicado en el seed (grupo 2): según C-11 solo recibe recordatorio un `RESERVADO` creado con al menos H horas de anticipación. El seed siembra `RESERVADO` solo para turnos que empiezan antes de `ahora + H` (nunca califican) y `CONFIRMADO` para los más lejanos (C-11 no los recuerda). `DemoSeedIT.ningunTurnoSembradoDisparaRecordatoriosDuranteLaSemana` corre el encolado cada 30 min hasta el lunes siguiente y verifica 0 notificaciones.
 
 ## 6. Verificación de la demo y cierre — P2 con todo el equipo
 
