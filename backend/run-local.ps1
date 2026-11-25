@@ -14,4 +14,5 @@ if (-not $env:DB_PASSWORD -or $env:BOOTSTRAP_ODONTOLOGO_PASSWORD.Length -lt 8) {
 }
 Write-Host "Conectando a $env:DB_URL ..."
 Set-Location $PSScriptRoot
-.\gradlew.bat bootRun
+# Los argumentos se reenvían a Gradle; por ejemplo, .\run-local.ps1 -PwithFrontend (demo con el frontend).
+.\gradlew.bat bootRun @args

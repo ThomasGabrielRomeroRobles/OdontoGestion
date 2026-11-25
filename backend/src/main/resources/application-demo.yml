@@ -7,3 +7,8 @@ spring:
 logging:
   level:
     ar.edu.odontogestion: INFO
+app:
+  seed-demo:
+    # Datos ficticios de la demo (C-12 D2): 10 pacientes y turnos de la semana en curso, sin enviar emails.
+    # Solo siembra si el consultorio no tiene pacientes. Para apagarlo: APP_SEED_DEMO_ENABLED=false.
+    enabled: ${APP_SEED_DEMO_ENABLED:true}

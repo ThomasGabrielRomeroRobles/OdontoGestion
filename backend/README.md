@@ -2,6 +2,9 @@
 
 Java 21, Spring Boot 3.5, Gradle (wrapper incluido), PostgreSQL + Flyway.
 
+> Cómo levantar la demo local (perfil `demo`, un solo proceso en `http://localhost:8080`), configurar `.env` y
+> correr todos los tests: [guía de ejecución en el README de la raíz](../README.md).
+
 ## Comandos (desde `backend/`)
 
 ```bash
@@ -11,7 +14,8 @@ Java 21, Spring Boot 3.5, Gradle (wrapper incluido), PostgreSQL + Flyway.
 ./gradlew bootJar -PwithFrontend     # jar con el build de Vite en static/ (requiere Node y npm)
 ```
 
-En Windows usar `gradlew.bat` si no se trabaja con Git Bash.
+En Windows usar `gradlew.bat` si no se trabaja con Git Bash. Si `./gradlew` da `Permission denied`, usar `bash gradlew`.
+`run-local.ps1` carga `.env` y reenvía sus argumentos a `bootRun` (por ejemplo, `.\run-local.ps1 -PwithFrontend`).
 
 ## Docker para los tests de integración
 
