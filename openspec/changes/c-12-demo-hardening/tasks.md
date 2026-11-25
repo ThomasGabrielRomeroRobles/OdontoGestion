@@ -21,8 +21,9 @@
 
 ## 3. Smoke de punta a punta (`demo-environment`) — P1
 
-- [ ] 3.1 RED → GREEN: `DemoSmokeIT` según design D4, pasos 1 a 5 (disponibilidad → solicitud pública → outbox → email en GreenMail → confirmación por token → turno `RESERVADO`). Verificar con el escenario "Solicitud y confirmación por email" en verde
-- [ ] 3.2 TRIANGULATE: el email recibido no contiene datos clínicos ni el DNI, y el token no aparece en ningún log del test. Verificar con aserciones sobre el cuerpo del email y la salida capturada
+- [x] 3.1 RED → GREEN: `DemoSmokeIT` según design D4, pasos 1 a 5 (disponibilidad → solicitud pública → outbox → email en GreenMail → confirmación por token → turno `RESERVADO`). Verificar con el escenario "Solicitud y confirmación por email" en verde
+- [x] 3.2 TRIANGULATE: el email recibido no contiene datos clínicos ni el DNI, y el token no aparece en ningún log del test. Verificar con aserciones sobre el cuerpo del email y la salida capturada
+  - Notas: `DemoSmokeIT` usa base propia, el `EmailChannel` real contra GreenMail (sin `CanalEnMemoria`), el seed apagado y el reloj fijo en el miércoles 25/11; pide el primer hueco del lunes 30/11 para que el turno califique después para el recordatorio (grupo 5). El RED inicial fue real: el token extraído del cuerpo crudo llegaba cortado por el quoted-printable (410); se lee el contenido decodificado. Además del email de confirmación, el aviso "turno confirmado" tampoco lleva DNI, teléfono ni enlaces, y reusar el enlace da `410`.
 
 ## 4. Guía de ejecución local y de pruebas — P5
 
