@@ -1,3 +1,4 @@
+import { partesEnZona } from '../config/zoned-time';
 import type { PrestacionPublica } from '../publico/publico-api';
 import { validarDatosPaciente } from '../publico/validators';
 import type { InscripcionListaEspera, ListaEsperaApi, ResultadoInscripcion } from './lista-espera-api';
@@ -8,6 +9,9 @@ export const MENSAJE_INSCRIPCION =
 const MENSAJE_GENERICO = 'No pudimos enviar tu pedido. Intentá de nuevo en un momento.';
 const MENSAJE_CARGA = 'No pudimos cargar las prestaciones. Intentá de nuevo en un momento.';
 const MENSAJE_SIN_PRESTACION = 'Elegí una prestación.';
+const MENSAJE_PRESTACION_NO_DISPONIBLE = 'La prestación elegida ya no está disponible. Elegí otra.';
+/** Campo del selector en los errores del servidor (`InscripcionListaEsperaRequest.prestacionId`). */
+const CAMPO_PRESTACION = 'prestacionId';
 const MENSAJE_REVISAR = 'Revisá los datos marcados.';
 const OBLIGATORIO = 'Es obligatorio.';
 
@@ -29,12 +33,19 @@ function mensajeLimite(segundos: number | undefined): string {
   return `Superaste el límite de solicitudes. Probá de nuevo en ${minutos} ${minutos === 1 ? 'minuto' : 'minutos'}.`;
 }
 
-/** Errores de las fechas (formato `YYYY-MM-DD` que entrega `<input type="date">`). */
-function validarFechas(desde: string, hasta: string): Readonly<Record<string, string>> {
+/** `YYYY-MM-DD` de hoy en el calendario del consultorio (como `app.timezone` en el backend), no del navegador. */
+export function hoyEnConsultorio(ahora: Date): string {
+  const { year, month, day } = partesEnZona(ahora.getTime());
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+/** Errores de las fechas (formato `YYYY-MM-DD` que entrega `<input type="date">`); mismos textos que el backend. */
+function validarFechas(desde: string, hasta: string, hoy: string): Readonly<Record<string, string>> {
   const errores: Record<string, string> = {};
   if (desde === '') errores['fechaDesde'] = OBLIGATORIO;
   if (hasta === '') errores['fechaHasta'] = OBLIGATORIO;
   if (desde !== '' && hasta !== '' && hasta < desde) errores['fechaHasta'] = 'No puede ser anterior a la fecha desde.';
+  else if (hasta !== '' && hasta < hoy) errores['fechaHasta'] = 'No puede ser anterior a hoy.';
   return errores;
 }
 
@@ -45,8 +56,10 @@ function validarFechas(desde: string, hasta: string): Readonly<Record<string, st
 export function createInscripcionPage(
   api: ListaEsperaApi,
   listarPrestaciones: () => Promise<readonly PrestacionPublica[]>,
+  ahora: () => Date = () => new Date(),
 ): (container: HTMLElement) => void {
   return (container) => {
+    const hoy = hoyEnConsultorio(ahora());
     let enviando = false;
     let limitado = false;
     let temporizador: ReturnType<typeof setTimeout> | undefined;
@@ -66,6 +79,10 @@ export function createInscripcionPage(
     selectPrestacion.append(vacia);
     const etiquetaPrestacion = document.createElement('label');
     etiquetaPrestacion.append('Prestación ', selectPrestacion);
+    const errorPrestacion = document.createElement('span');
+    errorPrestacion.dataset['error'] = CAMPO_PRESTACION;
+    const filaPrestacion = document.createElement('div');
+    filaPrestacion.append(etiquetaPrestacion, errorPrestacion);
 
     const form = document.createElement('form');
     form.noValidate = true;
@@ -77,6 +94,7 @@ export function createInscripcionPage(
       input.name = nombre;
       input.type = tipo;
       input.autocomplete = autocompletar;
+      if (tipo === 'date') input.min = hoy;
       const error = document.createElement('span');
       error.dataset['error'] = nombre;
       const label = document.createElement('label');
@@ -113,7 +131,7 @@ export function createInscripcionPage(
     volver.dataset['link'] = '';
     volver.textContent = 'Volver a la solicitud de turnos';
 
-    form.append(etiquetaPrestacion, ...filas, envoltorioSenuelo, enviar);
+    form.append(filaPrestacion, ...filas, envoltorioSenuelo, enviar);
     container.replaceChildren(titulo, estado, alerta, form, volver);
     container.dataset['estadoCarga'] = 'cargando';
 
@@ -122,9 +140,16 @@ export function createInscripcionPage(
         error.textContent = '';
         inputs.get(nombre)?.removeAttribute('aria-invalid');
       }
+      errorPrestacion.textContent = '';
+      selectPrestacion.removeAttribute('aria-invalid');
     }
 
     function marcarError(nombre: string, mensaje: string): void {
+      if (nombre === CAMPO_PRESTACION) {
+        errorPrestacion.textContent = mensaje;
+        selectPrestacion.setAttribute('aria-invalid', 'true');
+        return;
+      }
       const campo = CAMPOS.find(([n]) => n === nombre);
       if (campo === undefined) return;
       const [clave] = campo;
@@ -159,6 +184,11 @@ export function createInscripcionPage(
           for (const { field, message } of resultado.fieldErrors) marcarError(field, message);
           alerta.textContent = MENSAJE_REVISAR;
           break;
+        case 'prestacionNoDisponible':
+          marcarError(CAMPO_PRESTACION, MENSAJE_PRESTACION_NO_DISPONIBLE);
+          alerta.textContent = MENSAJE_REVISAR;
+          cargarPrestaciones();
+          break;
       }
     }
 
@@ -176,13 +206,14 @@ export function createInscripcionPage(
         email: valor('email'),
         telefono: valor('telefono'),
       };
-      const invalidos = { ...validarDatosPaciente(datos), ...validarFechas(valor('fechaDesde'), valor('fechaHasta')) };
+      const invalidos = { ...validarDatosPaciente(datos), ...validarFechas(valor('fechaDesde'), valor('fechaHasta'), hoyEnConsultorio(ahora())) };
       for (const [campo, mensaje] of Object.entries(invalidos)) marcarError(campo, mensaje);
       if (Object.keys(invalidos).length > 0) {
         alerta.textContent = MENSAJE_REVISAR;
         return;
       }
       if (selectPrestacion.value === '') {
+        marcarError(CAMPO_PRESTACION, MENSAJE_SIN_PRESTACION);
         alerta.textContent = MENSAJE_SIN_PRESTACION;
         return;
       }
@@ -216,23 +247,31 @@ export function createInscripcionPage(
       { once: true },
     );
 
-    listarPrestaciones()
-      .then((prestaciones) => {
-        selectPrestacion.append(
-          ...prestaciones.map((p) => {
-            const option = document.createElement('option');
-            option.value = String(p.id);
-            option.textContent = `${p.nombre} (${p.duracionMin} min)`;
-            return option;
-          }),
-        );
-      })
-      .catch(() => {
-        alerta.textContent = MENSAJE_CARGA;
-      })
-      .finally(() => {
-        container.dataset['estadoCarga'] = 'listo';
-      });
+    /** Carga (o recarga, tras un `404`) las prestaciones: deja solo la opción vacía y queda sin elección. */
+    function cargarPrestaciones(): void {
+      container.dataset['estadoCarga'] = 'cargando';
+      listarPrestaciones()
+        .then((prestaciones) => {
+          selectPrestacion.replaceChildren(vacia);
+          selectPrestacion.value = '';
+          selectPrestacion.append(
+            ...prestaciones.map((p) => {
+              const option = document.createElement('option');
+              option.value = String(p.id);
+              option.textContent = `${p.nombre} (${p.duracionMin} min)`;
+              return option;
+            }),
+          );
+        })
+        .catch(() => {
+          alerta.textContent = MENSAJE_CARGA;
+        })
+        .finally(() => {
+          container.dataset['estadoCarga'] = 'listo';
+        });
+    }
+
+    cargarPrestaciones();
     actualizarVista();
   };
 }
