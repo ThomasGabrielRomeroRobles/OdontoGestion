@@ -33,13 +33,14 @@ Lo que ya existe en `main` y C-12 **reutiliza sin modificar** (verificado en el 
 
 ## Decisions
 
-### D1. Fallback de la SPA con un controlador de reenvío, no con un `ErrorController`
-Un `@Controller` en `infrastructure/web` (`SpaFallbackController`) con `@GetMapping` sobre un patrón que excluye `/api` y los segmentos con punto, que hace `forward:/index.html`. Patrón con `PathPatternParser`: `{*ruta}` no sirve para excluir; se usan dos mapeos explícitos, `/{seg:[^\.]*}` y `/{seg:^(?!api$)[^\.]*}/**`, y se verifica en el método que la ruta no empiece con `/api/`.
+### D1. Fallback de la SPA con un controlador que devuelve `index.html`, no con un `ErrorController`
+Un `@Controller` en `infrastructure/web` (`SpaFallbackController`) con `@GetMapping` sobre `/` y sobre rutas de 1 a 3 segmentos **sin punto** cuyo primer segmento no es `api`: `/{s1:(?!api$)[^.]+}`, `/{s1}/{s2:[^.]+}` y `/{s1}/{s2}/{s3:[^.]+}` (con la misma restricción en `s1`). Devuelve el recurso `classpath:static/index.html` como cuerpo (`text/html;charset=UTF-8`, `Cache-Control: no-cache`).
 
+- **Ajuste respecto de la propuesta inicial (implementación del grupo 1)**: la idea original era `/{seg}/**` + `forward:/index.html`. Se descartó por dos motivos verificados: (1) `/{seg}/**` también captura `/assets/app-test.js` (el primer segmento no tiene punto) y el `RequestMappingHandlerMapping` le gana al handler de recursos estáticos, así que los assets reales dejarían de servirse; (2) en un `forward`, el handler de recursos vuelve a escribir `Cache-Control` con la caché de 1 h del perfil `demo` y pisa el `no-cache`. Con segmentos explícitos sin punto, cualquier ruta con extensión (exista o no) queda para los estáticos; las rutas del frontend tienen como máximo 2 segmentos y los tokens son base64url (sin punto).
 - **Alternativas**: un `ErrorController` que convierte todo `404` en `index.html` (también tapa los `404` de la API y de los assets, contradice la spec); un `ResourceResolver` personalizado (más código, menos explícito).
 - **Solo cuando hay frontend**: el controlador se registra con `@ConditionalOnResource(resources = "classpath:static/index.html")`. En `dev` (sin frontend empaquetado) no existe y las rutas siguen en `404`, como hoy. Los tests lo activan con un `index.html` de prueba en `src/test/resources/static/`.
-- **Seguridad**: sin cambios (ver Context). El token de `/acciones/{token}` no se lee ni se valida en el reenvío; lo maneja el frontend contra la API.
-- **Caché**: `index.html` sale sin caché de larga duración (`Cache-Control: no-cache`) para que un build nuevo se vea al recargar; los assets con hash mantienen la caché de 1 h del perfil `demo`.
+- **Seguridad**: sin cambios (ver Context). El token de `/acciones/{token}` no se lee ni se valida; lo maneja el frontend contra la API.
+- **Caché**: `index.html` sale con `Cache-Control: no-cache` para que un build nuevo se vea al recargar; los assets con hash mantienen la caché de 1 h del perfil `demo`. `/` también pasa por el controlador (le gana a la página de bienvenida), así que tampoco se cachea.
 
 ### D2. Seed de demo como service + runner, activado por propiedad
 - `DemoSeedService` (`application/demo`, `@Transactional`): si el consultorio actual tiene pacientes, no hace nada. Si no, crea los pacientes y turnos.

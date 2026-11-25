@@ -5,10 +5,10 @@
 
 ## 1. Fallback de la SPA (`runtime-configuration`) — P5
 
-- [ ] 1.1 RED: `SpaFallbackIT` con perfil `demo` y un `index.html` de prueba en `src/test/resources/static/` (más un `assets/app-test.js`). Cubrir los 6 escenarios de "Rutas del frontend servidas desde el mismo origen": `GET /agenda` sin sesión → `200` con el `index.html`; `GET /acciones/tok-ficticio` y `/avisos/tok-ficticio` → `200` con el `index.html`; `GET /api/v1/no-existe` con sesión → `404` `ProblemDetail`; `GET /assets/no-existe.js` → `404`; `GET /assets/app-test.js` → `200` con ese archivo; `POST /agenda` → no es `index.html`
-- [ ] 1.2 GREEN: `infrastructure/web/SpaFallbackController` según design D1 (`forward:/index.html`, `@ConditionalOnResource("classpath:static/index.html")`, `Cache-Control: no-cache` para `index.html`). Verificar: `SpaFallbackIT` verde y `DemoProfileIT`/`DevProfileIT` siguen verdes
-- [ ] 1.3 TRIANGULATE: rutas anidadas (`/agenda/hoy`, `/publico/lista-espera`) → `index.html`; `/api` sola y `/api/` → no `index.html`. Verificar con casos nuevos en `SpaFallbackIT`
-- [ ] 1.4 Prueba con el artefacto real: `./gradlew bootJar -PwithFrontend`, arrancar con `--spring.profiles.active=demo` y recargar el navegador en `/agenda`, `/agenda/hoy`, `/publico` y en un enlace `/acciones/...` de un email. Verificar que ninguna da `404` y registrar el resultado en el PR
+- [x] 1.1 RED: `SpaFallbackIT` con perfil `demo` y un `index.html` de prueba en `src/test/resources/static/` (más un `assets/app-test.js`). Cubrir los 6 escenarios de "Rutas del frontend servidas desde el mismo origen": `GET /agenda` sin sesión → `200` con el `index.html`; `GET /acciones/tok-ficticio` y `/avisos/tok-ficticio` → `200` con el `index.html`; `GET /api/v1/no-existe` con sesión → `404` `ProblemDetail`; `GET /assets/no-existe.js` → `404`; `GET /assets/app-test.js` → `200` con ese archivo; `POST /agenda` → no es `index.html`
+- [x] 1.2 GREEN: `infrastructure/web/SpaFallbackController` según design D1 (`forward:/index.html`, `@ConditionalOnResource("classpath:static/index.html")`, `Cache-Control: no-cache` para `index.html`). Verificar: `SpaFallbackIT` verde y `DemoProfileIT`/`DevProfileIT` siguen verdes
+- [x] 1.3 TRIANGULATE: rutas anidadas (`/agenda/hoy`, `/publico/lista-espera`) → `index.html`; `/api` sola y `/api/` → no `index.html`. Verificar con casos nuevos en `SpaFallbackIT`
+- [x] 1.4 Prueba con el artefacto real: `./gradlew bootJar -PwithFrontend`, arrancar con `--spring.profiles.active=demo` y recargar el navegador en `/agenda`, `/agenda/hoy`, `/publico` y en un enlace `/acciones/...` de un email. Verificar que ninguna da `404` y registrar el resultado en el PR
 
 ## 2. Seed de demo (`demo-environment`) — P4
 
