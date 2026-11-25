@@ -21,6 +21,9 @@ public interface PacienteRepository extends JpaRepository<Paciente, Long> {
 
     Optional<Paciente> findByIdAndConsultorioId(Long id, Long consultorioId);
 
+    /** {@code true} si el consultorio tiene al menos un paciente (lo usa el seed de demo para no repetirse). */
+    boolean existsByConsultorioId(Long consultorioId);
+
     List<Paciente> findByConsultorioIdOrderByApellidoAscNombreAscIdAsc(Long consultorioId, Limit limit);
 
     /**

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 
 /**
  * Fallback de la SPA (C-12, requisito "Rutas del frontend servidas desde el mismo origen" de
@@ -16,6 +17,8 @@ import org.springframework.test.context.ActiveProfiles;
  * {@code src/test/resources/static/}, en lugar del build de Vite.
  */
 @ActiveProfiles("demo")
+// Base compartida con el resto de los IT: el seed de demo (C-12) se prueba aparte, en DemoSeedIT, con base propia.
+@TestPropertySource(properties = "app.seed-demo.enabled=false")
 class SpaFallbackIT extends AbstractWebIntegrationTest {
 
     private static final String MARCA_INDEX = "index-de-prueba";

@@ -1,6 +1,6 @@
 # Tasks
 
-> Responsables según el plan de G6 (confirmar en el equipo): P5 (Juan Ignacio) grupos 1 y 4, P4 grupo 2, P1 grupos 3 y 5, P2 grupo 6. TDD estricto: RED → GREEN → TRIANGULATE → REFACTOR. Tests de integración con Testcontainers, nunca H2. `Clock` fijo en los tests que dependen de la fecha. Solo datos ficticios.
+> Responsables: P5 (Juan Ignacio) grupos 1 y 4. **Reasignación (2026-11-25)**: el líder del equipo (Thomi) asignó el cierre completo de C-12 (grupos 2, 3, 5 y 6, que el plan de G6 repartía entre P4, P1 y P2) a una sola persona para desbloquear la entrega final. TDD estricto: RED → GREEN → TRIANGULATE → REFACTOR. Tests de integración con Testcontainers, nunca H2. `Clock` fijo en los tests que dependen de la fecha. Solo datos ficticios.
 > Governance MEDIO: implementar con checkpoints. Orden sugerido: 1 y 4 primero (no dependen de nadie), después 2, 3 y 6. El grupo 5 espera a C-11.
 
 ## 1. Fallback de la SPA (`runtime-configuration`) — P5
@@ -12,10 +12,12 @@
 
 ## 2. Seed de demo (`demo-environment`) — P4
 
-- [ ] 2.1 RED: `DemoSeedIT` (Testcontainers, `Clock` fijo en un miércoles, `app.seed-demo.enabled=true`) con los escenarios "Primer arranque de la demo", "Contador de ausencias coherente", "Turnos dentro del horario y sin superposición", "El seed no envía emails" y "Datos ficticios"
-- [ ] 2.2 GREEN: `application/demo/DemoSeedService` (`@Transactional`) y `infrastructure/seed/DemoSeeder` (`@Order(300)`, `@ConditionalOnProperty`) según design D2 y D3; propiedad `app.seed-demo.enabled` en `AppProperties` y `true` en `application-demo.yml`. Verificar: `DemoSeedIT` verde
-- [ ] 2.3 TRIANGULATE: escenarios "Seed idempotente" (segundo arranque o segunda llamada al service no crea nada) y "Seed desactivado fuera de la demo" (perfil `dev`). Además, un bloqueo que pisa una franja del seed hace que ese turno se omita sin fallar el arranque. Verificar con casos en `DemoSeedIT`
-- [ ] 2.4 Verificar en el navegador con la demo levantada: la agenda de la semana muestra turnos en los 4 estados, `/agenda/hoy` lista los de hoy y el detalle de un turno de un paciente con ausencias muestra el contador y el historial
+- [x] 2.1 RED: `DemoSeedIT` (Testcontainers, `Clock` fijo en un miércoles, `app.seed-demo.enabled=true`) con los escenarios "Primer arranque de la demo", "Contador de ausencias coherente", "Turnos dentro del horario y sin superposición", "El seed no envía emails" y "Datos ficticios"
+- [x] 2.2 GREEN: `application/demo/DemoSeedService` (`@Transactional`) y `infrastructure/seed/DemoSeeder` (`@Order(300)`, `@ConditionalOnProperty`) según design D2 y D3; propiedad `app.seed-demo.enabled` en `AppProperties` y `true` en `application-demo.yml`. Verificar: `DemoSeedIT` verde
+- [x] 2.3 TRIANGULATE: escenarios "Seed idempotente" (segundo arranque o segunda llamada al service no crea nada) y "Seed desactivado fuera de la demo" (perfil `dev`). Además, un bloqueo que pisa una franja del seed hace que ese turno se omita sin fallar el arranque. Verificar con casos en `DemoSeedIT`
+- [x] 2.4 Verificar en el navegador con la demo levantada: la agenda de la semana muestra turnos en los 4 estados, `/agenda/hoy` lista los de hoy y el detalle de un turno de un paciente con ausencias muestra el contador y el historial
+  - Resultado (2026-11-25, jar `-PwithFrontend` + perfil `demo`, base vacía, recorrido con Playwright): el arranque loguea `Seed de demo: 10 pacientes y 17 turnos ficticios (0 omitidos)`; la semana del 23/11 muestra `ATENDIDO`, `AUSENTE`, `RESERVADO` y `CONFIRMADO`; `/agenda/hoy` lista los 4 turnos del miércoles (todos `ATENDIDO` porque la prueba fue a las 18 h); el detalle de un turno de la paciente con 2 ausencias muestra "Ausencias: 2" y las dos fechas. `/agenda` sin sesión redirige a `/login?next=%2Fagenda`.
+  - Notas de implementación: `DemoSeedIT` usa una base propia (Testcontainers, sin `withReuse`) para reproducir el primer arranque sin ensuciar la base compartida; `DemoProfileIT` y `SpaFallbackIT` (perfil `demo` sobre la base compartida) apagan el seed con `@TestPropertySource`. El escenario "Seed desactivado fuera de la demo" está en `DevProfileIT`; que el seed no corte el arranque, en `DemoSeederTest`.
 
 ## 3. Smoke de punta a punta (`demo-environment`) — P1
 
