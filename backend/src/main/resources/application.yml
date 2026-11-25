@@ -56,6 +56,9 @@ app:
   turnos:
     # Cada cuánto corre el job que expira solicitudes pendientes vencidas (C-07 D8).
     expiracion-intervalo: PT1M
+  recordatorios:
+    # Cada cuánto corre el job que encola los recordatorios de turno (C-11 D6).
+    intervalo: PT5M
   lista-espera:
     # Cada cuánto corre el barrido que expira avisos de hueco vencidos (C-10 D6).
     expiracion-intervalo: PT1M
