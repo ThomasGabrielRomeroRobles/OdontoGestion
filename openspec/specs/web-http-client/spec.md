@@ -61,7 +61,7 @@ Ante una respuesta `401` de una solicitud que no sea la de inicio de sesión, el
 - **THEN** el cliente devuelve el cuerpo JSON decodificado y no navega
 
 ### Requirement: Errores tipados desde ProblemDetail
-Ante una respuesta de error, el cliente SHALL rechazar con un error tipado que expone `status`, `title`, `detail` y los errores por campo cuando el cuerpo es `application/problem+json`, y un error genérico con el `status` cuando no lo es. El error MUST exponer además el código del problema (último segmento de `type`), las propiedades adicionales del cuerpo como datos `unknown` y, en un `429`, los segundos de `Retry-After`.
+Ante una respuesta de error, el cliente SHALL rechazar con un error tipado que expone `status`, `title`, `detail` y los errores por campo cuando el cuerpo es `application/problem+json`, y un error genérico con el `status` y sin extensiones si no lo es. El error MUST exponer además el código (último segmento de `type`), los miembros no estándar del cuerpo como extensiones `unknown` y, en un `429`, los segundos de `Retry-After`.
 
 #### Scenario: Error 422 con ProblemDetail
 - **WHEN** la API responde `422` con `{"title":"Regla incumplida","detail":"Duración inválida","status":422}`
@@ -90,3 +90,11 @@ Ante una respuesta de error, el cliente SHALL rechazar con un error tipado que e
 #### Scenario: Retry-After ausente o inválido
 - **WHEN** la API responde `429` sin cabecera `Retry-After` o con un valor no numérico
 - **THEN** el error entregado no informa segundos de espera
+
+#### Scenario: Miembros de extensión conservados
+- **WHEN** la API responde `409` con `{"title":"Conflicto de agenda","status":409,"alternativas":[{"inicio":"2026-11-24T13:00:00Z","fin":"2026-11-24T13:45:00Z"}]}`
+- **THEN** el error entregado expone en sus extensiones el miembro `alternativas` con ese contenido, y no repite `title` ni `status` entre las extensiones
+
+#### Scenario: Sin miembros de extensión
+- **WHEN** la API responde `422` con un `ProblemDetail` que solo tiene `title`, `status` y `detail`
+- **THEN** el error entregado tiene extensiones vacías
