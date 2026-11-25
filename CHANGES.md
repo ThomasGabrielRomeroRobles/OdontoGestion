@@ -341,7 +341,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 ## FASE 6 â€” Cierre y demo local
 
 ### [C-12] `demo-hardening`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado 2026-11-25 en `openspec/changes/archive/2026-11-25-c-12-demo-hardening/`)
 - **Scope**:
   - Build de Vite copiado a `static/` y arranque desde un solo proceso (`http://localhost:8080`) con perfil `demo`; SPA fallback
   - Seed de demo: 10 pacientes ficticios y datos de ejemplo; SMTP real por variables de entorno (verificaciÃ³n de envÃ­o y lÃ­mite diario)

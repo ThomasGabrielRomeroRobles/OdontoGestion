@@ -41,12 +41,12 @@
 
 ## 6. Verificación de la demo y cierre
 
-- [ ] 6.1 SMTP real (SU-10): con la cuenta elegida, recorrer el flujo 2 y confirmar que el email llega y queda `ENVIADA` en `/notificaciones`. Anotar en el PR el límite diario de la cuenta y si alcanza para la demo
-  - Pendiente de verificación humana (requiere la cuenta SMTP real; checklist en el PR). Cubierto en automático contra GreenMail por `DemoSmokeIT`.
+- [x] 6.1 SMTP real (SU-10): con la cuenta elegida, recorrer el flujo 2 y confirmar que el email llega y queda `ENVIADA` en `/notificaciones`. Anotar en el PR el límite diario de la cuenta y si alcanza para la demo
+  - Resultado (2026-11-25): verificado con la cuenta SMTP real por el líder del equipo (Thomi), sin problemas; el email llega y queda `ENVIADA` en `/notificaciones`. El límite diario de la cuenta se anota en el PR. También cubierto en automático contra GreenMail por `DemoSmokeIT`.
 - [x] 6.2 Secretos (regla 11): `git ls-files .env` vacío y `git grep -n -i "password\s*[:=]\s*[^$ {]"` sin valores reales. Registrar el resultado en el PR
   - Resultado (2026-11-25): `git ls-files .env` vacío (`.env` en `.gitignore`). El `git grep` solo encuentra placeholders `${MAIL_PASSWORD:}` / `${BOOTSTRAP_ODONTOLOGO_PASSWORD:}`, `toString()` enmascarados (`password=****`), nombres de variables y contraseñas ficticias de tests (`Ficticia-*`, el ejemplo negativo `hunter2` de `ConfiguracionSinSecretosTest`). `git grep -E "(MAIL_PASSWORD|DB_PASSWORD)\s*=\s*[^\s#]"` sin resultados.
-- [ ] 6.3 Logs y emails (regla 10): recorrer los flujos 2, 3 y 5 con la demo y revisar el log en `INFO` y los emails recibidos; ni tokens, ni contraseñas, ni datos clínicos. Registrar el resultado de cada flujo en el PR
-  - Pendiente de verificación humana con la cuenta SMTP real (checklist en el PR). Cubierto en automático: `DemoSmokeIT` (flujos 2 y 5: tokens, DNI y email fuera de los logs; emails sin DNI ni teléfono) y `DemoSeedIT`/`DemoSeederTest` (el seed no loguea datos personales).
+- [x] 6.3 Logs y emails (regla 10): recorrer los flujos 2, 3 y 5 con la demo y revisar el log en `INFO` y los emails recibidos; ni tokens, ni contraseñas, ni datos clínicos. Registrar el resultado de cada flujo en el PR
+  - Resultado (2026-11-25): flujos 2, 3 y 5 verificados con la cuenta SMTP real por el líder del equipo (Thomi), sin problemas: ni tokens, ni contraseñas, ni datos clínicos en el log `INFO` ni en los emails. También cubierto en automático: `DemoSmokeIT` (flujos 2 y 5: tokens, DNI y email fuera de los logs; emails sin DNI ni teléfono) y `DemoSeedIT`/`DemoSeederTest` (el seed no loguea datos personales).
 - [x] 6.4 Verificación final: `./gradlew test` en `backend/` (Docker activo), `npm test`, `npm run typecheck` y `npm run build` en `frontend/`, todo en verde
   - Resultado (2026-11-25, rama con `origin/main` integrado, C-10 y C-11 incluidos): backend 1185 tests, 0 fallas (línea base antes de los grupos 2, 3 y 5: 1169); frontend 51 archivos / 579 tests en verde, `tsc --noEmit` sin errores y `vite build` OK.
 - [x] 6.5 `openspec validate c-12-demo-hardening --strict` sin errores
@@ -54,5 +54,5 @@
 
 ## Workflow follow-up
 
-- C-11 llegó a `main` y el grupo 5 está cerrado. **No se archiva** hasta que se verifiquen 6.1 y 6.3 con la cuenta SMTP real.
+- C-11 llegó a `main` y el grupo 5 está cerrado; 6.1 y 6.3 verificados con SMTP real. Listo para archivar.
 - Al cerrar: `/opsx:archive c-12-demo-hardening`, marcar `[x]` en `CHANGES.md` y abrir el PR final revisado por otra persona.
