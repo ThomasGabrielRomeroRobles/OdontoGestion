@@ -53,6 +53,8 @@ export async function bootstrap(deps: BootstrapDeps): Promise<App> {
     session.clear();
   }
 
+  // `/publico/lista-espera` lista las mismas prestaciones que `/publico` (mismo cliente inyectado).
+  const publico = deps.publicoApi;
   const routes: readonly Route[] = [
     {
       path: '/',
@@ -62,7 +64,7 @@ export async function bootstrap(deps: BootstrapDeps): Promise<App> {
     { path: '/login', access: 'public', render: createLoginPage({ session, login: deps.login }) },
     createPublicoRoute(deps.publicoApi),
     createAccionesRoute(deps.accionesApi),
-    ...createListaEsperaRoutes(deps.listaEsperaApi),
+    ...createListaEsperaRoutes(deps.listaEsperaApi, publico === undefined ? undefined : () => publico.listarPrestaciones()),
     ...createAgendaRoutes(deps.agenda ?? createDefaultAgendaDeps()),
     placeholderRoute('/pacientes', 'private', 'Pacientes'),
     ...createConfigRoutes(deps.configSections ?? createDefaultConfigSections()),
