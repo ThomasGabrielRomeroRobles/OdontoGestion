@@ -2,9 +2,9 @@ import { apiRequest } from '../../shared/http/client';
 import { fechaLocal } from './calendario';
 
 /**
- * Contrato REAL de C-07 (`contrato-c08.md` del archivo de C-07; tarea 9.1). Instantes ISO-8601 en UTC.
- * Lo de ausentismo (`ausente`, `revertir-ausencia`, `ausencias`, `ausenteMarcadoEn`, `cantidadAusencias`)
- * sigue en el contrato v0 hasta que el backend de C-08 (P3) lo publique.
+ * Contrato REAL de C-07 (`contrato-c08.md` del archivo de C-07) y del backend de ausentismo de C-08 (P3):
+ * `TurnoDto`, `TurnoController` y `PacienteController#ausencias` (tarea 9.1, design "Diferencias con el
+ * contrato real"). Instantes ISO-8601 en UTC.
  */
 export type EstadoTurno =
   | 'PENDIENTE_CONFIRMACION'
@@ -18,13 +18,13 @@ export type EstadoTurno =
 export type OrigenTurno = 'PUBLICA' | 'ODONTOLOGO' | 'LISTA_ESPERA';
 export type CanceladoPor = 'ODONTOLOGO' | 'PACIENTE' | 'SISTEMA';
 
-/** C-07 no expone DNI, email ni teléfono en el turno (regla dura #10). */
+/** El turno no expone DNI, email ni teléfono del paciente (regla dura #10). */
 export interface PacienteResumen {
   readonly id: number;
   readonly nombre: string;
   readonly apellido: string;
-  /** No viene en C-07; pendiente del backend de ausentismo (P3). Ausente = 0. */
-  readonly cantidadAusencias?: number;
+  /** Contador oficial de ausencias del paciente (RN-AS-02). */
+  readonly cantidadAusencias: number;
 }
 
 /** C-07 no expone la duración: sale de `fin - inicio` o de `GET /prestaciones`. */
@@ -46,11 +46,8 @@ export interface Turno {
   readonly canceladoPor: CanceladoPor | null;
   /** Crece con cada cambio; hoy solo informa (C-07 no usa `If-Match`). */
   readonly version: number;
-  /**
-   * Instante en que se marcó AUSENTE; abre la ventana de 24 h de reversión (RN-AS-06).
-   * No viene en C-07: lo agrega el backend de ausentismo (P3).
-   */
-  readonly ausenteMarcadoEn?: string | null;
+  /** Instante en que se marcó AUSENTE (`null` si no lo está); abre la ventana de 24 h de reversión (RN-AS-06). */
+  readonly ausenteMarcadoEn: string | null;
 }
 
 export interface Hueco {
@@ -64,6 +61,7 @@ export interface Ausencia {
   readonly prestacionNombre: string;
 }
 
+/** `GET /pacientes/{id}/ausencias`: `ausencias` viene de la más reciente a la más antigua. */
 export interface AusenciasPaciente {
   readonly cantidad: number;
   readonly ausencias: readonly Ausencia[];
@@ -88,7 +86,9 @@ export interface AgendaApi {
   moverTurno(id: number, inicio: string): Promise<Turno>;
   cancelarTurno(id: number, motivo: string | null): Promise<Turno>;
   marcarAtendido(id: number): Promise<Turno>;
+  /** `422` con `type` `.../ausente-antes-de-tolerancia` o `.../transicion-invalida`. */
   marcarAusente(id: number): Promise<Turno>;
+  /** Devuelve el turno en su estado previo real; `422` `.../reversion-fuera-de-plazo` o `.../transicion-invalida`. */
   revertirAusencia(id: number): Promise<Turno>;
   ausenciasPaciente(pacienteId: number): Promise<AusenciasPaciente>;
 }

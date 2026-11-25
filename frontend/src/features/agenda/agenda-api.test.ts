@@ -115,10 +115,52 @@ describe('agendaApi (contrato provisional v0, design D1)', () => {
     expect(s.body).toBeUndefined();
   });
 
-  it('ausenciasPaciente: GET /pacientes/{id}/ausencias', async () => {
-    const fn = mockFetchJson({ cantidad: 1, ausencias: [{ turnoId: 30, inicio: '2026-11-10T12:00:00Z', prestacionNombre: 'Consulta' }] });
+  it('ausenciasPaciente: GET /pacientes/{id}/ausencias con {cantidad, ausencias} (más reciente primero)', async () => {
+    const cuerpo = {
+      cantidad: 2,
+      ausencias: [
+        { turnoId: 31, inicio: '2026-11-17T12:00:00Z', prestacionNombre: 'Limpieza' },
+        { turnoId: 30, inicio: '2026-11-10T12:00:00Z', prestacionNombre: 'Consulta' },
+      ],
+    };
+    const fn = mockFetchJson(cuerpo);
     const r = await agendaApi.ausenciasPaciente(7);
     expect(ultimaSolicitud(fn)).toMatchObject({ method: 'GET', path: '/api/v1/pacientes/7/ausencias' });
-    expect(r.cantidad).toBe(1);
+    expect(r).toEqual(cuerpo);
   });
+
+  it('TurnoDto real (C-07 + P3): sin DNI, con ausenteMarcadoEn y paciente.cantidadAusencias', async () => {
+    const real = {
+      id: 41,
+      inicio: '2026-11-24T12:00:00Z',
+      fin: '2026-11-24T12:45:00Z',
+      estado: 'AUSENTE',
+      origen: 'ODONTOLOGO',
+      paciente: { id: 7, nombre: 'Lucía', apellido: 'Gómez', cantidadAusencias: 1 },
+      prestacion: { id: 3, nombre: 'Limpieza' },
+      pendienteHasta: null,
+      canceladoPor: null,
+      motivoCancelacion: null,
+      version: 2,
+      ausenteMarcadoEn: '2026-11-24T12:20:00Z',
+    };
+    mockFetchJson(real);
+    const t = await agendaApi.marcarAusente(41);
+    expect(t).toEqual(real);
+    expect(t.paciente).not.toHaveProperty('dni');
+    const marcadoEn: string | null = t.ausenteMarcadoEn;
+    const cantidad: number = t.paciente.cantidadAusencias;
+    expect([marcadoEn, cantidad]).toEqual(['2026-11-24T12:20:00Z', 1]);
+  });
+
+  it.each(['ausente-antes-de-tolerancia', 'reversion-fuera-de-plazo', 'transicion-invalida'])(
+    '422 %s: el ApiError conserva el último segmento del type como code',
+    async (codigo) => {
+      mockFetchJson(
+        { type: `https://odontogestion.example/problemas/${codigo}`, title: 'Regla de negocio incumplida', status: 422, detail: 'x' },
+        422,
+      );
+      await expect(agendaApi.revertirAusencia(41)).rejects.toMatchObject({ kind: 'http', status: 422, code: codigo, detail: 'x' });
+    },
+  );
 });

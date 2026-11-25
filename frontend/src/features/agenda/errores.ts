@@ -8,6 +8,22 @@ export const MENSAJE_INEXISTENTE = 'El turno ya no existe.';
 export const MENSAJE_CONCURRENTE = 'Otro cambio se aplicó antes sobre este turno. Se recargó la agenda.';
 const MENSAJE_INESPERADO = 'Ocurrió un error inesperado.';
 
+/**
+ * Mensaje de respaldo de cada `422` según el último segmento de su `type` (C-07 y backend de ausentismo de P3).
+ * Solo se usa si el servidor no manda `detail`: el servidor es la autoridad (design D7).
+ */
+export const MENSAJES_422: Readonly<Record<string, string>> = {
+  'ausente-antes-de-tolerancia': 'Todavía no pasó la tolerancia: todavía no se puede marcar ausente.',
+  'reversion-fuera-de-plazo': 'Ya pasaron 24 horas desde la marca: la ausencia no se puede revertir.',
+  'transicion-invalida': 'El turno cambió de estado y esa acción ya no corresponde.',
+};
+
+function mensaje422(error: Extract<ApiError, { kind: 'http' }>): string {
+  if (error.detail !== undefined) return error.detail;
+  const porTipo = error.code === undefined ? undefined : MENSAJES_422[error.code];
+  return porTipo ?? error.title;
+}
+
 export interface ErrorTraducido {
   readonly mensaje: string;
   /** Huecos alternativos del 409 (vacío si no hay o vienen mal formados). */
@@ -58,7 +74,7 @@ export function traducirErrorAccion(error: unknown): ErrorTraducido {
       if (!esConflictoDeHueco(error)) return { ...base, mensaje: MENSAJE_CONCURRENTE, recargar: true };
       return { ...base, mensaje: error.detail ?? MENSAJE_CONFLICTO, alternativas: alternativasDe(error), conflicto: true };
     case 422:
-      return { ...base, mensaje: error.detail ?? error.title, recargar: true };
+      return { ...base, mensaje: mensaje422(error), recargar: true };
     case 404:
       return { ...base, mensaje: MENSAJE_INEXISTENTE, recargar: true, cerrar: true };
     default:

@@ -50,6 +50,29 @@ describe('traducirErrorAccion (3.4, design D7)', () => {
     expect(traducirErrorAccion(errorHttp(422, { title: 'Regla incumplida' })).mensaje).toBe('Regla incumplida');
   });
 
+  it.each([
+    ['ausente-antes-de-tolerancia', 'Todavía no pasó la tolerancia: todavía no se puede marcar ausente.'],
+    ['reversion-fuera-de-plazo', 'Ya pasaron 24 horas desde la marca: la ausencia no se puede revertir.'],
+    ['transicion-invalida', 'El turno cambió de estado y esa acción ya no corresponde.'],
+  ] as const)('422 %s sin detail: mensaje propio del type y recarga (9.1, backend de P3)', (code, mensaje) => {
+    expect(traducirErrorAccion(errorHttp(422, { code, title: 'Regla de negocio incumplida' }))).toEqual({
+      mensaje,
+      alternativas: [],
+      conflicto: false,
+      recargar: true,
+      cerrar: false,
+    });
+  });
+
+  it('422 con type conocido y detail: manda el detail del servidor', () => {
+    const detail = 'La ausencia solo se puede revertir dentro de las 24 horas desde que se marcó.';
+    expect(traducirErrorAccion(errorHttp(422, { code: 'reversion-fuera-de-plazo', detail })).mensaje).toBe(detail);
+  });
+
+  it('422 con type desconocido y sin detail: usa el title', () => {
+    expect(traducirErrorAccion(errorHttp(422, { code: 'otra-regla', title: 'Regla incumplida' })).mensaje).toBe('Regla incumplida');
+  });
+
   it('404: el turno ya no existe, cierra y recarga', () => {
     expect(traducirErrorAccion(errorHttp(404))).toMatchObject({ mensaje: 'El turno ya no existe.', cerrar: true, recargar: true });
   });
