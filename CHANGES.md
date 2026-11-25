@@ -1,4 +1,4 @@
-﻿# CHANGES â€” Secuencia de ImplementaciÃ³n
+# CHANGES â€” Secuencia de ImplementaciÃ³n
 
 > Ãndice canÃ³nico de todos los changes del proyecto OdontoGestion.
 > Cada change es un OPSX change coherente y verificable por sÃ­ mismo; los que abarcan backend + frontend se reparten entre dos personas del mismo carril.
@@ -260,7 +260,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
   - `knowledge-base/09_decisiones_y_supuestos.md` Â§DD-05, Â§DD-06; `knowledge-base/10_preguntas_abiertas.md` Â§PA-06
 
 ### [C-08] `agenda-frontend-ausentismo`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado
 - **Scope**:
   - Feature `agenda`: vista dÃ­a/semana con colores por estado (incluye pendientes), creaciÃ³n de turno con buscador de paciente por DNI y alta rÃ¡pida, propuesta de horarios libres, manejo de `409`; acciones mover, cancelar con motivo, marcar atendido; lista "turnos de hoy"
   - `POST /api/v1/turnos/{id}/ausente`: solo tras inicio + tolerancia (`422` antes), estado `AUSENTE`, incrementa `paciente.cantidad_ausencias`, evento `TurnoAusente`, notificaciÃ³n `AUSENTE_REPROGRAMAR` con enlace a la pÃ¡gina pÃºblica
