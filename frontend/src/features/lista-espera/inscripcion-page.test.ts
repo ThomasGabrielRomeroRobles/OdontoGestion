@@ -33,9 +33,12 @@ describe('página pública de inscripción en la lista de espera', () => {
     input.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
-  async function montar(): Promise<void> {
+  /** 12:00 del lunes 23/11/2026 en el consultorio: las fechas de `completar()` quedan vigentes. */
+  const LUNES_MEDIODIA = new Date('2026-11-23T15:00:00Z');
+
+  async function montar(ahora: Date = LUNES_MEDIODIA): Promise<void> {
     const api = { inscribir } as unknown as ListaEsperaApi;
-    createInscripcionPage(api, listarPrestaciones)(container);
+    createInscripcionPage(api, listarPrestaciones, () => ahora)(container);
     await vi.waitFor(() => expect(container.dataset['estadoCarga']).toBe('listo'));
   }
 
@@ -110,6 +113,74 @@ describe('página pública de inscripción en la lista de espera', () => {
     completar();
     enviar();
     await vi.waitFor(() => expect(el('[data-error="fechaHasta"]').textContent).toBe('No puede ser anterior a hoy.'));
+  });
+
+  it('prestación desactivada (422 en prestacionId): el mensaje aparece junto al selector y lo marca inválido', async () => {
+    inscribir.mockResolvedValue({ tipo: 'invalida', fieldErrors: [{ field: 'prestacionId', message: 'La prestación está desactivada.' }] });
+    await montar();
+    completar();
+    enviar();
+    await vi.waitFor(() => expect(el('[data-error="prestacionId"]').textContent).toBe('La prestación está desactivada.'));
+    expect(el('select[name="prestacion"]').getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('sin prestación elegida el aviso también queda junto al selector, y se limpia al reintentar', async () => {
+    await montar();
+    completar({ prestacion: '' });
+    enviar();
+    expect(el('[data-error="prestacionId"]').textContent).toBe('Elegí una prestación.');
+    expect(el('select[name="prestacion"]').getAttribute('aria-invalid')).toBe('true');
+
+    inscribir.mockResolvedValue({ tipo: 'aceptada', mensaje: '' });
+    completar();
+    enviar();
+    expect(el('[data-error="prestacionId"]').textContent).toBe('');
+    expect(el('select[name="prestacion"]').hasAttribute('aria-invalid')).toBe(false);
+  });
+
+  it('prestación inexistente (404): lo informa, vuelve a pedir las prestaciones y deja el selector sin elección', async () => {
+    inscribir.mockResolvedValue({ tipo: 'prestacionNoDisponible' });
+    await montar();
+    expect(listarPrestaciones).toHaveBeenCalledTimes(1);
+    completar();
+    enviar();
+    await vi.waitFor(() => expect(el('[data-error="prestacionId"]').textContent).toBe('La prestación elegida ya no está disponible. Elegí otra.'));
+    expect(el<HTMLSelectElement>('select[name="prestacion"]').value).toBe('');
+    await vi.waitFor(() => expect(listarPrestaciones).toHaveBeenCalledTimes(2));
+    // La lista recargada no duplica opciones.
+    await vi.waitFor(() => expect(container.querySelectorAll('select[name="prestacion"] option')).toHaveLength(prestaciones.length + 1));
+    expect(el<HTMLInputElement>('input[name="nombre"]').value).toBe('Ana');
+  });
+
+  it('fecha hasta anterior a hoy: marca el error y no envía ninguna petición', async () => {
+    await montar();
+    completar({ fechaDesde: '2026-11-20', fechaHasta: '2026-11-22' });
+    enviar();
+    expect(inscribir).not.toHaveBeenCalled();
+    expect(el('[data-error="fechaHasta"]').textContent).toBe('No puede ser anterior a hoy.');
+  });
+
+  it('fecha hasta igual a hoy es válida y se envía', async () => {
+    inscribir.mockResolvedValue({ tipo: 'aceptada', mensaje: '' });
+    await montar();
+    completar({ fechaDesde: '2026-11-23', fechaHasta: '2026-11-23' });
+    enviar();
+    expect(inscribir).toHaveBeenCalledTimes(1);
+  });
+
+  it('las fechas ofrecen hoy como mínimo', async () => {
+    await montar();
+    expect(el<HTMLInputElement>('input[name="fechaDesde"]').min).toBe('2026-11-23');
+    expect(el<HTMLInputElement>('input[name="fechaHasta"]').min).toBe('2026-11-23');
+  });
+
+  it('"hoy" es el del consultorio: a las 23:30 del 24/11 local (02:30Z del 25) hoy sigue siendo 24/11', async () => {
+    inscribir.mockResolvedValue({ tipo: 'aceptada', mensaje: '' });
+    await montar(new Date('2026-11-25T02:30:00Z'));
+    expect(el<HTMLInputElement>('input[name="fechaHasta"]').min).toBe('2026-11-24');
+    completar({ fechaDesde: '2026-11-24', fechaHasta: '2026-11-24' });
+    enviar();
+    expect(inscribir).toHaveBeenCalledTimes(1);
   });
 
   it('el señuelo está oculto a personas y su valor se envía tal cual', async () => {

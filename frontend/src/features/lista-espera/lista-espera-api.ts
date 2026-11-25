@@ -47,11 +47,15 @@ export interface EntradaListaEspera {
   readonly creadoEn: string;
 }
 
-/** Todo lo demás (red, 5xx) se propaga como error para el mensaje genérico. */
+/**
+ * `prestacionNoDisponible` = `404` (la prestación ya no existe). Todo lo demás (red, 5xx) se propaga como error
+ * para el mensaje genérico.
+ */
 export type ResultadoInscripcion =
   | { readonly tipo: 'aceptada'; readonly mensaje: string }
   | { readonly tipo: 'limite'; readonly retryAfterSeconds?: number }
-  | { readonly tipo: 'invalida'; readonly fieldErrors: readonly FieldError[] };
+  | { readonly tipo: 'invalida'; readonly fieldErrors: readonly FieldError[] }
+  | { readonly tipo: 'prestacionNoDisponible' };
 
 /** `noDisponible` = `410`: enlace inexistente, vencido o usado (la causa nunca se distingue). */
 export type ResultadoAviso =
@@ -142,6 +146,7 @@ export async function inscribir(inscripcion: InscripcionListaEspera): Promise<Re
     if (error.status === 400 || (error.status === 422 && error.fieldErrors.length > 0)) {
       return { tipo: 'invalida', fieldErrors: error.fieldErrors };
     }
+    if (error.status === 404) return { tipo: 'prestacionNoDisponible' };
     throw error;
   }
 }

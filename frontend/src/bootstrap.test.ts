@@ -157,6 +157,25 @@ describe('bootstrap', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('/publico/lista-espera usa las prestaciones de la API pública inyectada, sin llamar a la red', async () => {
+    me.mockResolvedValue(null);
+    history.replaceState(null, '', '/publico/lista-espera');
+    const publicoApi: PublicoApi = {
+      listarPrestaciones: vi.fn<PublicoApi['listarPrestaciones']>().mockResolvedValue(prestaciones),
+      consultarDisponibilidad: vi.fn<PublicoApi['consultarDisponibilidad']>(),
+      solicitarTurno: vi.fn<PublicoApi['solicitarTurno']>(),
+    };
+    const fetchMock = vi.fn<typeof fetch>();
+    vi.stubGlobal('fetch', fetchMock);
+
+    stop = (await bootstrap({ ...deps(), publicoApi, listaEsperaApi: crearListaEsperaApiMock() })).stop;
+
+    expect(root.querySelector('h1')?.textContent).toBe('Anotate en la lista de espera');
+    await vi.waitFor(() => expect(root.querySelectorAll('select[name="prestacion"] option')).toHaveLength(prestaciones.length + 1));
+    expect(publicoApi.listarPrestaciones).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('/publico con sesión activa sigue siendo pública y no se envuelve en el layout', async () => {
     me.mockResolvedValue({ email: 'odontologo@consultorio.example' });
     history.replaceState(null, '', '/publico');

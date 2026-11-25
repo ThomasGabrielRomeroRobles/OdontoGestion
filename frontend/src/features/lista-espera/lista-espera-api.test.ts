@@ -54,6 +54,31 @@ describe('lista-espera-api', () => {
       await expect(inscribir(inscripcionValida)).resolves.toEqual({ tipo: 'invalida', fieldErrors: errores422 });
     });
 
+    it('422 con el error en prestacionId (prestación desactivada) es invalida con ese campo', async () => {
+      mockFetch(
+        json(
+          {
+            type: 'https://odontogestion.example/problemas/validacion',
+            title: 'Regla de negocio incumplida',
+            status: 422,
+            errors: [{ field: 'prestacionId', message: 'La prestación está desactivada.' }],
+          },
+          422,
+        ),
+      );
+
+      await expect(inscribir(inscripcionValida)).resolves.toEqual({
+        tipo: 'invalida',
+        fieldErrors: [{ field: 'prestacionId', message: 'La prestación está desactivada.' }],
+      });
+    });
+
+    it('404 (prestación inexistente) es prestacionNoDisponible', async () => {
+      mockFetch(json({ title: 'No encontrado', status: 404, detail: 'Prestación no encontrada' }, 404));
+
+      await expect(inscribir(inscripcionValida)).resolves.toEqual({ tipo: 'prestacionNoDisponible' });
+    });
+
     it('un 500 se propaga como error', async () => {
       mockFetch(json({ title: 'Error', status: 500 }, 500));
       await expect(inscribir(inscripcionValida)).rejects.toMatchObject({ kind: 'http', status: 500 });
