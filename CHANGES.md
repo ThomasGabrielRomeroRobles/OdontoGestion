@@ -322,7 +322,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
   - `knowledge-base/09_decisiones_y_supuestos.md` Â§DD-06; `knowledge-base/12_notificaciones.md` Â§AVISO_HUECO
 
 ### [C-11] `recordatorios-scheduler`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado 2026-11-25 en `openspec/changes/archive/2026-11-25-c-11-recordatorios-scheduler/`)
 - **Scope**:
   - Job `@Scheduled` (cada 5 min) que busca turnos `RESERVADO` en la ventana "ahora + `recordatorio_horas_antes`" sin recordatorio previo
   - Por turno: tokens `CONFIRMAR_TURNO` y `CANCELAR_TURNO` Ãºnicos, notificaciÃ³n `RECORDATORIO` con enlaces, sin datos clÃ­nicos

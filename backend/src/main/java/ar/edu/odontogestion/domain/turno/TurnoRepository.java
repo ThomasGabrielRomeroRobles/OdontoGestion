@@ -17,6 +17,22 @@ public interface TurnoRepository extends JpaRepository<Turno, Long> {
 
     Optional<Turno> findByIdAndConsultorio_Id(Long id, Long consultorioId);
 
+    /**
+     * Candidatos a recordatorio (C-11 D1/D2/D7): {@code RESERVADO} que empiezan en {@code (ahora, hasta]}, creados
+     * con al menos {@code horas} de anticipación (RN-NO-09) y sin {@code RECORDATORIO} previo. El {@code NOT EXISTS}
+     * es solo una optimización: la idempotencia la garantiza el índice único parcial de V6.
+     */
+    @Query(value = """
+            SELECT t.id FROM turno t
+            WHERE t.consultorio_id = :consultorioId AND t.estado = 'RESERVADO'
+              AND t.inicio > :ahora AND t.inicio <= :hasta
+              AND t.creado_en <= t.inicio - make_interval(hours => :horas)
+              AND NOT EXISTS (SELECT 1 FROM notificacion n WHERE n.turno_id = t.id AND n.tipo = 'RECORDATORIO')
+            ORDER BY t.inicio
+            """, nativeQuery = true)
+    List<Long> idsParaRecordatorio(@Param("consultorioId") Long consultorioId, @Param("ahora") Instant ahora,
+            @Param("hasta") Instant hasta, @Param("horas") int horas);
+
     /** Turnos {@code AUSENTE} de un paciente, del más reciente al más antiguo, con la prestación cargada (C-08 D6). */
     @Query("""
             select t from Turno t
