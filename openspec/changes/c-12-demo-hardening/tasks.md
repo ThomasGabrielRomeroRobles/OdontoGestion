@@ -24,8 +24,8 @@
 
 ## 4. Guía de ejecución local y de pruebas — P5
 
-- [ ] 4.1 Crear `README.md` en la raíz según design D5: requisitos (Java 21, Node LTS, PostgreSQL con `btree_gist`, Docker para tests), `.env` desde `.env.example`, levantar la demo (`./gradlew bootJar -PwithFrontend` + perfil `demo`, y con `run-local.ps1`), cómo recrear la base, checklist de los flujos 2, 3 y 5, y cómo correr los tests. Verificar siguiendo la guía paso a paso en una PC limpia del equipo
-- [ ] 4.2 Ajustar `.env.example` (comentario de `SPRING_PROFILES_ACTIVE=demo` para la demo y `NOTIFICATION_POLL_INTERVAL=PT1M` recomendado) y enlazar la guía desde `backend/README.md` y `frontend/README.md`. Verificar que `ConfiguracionSinSecretosTest` sigue verde
+- [x] 4.1 Crear `README.md` en la raíz según design D5: requisitos (Java 21, Node LTS, PostgreSQL con `btree_gist`, Docker para tests), `.env` desde `.env.example`, levantar la demo (`./gradlew bootJar -PwithFrontend` + perfil `demo`, y con `run-local.ps1`), cómo recrear la base, checklist de los flujos 2, 3 y 5, y cómo correr los tests. Verificar siguiendo la guía paso a paso en una PC limpia del equipo
+- [x] 4.2 Ajustar `.env.example` (comentario de `SPRING_PROFILES_ACTIVE=demo` para la demo y `NOTIFICATION_POLL_INTERVAL=PT1M` recomendado) y enlazar la guía desde `backend/README.md` y `frontend/README.md`. Verificar que `ConfiguracionSinSecretosTest` sigue verde
 
 ## 5. Recordatorio en el smoke (BLOQUEADO por C-11) — P1
 

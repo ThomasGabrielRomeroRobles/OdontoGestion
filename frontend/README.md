@@ -2,6 +2,9 @@
 
 TypeScript estricto "vanilla" (sin framework de UI), Vite y Vitest.
 
+> Cómo levantar la demo completa (frontend servido por Spring Boot en `http://localhost:8080`) y correr todos los
+> tests: [guía de ejecución en el README de la raíz](../README.md).
+
 ## Comandos (desde `frontend/`)
 
 ```bash
