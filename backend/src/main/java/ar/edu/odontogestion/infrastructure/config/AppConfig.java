@@ -5,6 +5,6 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({AppProperties.class, BootstrapProperties.class, LoginProperties.class,
-        NotificationProperties.class})
+        NotificationProperties.class, HistoriaProperties.class})
 public class AppConfig {
 }
