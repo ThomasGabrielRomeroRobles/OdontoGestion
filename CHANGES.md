@@ -218,7 +218,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 - **Scope**:
   - STRETCH: no es obligatorio para la entrega y no bloquea ningÃºn otro change (ni C-12)
   - CARRIL PARALELO: no depende de la agenda; arranca al cerrar C-04
-  - MigraciÃ³n V11 (era V8, que pasÃ³ a C-04; V10 es de C-10; si C-07/V9 ya estÃ¡ aplicada, C-05 crea tambiÃ©n la FK de `evolucion_clinica.turno_id`): tablas `historia_clinica` (Ãºnica por paciente, creaciÃ³n perezosa), `anamnesis`, `pieza_dental_estado` (Ãºnico `historia_id + pieza_fdi`) y `evolucion_clinica` (`turno_id` nullable sin FK; la FK la agrega C-07)
+  - MigraciÃ³n **V12** (era V8, que pasÃ³ a C-04; V10 es de C-10 y V11 de C-08; como C-07/V9 ya estÃ¡ aplicada, la FK de `evolucion_clinica.turno_id` a `turno` nace en V12): tablas `historia_clinica` (Ãºnica por paciente, creaciÃ³n perezosa), `anamnesis`, `pieza_dental_estado` (Ãºnico `historia_id + pieza_fdi`, solo las 32 piezas permanentes) y `evolucion_clinica` (`turno_id` nullable con FK)
   - `GET /api/v1/pacientes/{id}/historia`, `PUT /api/v1/pacientes/{id}/historia/anamnesis`
   - `PUT /api/v1/pacientes/{id}/historia/odontograma/piezas/{fdi}` (estado + observaciÃ³n, autor y fecha), validaciÃ³n FDI (`422`), 32 piezas permanentes, enum de estados MVP
   - `POST/GET /api/v1/pacientes/{id}/historia/evoluciones` (orden cronolÃ³gico, ediciÃ³n por el autor dentro de ventana)
