@@ -95,7 +95,7 @@ class SpaFallbackIT extends AbstractWebIntegrationTest {
 
     @Test
     void lasRutasAnidadasDelFrontendDevuelvenElIndex() throws Exception {
-        for (String ruta : new String[] {"/agenda/hoy", "/publico/lista-espera", "/configuracion"}) {
+        for (String ruta : new String[] {"/agenda/hoy", "/publico/lista-espera", "/configuracion", "/pacientes/7/historia"}) {
             esIndex(pedir(ruta), ruta);
         }
     }
