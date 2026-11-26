@@ -9,6 +9,7 @@ import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
 import ar.edu.odontogestion.domain.error.ReglaNegocioException;
 import ar.edu.odontogestion.domain.error.TokenInvalidoException;
 import ar.edu.odontogestion.domain.error.ValidacionDominioException;
+import ar.edu.odontogestion.domain.historia.NoEsAutorException;
 import ar.edu.odontogestion.domain.turno.HuecoNoDisponibleException;
 import ar.edu.odontogestion.domain.turno.EstadoTurno;
 import ar.edu.odontogestion.domain.turno.TransicionInvalidaException;
@@ -57,6 +58,11 @@ class ErrorTestController {
     @GetMapping("/{id}/conflicto")
     String conflicto(@PathVariable long id) {
         throw new ConflictoException("El hueco ya fue ocupado");
+    }
+
+    @GetMapping("/{id}/prohibido")
+    void prohibido(@PathVariable Long id) {
+        throw new NoEsAutorException();
     }
 
     @GetMapping("/{id}/regla")
