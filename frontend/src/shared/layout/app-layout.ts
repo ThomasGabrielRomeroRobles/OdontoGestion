@@ -8,10 +8,12 @@ export interface AppLayoutDeps {
 }
 
 function navLink(href: string, text: string): HTMLAnchorElement {
+  const actual = window.location.pathname;
   const anchor = document.createElement('a');
   anchor.href = href;
   anchor.dataset['link'] = '';
   anchor.textContent = text;
+  if (actual === href || actual.startsWith(`${href}/`)) anchor.setAttribute('aria-current', 'page');
   return anchor;
 }
 

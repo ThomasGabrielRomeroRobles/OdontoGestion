@@ -42,7 +42,9 @@ OdontoGestion/
     ├── package.json, tsconfig.json, vite.config.ts   # proxy /api -> http://localhost:8080
     └── src/
         ├── features/             # auth, agenda, publico (reserva + lista de espera), acciones-token, pacientes, historia-clinica, config
-        ├── shared/               # cliente HTTP (CSRF), router, estado, componentes DOM, utilidades
+        │   ├── landing/          # página pública /inicio (presentación y CTAs)
+        │   └── pacientes/        # listado, búsqueda y ficha con ausencias (/pacientes)
+        ├── shared/               # styles/ (app.css, tokens y estilos globales), cliente HTTP (CSRF), router, estado, componentes DOM, utilidades
         ├── pages/                # entradas por ruta
         └── main.ts
 ```

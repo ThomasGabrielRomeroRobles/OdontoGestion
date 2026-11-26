@@ -135,6 +135,7 @@ El plan completo está en [CHANGES.md](CHANGES.md). Resumen:
 - **Camino crítico** (7): `C-01 → C-02 → C-06 → C-07 → C-09 → C-10 → C-12`.
 - **Corte por valor (DD-16)**: obligatorios 11 changes (todos salvo C-05).
 - **Carril paralelo (stretch, "si llega")**: historia clínica (`C-05`) arranca al cerrar `C-04` y no bloquea la agenda ni C-12; si no se entrega, queda como etapa posterior.
+- **Post-entrega**: `C-13` (frontend visual + pantalla de pacientes).
 - **Primer change**: `C-01` (`foundation-setup`, governance BAJO).
 - **Equipo de 6 por carriles**: P1 backend crítico (agenda/público) · P2 backend crítico 2 (seguridad, concurrencia, acciones) · P3 backend infra (notificaciones, tokens, schedulers) · P4 backend pacientes + HC · P5 frontend A (shell, config, agenda, público) · P6 frontend B (registro de envíos, HC, lista de espera).
 - Cada change backend + frontend: el backend publica primero el contrato y el frontend avanza contra mocks; ambos cierran juntos.
