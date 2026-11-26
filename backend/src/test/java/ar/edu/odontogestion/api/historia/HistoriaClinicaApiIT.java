@@ -16,6 +16,7 @@ import ar.edu.odontogestion.support.AbstractHistoriaIT;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import com.jayway.jsonpath.JsonPath;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -48,10 +49,15 @@ class HistoriaClinicaApiIT extends AbstractHistoriaIT {
         return mockMvc.perform(c.firmar(post(url)).contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
+    /** Id de la evolución (raíz del JSON); una regex sobre el texto tomaba el "id" del autor anidado. */
+    private static Long idDe(String cuerpo) {
+        return ((Number) JsonPath.read(cuerpo, "$.id")).longValue();
+    }
+
     private Long altaEvolucion(String nota) throws Exception {
         String cuerpo = postJson(base() + "/evoluciones", "{\"nota\":\"" + nota + "\"}")
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
-        return Long.valueOf(cuerpo.replaceAll(".*\"id\":(\\d+).*", "$1"));
+        return idDe(cuerpo);
     }
 
     private int historias() {
@@ -236,7 +242,7 @@ class HistoriaClinicaApiIT extends AbstractHistoriaIT {
         String cuerpo = mockMvc.perform(otroCliente.firmar(post(base() + "/evoluciones"))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"nota\":\"Nota ajena\"}"))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
-        Long id = Long.valueOf(cuerpo.replaceAll(".*\"id\":(\\d+).*", "$1"));
+        Long id = idDe(cuerpo);
 
         mockMvc.perform(get(base() + "/evoluciones").session(c.session()))
                 .andExpect(jsonPath("$[0].editable").value(false));
@@ -250,7 +256,7 @@ class HistoriaClinicaApiIT extends AbstractHistoriaIT {
         Long otro = crearPaciente();
         String cuerpo = postJson("/api/v1/pacientes/" + otro + "/historia/evoluciones", "{\"nota\":\"Nota\"}")
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
-        Long ajena = Long.valueOf(cuerpo.replaceAll(".*\"id\":(\\d+).*", "$1"));
+        Long ajena = idDe(cuerpo);
 
         putJson(base() + "/evoluciones/" + ajena, "{\"nota\":\"Nueva\"}").andExpect(status().isNotFound());
     }
