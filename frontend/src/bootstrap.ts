@@ -5,9 +5,11 @@ import { createHistoriaRoute, type HistoriaApi } from './features/historia-clini
 import { createConfigRoutes, createDefaultConfigSections, type ConfigSections } from './features/config';
 import { createListaEsperaRoutes, type ListaEsperaApi } from './features/lista-espera';
 import { createNotificacionesRoute, type NotificacionesApi } from './features/notificaciones';
+import { createLandingRoute } from './features/landing/landing-page';
+import { createPacientesRoutes, type PacientesApi } from './features/pacientes';
 import { createPublicoRoute, type PublicoApi } from './features/publico';
 import { createLoginPage } from './pages/login-page';
-import { placeholderRoute, renderNotFound } from './pages/placeholder-pages';
+import { renderNotFound } from './pages/placeholder-pages';
 import { configureHttpClient } from './shared/http/client';
 import { createAppLayout } from './shared/layout/app-layout';
 import { createRouter, loginUrl, type Route, type Router } from './shared/router/router';
@@ -29,6 +31,8 @@ export interface BootstrapDeps {
   readonly publicoApi?: PublicoApi;
   /** API de las acciones por token (`/acciones/:token`); los tests inyectan un doble. Por defecto, la real. */
   readonly accionesApi?: AccionesApi;
+  /** API de pacientes (`/pacientes`, `/pacientes/:id`); los tests inyectan un doble. Por defecto, la real. */
+  readonly pacientesApi?: PacientesApi;
   /** API de la lista de espera (`/lista-espera`, `/avisos/:token`, `/publico/lista-espera`); los tests inyectan un doble. */
   readonly listaEsperaApi?: ListaEsperaApi;
   /** API de la historia clínica (`/pacientes/:id/historia`, C-05); los tests inyectan un doble. Por defecto, la real. */
@@ -65,12 +69,13 @@ export async function bootstrap(deps: BootstrapDeps): Promise<App> {
       render: (_container, context) => context.navigate(session.get().status === 'authenticated' ? '/agenda' : '/login'),
     },
     { path: '/login', access: 'public', render: createLoginPage({ session, login: deps.login }) },
+    createLandingRoute(),
     createPublicoRoute(deps.publicoApi),
     createAccionesRoute(deps.accionesApi),
     ...createListaEsperaRoutes(deps.listaEsperaApi, publico === undefined ? undefined : () => publico.listarPrestaciones()),
     ...createAgendaRoutes(deps.agenda ?? createDefaultAgendaDeps()),
     createHistoriaRoute(deps.historiaApi),
-    placeholderRoute('/pacientes', 'private', 'Pacientes'),
+    ...createPacientesRoutes(deps.pacientesApi),
     ...createConfigRoutes(deps.configSections ?? createDefaultConfigSections()),
     createNotificacionesRoute(deps.notificacionesApi),
   ];

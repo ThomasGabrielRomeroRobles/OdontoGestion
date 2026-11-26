@@ -51,7 +51,8 @@ Accesibles sin autenticación:
 
 | Ruta | Propósito |
 |------|-----------|
-| `/` (landing / página pública) | Información del consultorio, horarios libres, solicitud de turno y alta en lista de espera (nombre, DNI, email, teléfono) |
+| `/inicio` (landing) | Presentación del consultorio y del servicio, con accesos a "Pedir turno", a la lista de espera y al login del odontólogo |
+| `/publico` (página pública) | Horarios libres, solicitud de turno y alta en lista de espera (nombre, DNI, email, teléfono) |
 | `/login` | Inicio de sesión del odontólogo |
 | `/acciones/{token}` | Confirmar la solicitud, confirmar o cancelar un turno desde el email (token de un solo propósito y un solo uso; el `GET` solo muestra, el `POST` ejecuta) |
 | `/avisos/{token}` | Ver y aceptar un hueco ofrecido desde la lista de espera (sin login; el token identifica al paciente y al aviso) |
