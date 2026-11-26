@@ -6,6 +6,7 @@ import ar.edu.odontogestion.domain.error.CredencialesInvalidasException;
 import ar.edu.odontogestion.domain.error.DomainException;
 import ar.edu.odontogestion.domain.error.DemasiadasSolicitudesException;
 import ar.edu.odontogestion.domain.error.DemasiadosIntentosException;
+import ar.edu.odontogestion.domain.error.ProhibidoException;
 import ar.edu.odontogestion.domain.error.RecursoNoEncontradoException;
 import ar.edu.odontogestion.domain.error.ReglaNegocioException;
 import ar.edu.odontogestion.domain.error.TokenInvalidoException;
@@ -88,6 +89,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ConflictoException.class)
     ProblemDetail handleConflicto(ConflictoException ex) {
         return dominio(HttpStatus.CONFLICT, "Conflicto", ex);
+    }
+
+    /** Operación prohibida para el usuario con sesión (C-05: solo el autor edita su evolución). */
+    @ExceptionHandler(ProhibidoException.class)
+    ProblemDetail handleProhibido(ProhibidoException ex) {
+        return dominio(HttpStatus.FORBIDDEN, "Operación no permitida", ex);
     }
 
     @ExceptionHandler(ReglaNegocioException.class)

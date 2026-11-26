@@ -106,19 +106,21 @@ erDiagram
 - Índice único (`turno_id`, `tipo`) para recordatorios (idempotencia; RN-NO-03) y (`aviso_id`) para avisos de hueco.
 
 ### historia_clinica
-- `id`, `paciente_id` (único). Una sola HC por paciente (una por establecimiento, art. 17 Ley 26.529).
+- `id`, `consultorio_id`, `paciente_id` (único). Una sola HC por paciente (una por establecimiento, art. 17 Ley 26.529).
+- **Implementado en C-05 (`V12__historia_clinica.sql`):** se crea en la primera escritura clínica (RN-PA-05) con `INSERT ... ON CONFLICT (paciente_id) DO NOTHING`; la consulta no la crea.
 
 ### anamnesis
-- `id`, `historia_id` (único), `alergias`, `medicacion_actual`, `enfermedades_previas`, `antecedentes_relevantes`, `embarazo` (nullable), `observaciones`. **Suposición:** campos de texto simples en el MVP.
+- `id`, `historia_id` (único), `alergias`, `medicacion_actual`, `enfermedades_previas`, `antecedentes_relevantes`, `embarazo` (nullable), `observaciones`, `actualizado_por_id` (usuario), `actualizado_en`. **Suposición:** campos de texto simples en el MVP (hasta 2000 caracteres; `''` cuando no hay dato).
 
 ### pieza_dental_estado
 - `id`, `historia_id`, `pieza_fdi` (11-18, 21-28, 31-38, 41-48; temporarias 51-55, 61-65, 71-75, 81-85), `estado` (enum, ver abajo), `observacion`, `actualizado_por` (usuario), `actualizado_en`.
 - Constraint: único (`historia_id`, `pieza_fdi`); `pieza_fdi` validada contra el conjunto FDI.
+- **Decisión C-05:** el MVP acepta solo las **32 piezas permanentes** (`CHECK` cuadrante 1-4, pieza 1-8; otra pieza → `422 pieza-fdi-invalida`). Las temporarias quedan para una etapa posterior junto con las caras (PA-09). Observación de hasta 500 caracteres; se guarda solo el último autor y fecha de cada pieza (sin historial, DD-09).
 - Estados MVP (**Suposición**): `SANA`, `CARIES`, `OBTURADA`, `CORONA`, `ENDODONCIA`, `AUSENTE`, `IMPLANTE`, `FRACTURADA`, `A_EXTRAER`. Alcance por pieza completa (no por cara) en el MVP; caras en etapa posterior.
 
 ### evolucion_clinica
-- `id`, `historia_id`, `usuario_id` (autor: el odontólogo), `turno_id` (nullable), `fecha`, `nota` (texto), `creada_en`.
-- En el MVP es editable por su autor dentro de una ventana (**Suposición**); en la etapa posterior pasa a *append-only* (ver RN-HC-05).
+- `id`, `historia_id`, `usuario_id` (autor: el odontólogo), `turno_id` (nullable, FK a `turno` desde V12), `fecha` (fecha civil de la consulta, no futura), `nota` (texto de 1 a 4000 caracteres), `creado_en`, `editada_en` (nullable).
+- En el MVP es editable por su autor dentro de una ventana de **24 h desde el alta**, con el límite incluido (C-05; configurable con `app.historia.ventana-edicion-evolucion`). Otro usuario → `403 no-es-autor`; fuera de la ventana → `422 evolucion-fuera-de-ventana`. Se lista en orden cronológico ascendente (`fecha`, `creado_en`, `id`). En la etapa posterior pasa a *append-only* (ver RN-HC-05).
 
 ## Seed data inicial
 

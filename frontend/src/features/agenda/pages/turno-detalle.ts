@@ -29,7 +29,7 @@ async function toleranciaDe(deps: AgendaDeps): Promise<number> {
   }
 }
 
-/** Panel de detalle del turno: datos, acciones habilitadas y ausencias del paciente (D5, D7, D9). */
+/** Panel de detalle del turno: datos, acciones habilitadas, ausencias e historia clínica del paciente (D5, D7, D9; C-05). */
 export function createTurnoDetalle(deps: AgendaDeps, opciones: OpcionesDetalle = {}) {
   return (host: HTMLElement, inicial: Turno, alCambiar: AlCambiar): void => {
     let turno = inicial;
@@ -43,8 +43,14 @@ export function createTurnoDetalle(deps: AgendaDeps, opciones: OpcionesDetalle =
     const subpanel = el('div', undefined, { 'data-subpanel': '' });
     const ausencias = crearAusencias(deps.api.ausenciasPaciente, turno.paciente.id);
     const cerrar = boton('Cerrar', () => host.replaceChildren());
+    // C-05: acceso a la historia clínica del paciente (solo el id viaja en la URL, regla dura 10).
+    const historia = el('a', 'Historia clínica', {
+      href: `/pacientes/${turno.paciente.id}/historia`,
+      'data-link': '',
+      'data-historia-clinica': '',
+    });
 
-    host.replaceChildren(titulo, datos, aviso, acciones, nota, subpanel, ausencias.elemento, cerrar);
+    host.replaceChildren(titulo, datos, aviso, acciones, nota, subpanel, ausencias.elemento, historia, cerrar);
 
     function renderDatos(): void {
       const estado = el('span', etiquetaEstado(turno.estado), { 'data-estado': '' });

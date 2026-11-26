@@ -49,6 +49,14 @@ describe('detalle del turno (grupo 5)', () => {
       expect(host.textContent).toContain('Sin ausencias registradas');
     });
 
+    it('ofrece el enlace a la historia clínica del paciente (C-05)', async () => {
+      await abrir(turnoFicticio(), INICIO - 120 * MIN);
+      const enlace = host.querySelector<HTMLAnchorElement>('a[data-historia-clinica]');
+      expect(enlace?.textContent).toBe('Historia clínica');
+      expect(enlace?.getAttribute('href')).toBe('/pacientes/7/historia');
+      expect(enlace?.hasAttribute('data-link')).toBe(true);
+    });
+
     it('reservado futuro: Mover, Cancelar y Marcar atendido', async () => {
       await abrir(turnoEn('RESERVADO'), INICIO - 120 * MIN);
       expect(habilitados()).toEqual(['Mover', 'Cancelar', 'Marcar atendido']);

@@ -145,6 +145,16 @@ class GlobalExceptionHandlerWebMvcTest {
     }
 
     @Test
+    void operacionProhibidaDevuelve403ConCodigoYDetalleFijo() throws Exception {
+        mockMvc.perform(get("/api/v1/recurso-de-prueba/5/prohibido"))
+                .andExpect(status().isForbidden())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.detail").value("Solo el autor de la evolución puede editarla."))
+                .andExpect(jsonPath("$.type").value("https://odontogestion.example/problemas/no-es-autor"));
+    }
+
+    @Test
     void reglaDeNegocioDevuelve422ConElMensajeDeLaReglaEnDetail() throws Exception {
         mockMvc.perform(get("/api/v1/recurso-de-prueba/5/regla"))
                 .andExpect(status().isUnprocessableEntity())

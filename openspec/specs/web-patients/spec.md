@@ -45,9 +45,10 @@ La aplicación SHALL mostrar en `/pacientes/:id` los datos de contacto del pacie
 - **WHEN** el paciente no tiene ausencias o la consulta falla
 - **THEN** se muestra un mensaje de sin ausencias o el error, respectivamente
 
-### Requirement: Marcador de historia clínica
-La ficha SHALL incluir una tarjeta "Historia clínica — próximamente (C-05)" mientras C-05 no esté entregado.
+### Requirement: Acceso a la historia clínica
+La ficha del paciente SHALL incluir una sección "Historia clínica" con un enlace "Ver historia clínica" a `/pacientes/{id}/historia`, la pantalla de historia clínica de C-05, y MUST NOT mostrar el texto "próximamente".
 
-#### Scenario: Placeholder visible
-- **WHEN** se renderiza la ficha de un paciente
-- **THEN** se muestra la tarjeta de historia clínica como próximamente
+#### Scenario: Enlace desde la ficha
+- **WHEN** se renderiza la ficha del paciente con id 1
+- **THEN** la sección de historia clínica muestra el enlace "Ver historia clínica" a `/pacientes/1/historia`
+- **AND** no aparece el texto "próximamente"

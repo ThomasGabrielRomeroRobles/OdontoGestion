@@ -1,0 +1,52 @@
+/* Historia clínica (C-05): odontograma FDI de 32 piezas. Estados distinguibles también por texto. */
+.historia-clinica section {
+  margin-block: 1.5rem;
+}
+
+.historia-clinica textarea {
+  display: block;
+  width: 100%;
+  max-width: 40rem;
+  min-height: 3rem;
+}
+
+.historia-clinica .campo-error {
+  color: #b00020;
+  display: block;
+}
+
+.odontograma__fila {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(2.75rem, 1fr));
+  gap: 0.25rem;
+  margin-block: 0.5rem;
+  overflow-x: auto;
+}
+
+.pieza {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.25rem;
+  border: 1px solid #888;
+  border-radius: 0.25rem;
+  background: #fff;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.pieza__numero {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.pieza--sin-registrar { background: #fff; }
+.pieza--sana { background: #e6f4ea; }
+.pieza--caries { background: #fde2e1; }
+.pieza--obturada { background: #e3ecfd; }
+.pieza--corona { background: #fff4d6; }
+.pieza--endodoncia { background: #f1e4fb; }
+.pieza--ausente { background: #e0e0e0; text-decoration: line-through; }
+.pieza--implante { background: #dff5f5; }
+.pieza--fracturada { background: #ffe7cc; }
+.pieza--a-extraer { background: #fbd0d0; border-style: dashed; }

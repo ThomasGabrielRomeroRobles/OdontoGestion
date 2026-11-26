@@ -84,7 +84,10 @@ describe('ficha de paciente', () => {
     expect(c.querySelector('[data-campo="dni"]')?.textContent).toBe('30111222');
     expect(c.querySelector('li[data-turno-id="9"]')?.textContent).toContain('Limpieza');
     expect(c.querySelector('li[data-turno-id="9"]')?.textContent).toContain('23/11/2026 10:00');
-    expect(c.textContent).toContain('próximamente (C-05)');
+    const enlaceHc = c.querySelector<HTMLAnchorElement>('[data-seccion="historia-clinica"] a');
+    expect(enlaceHc?.getAttribute('href')).toBe('/pacientes/1/historia');
+    expect(enlaceHc?.textContent).toBe('Ver historia clínica');
+    expect(c.textContent).not.toContain('próximamente');
   });
 
   it('sin ausencias y con error', async () => {

@@ -131,7 +131,9 @@ export function createPacienteDetallePage(api: PacientesApi): (container: HTMLEl
     const ausenciasSec = el('section');
     const hc = el('section');
     hc.dataset['seccion'] = 'historia-clinica';
-    hc.append(el('h2', 'Historia clínica'), el('p', 'Historia clínica — próximamente (C-05)'));
+    const enlaceHc = el('a', 'Ver historia clínica');
+    enlaceHc.href = `/pacientes/${idTexto}/historia`;
+    hc.append(el('h2', 'Historia clínica'), enlaceHc);
     container.replaceChildren(titulo, volver, alerta, datos, ausenciasSec, hc);
 
     const id = Number(idTexto);

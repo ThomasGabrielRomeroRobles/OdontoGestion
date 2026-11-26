@@ -40,7 +40,12 @@ public abstract class AbstractTurnoIT extends AbstractWebIntegrationTest {
         limpiarTurnosDePrueba();
     }
 
+    /** Hook para que las subclases borren primero lo que referencia a pacientes y turnos de prueba (C-05). */
+    protected void limpiarDependientesDePrueba() {
+    }
+
     private void limpiarTurnosDePrueba() {
+        limpiarDependientesDePrueba();
         String idsTurno = "SELECT t.id FROM turno t WHERE t.paciente_id IN (SELECT id FROM paciente "
                 + "WHERE dni LIKE '38%') OR t.prestacion_id IN (SELECT id FROM prestacion "
                 + "WHERE nombre LIKE 'IT-Turno-%') OR t.consultorio_id IN (SELECT id FROM consultorio "

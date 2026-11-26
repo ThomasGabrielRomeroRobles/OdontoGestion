@@ -1,6 +1,7 @@
 import { createAgendaRoutes, createDefaultAgendaDeps, type AgendaDeps } from './features/agenda';
 import { login, logout, me, type SessionUser } from './features/auth/auth-api';
 import { createAccionesRoute, type AccionesApi } from './features/acciones-token';
+import { createHistoriaRoute, type HistoriaApi } from './features/historia-clinica';
 import { createConfigRoutes, createDefaultConfigSections, type ConfigSections } from './features/config';
 import { createListaEsperaRoutes, type ListaEsperaApi } from './features/lista-espera';
 import { createNotificacionesRoute, type NotificacionesApi } from './features/notificaciones';
@@ -34,6 +35,8 @@ export interface BootstrapDeps {
   readonly pacientesApi?: PacientesApi;
   /** API de la lista de espera (`/lista-espera`, `/avisos/:token`, `/publico/lista-espera`); los tests inyectan un doble. */
   readonly listaEsperaApi?: ListaEsperaApi;
+  /** API de la historia clínica (`/pacientes/:id/historia`, C-05); los tests inyectan un doble. Por defecto, la real. */
+  readonly historiaApi?: HistoriaApi;
 }
 
 export interface App {
@@ -71,6 +74,7 @@ export async function bootstrap(deps: BootstrapDeps): Promise<App> {
     createAccionesRoute(deps.accionesApi),
     ...createListaEsperaRoutes(deps.listaEsperaApi, publico === undefined ? undefined : () => publico.listarPrestaciones()),
     ...createAgendaRoutes(deps.agenda ?? createDefaultAgendaDeps()),
+    createHistoriaRoute(deps.historiaApi),
     ...createPacientesRoutes(deps.pacientesApi),
     ...createConfigRoutes(deps.configSections ?? createDefaultConfigSections()),
     createNotificacionesRoute(deps.notificacionesApi),
