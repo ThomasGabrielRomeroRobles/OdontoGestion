@@ -21,10 +21,11 @@ function retirable(estado: EstadoEntrada): boolean {
   return estado === 'PENDIENTE_CONFIRMACION' || estado === 'ACTIVA';
 }
 
-function celda(columna: string, texto: string): HTMLTableCellElement {
+function celda(columna: string, texto: string, valor?: string): HTMLTableCellElement {
   const td = document.createElement('td');
   td.dataset['col'] = columna;
   td.textContent = texto;
+  if (valor !== undefined) td.dataset['valor'] = valor;
   return td;
 }
 
@@ -71,7 +72,7 @@ export function createListaEsperaPage(
         celda('paciente', entrada.paciente),
         celda('prestacion', entrada.prestacion),
         celda('rango', `${formatearFecha(entrada.fechaDesde)} al ${formatearFecha(entrada.fechaHasta)}`),
-        celda('estado', ETIQUETA_ESTADO[entrada.estado]),
+        celda('estado', ETIQUETA_ESTADO[entrada.estado], entrada.estado),
         acciones,
       );
       if (retirable(entrada.estado)) {

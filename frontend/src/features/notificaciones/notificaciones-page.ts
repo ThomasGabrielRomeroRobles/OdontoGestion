@@ -130,6 +130,7 @@ export function createNotificacionesPage(api: NotificacionesApi): (container: HT
       const td = document.createElement('td');
       td.dataset['col'] = columna;
       td.textContent = texto;
+      if (columna === 'estado') td.dataset['valor'] = texto;
       fila.append(td);
       return td;
     }

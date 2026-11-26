@@ -21,7 +21,7 @@ Corte **por valor**: se comprometen los 11 changes core; la historia clÃ­nica 
 
 ---
 
-Esta versiÃ³n consolida los 26 changes originales en **12 changes** y mueve la **historia clÃ­nica a un carril paralelo (stretch, "si llega")** que arranca apenas estÃ¡n listos auth + pacientes (no depende de la agenda).
+Esta versiÃ³n consolida los 26 changes originales en **12 changes** (más `C-13`, post-entrega) y mueve la **historia clÃ­nica a un carril paralelo (stretch, "si llega")** que arranca apenas estÃ¡n listos auth + pacientes (no depende de la agenda).
 
 Mapa de consolidaciÃ³n (IDs viejos â†’ nuevos): C-01+C-04 â†’ **C-01**; C-02+C-03+C-05 â†’ **C-02**; C-09+C-10+C-21 â†’ **C-03**; C-08 â†’ **C-04**; C-23+C-24+C-25 â†’ **C-05**; C-06+C-07 â†’ **C-06**; C-11+C-12 â†’ **C-07**; C-13+C-22 â†’ **C-08**; C-14+C-15+C-16 â†’ **C-09**; C-17+C-18+C-19 â†’ **C-10**; C-20 â†’ **C-11**; C-26 â†’ **C-12**.
 
@@ -266,6 +266,7 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
   - `POST /api/v1/turnos/{id}/ausente`: solo tras inicio + tolerancia (`422` antes), estado `AUSENTE`, incrementa `paciente.cantidad_ausencias`, evento `TurnoAusente`, notificaciÃ³n `AUSENTE_REPROGRAMAR` con enlace a la pÃ¡gina pÃºblica
   - ReversiÃ³n de la marca dentro de 24 h (RN-AS-06) que ajusta el contador; `GET /api/v1/pacientes/{id}/ausencias` (US-061) y su visualizaciÃ³n en agenda y detalle del paciente
   - Tests: tolerancia con `Clock`, contador, reversiÃ³n, notificaciÃ³n encolada; Vitest de render de agenda, conflicto `409`, flujo de cancelaciÃ³n, marcar ausente
+  - Nota: el detalle del paciente (ausencias) y la pantalla `/pacientes` quedaron como placeholder aquí y se completaron en C-13
 - **Dependencias**: `C-07` (el front puede arrancar contra el contrato)
 - **Governance**: MEDIO
 - **Leer antes**:
@@ -359,6 +360,24 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 
 ---
 
+## POST-ENTREGA — Frontend visual y pantalla de pacientes
+
+### [C-13] `frontend-visual-pacientes`
+- **Estado**: `[x]` completado (archivado 2026-11-25 en `openspec/changes/archive/2026-11-25-c-13-frontend-visual-pacientes/`) — post-entrega
+- **Scope**:
+  - Diseño visual global (`shared/styles/app.css`): tokens verde/menta, Inter + Outfit, barra superior con enlace activo, botones, formularios, tablas, `prefers-reduced-motion`; sigue siendo TypeScript vanilla + CSS propio
+  - Landing pública `/inicio` con CTAs "Pedir turno" y "Anotarme en lista de espera"; "Ingresar" solo para el odontólogo
+  - Pantalla de pacientes: `/pacientes` (listado + búsqueda por DNI/texto, insignia de ausencias) y `/pacientes/:id` (contacto, ausencias, placeholder de historia clínica C-05); mocks en `src/dev/pacientes-mocks.ts`
+  - Tests: Vitest de landing, cliente API y páginas de pacientes (594 tests del frontend en verde)
+- **Dependencias**: `C-04, C-08, C-12`
+- **Governance**: BAJO
+- **Leer antes**:
+  - `knowledge-base/06_funcionalidades.md` §US-061
+  - `knowledge-base/03_actores_y_roles.md` (rutas públicas)
+  - `knowledge-base/08_arquitectura_propuesta.md` §Estructura de directorios (frontend)
+
+---
+
 ## Tabla resumen
 
 | ID | Change | Fase | Dependencias | Governance | Carril principal |
@@ -375,5 +394,6 @@ Notas: (1) En G0/G1 los carriles sin tarea ejecutable adelantan artefactos OPSX 
 | C-10 | lista-espera | 5 | C-09 | ALTO | P1, P2, P5, P6 |
 | C-11 | recordatorios-scheduler | 5 | C-07, C-03 | ALTO | P3 |
 | C-12 | demo-hardening | 6 | C-01 â€¦ C-04, C-06 â€¦ C-11 (C-05 opcional) | MEDIO | Todos |
+| C-13 | frontend-visual-pacientes | post-entrega | C-04, C-08, C-12 | BAJO | P5, P6 |
 
 **Primer change recomendado**: `C-01` (foundation-setup). Para arrancar: `/opsx:propose C-01-foundation-setup`
