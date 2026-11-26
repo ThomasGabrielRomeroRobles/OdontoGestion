@@ -10,13 +10,14 @@ export { bootstrap } from './bootstrap';
 async function resolverDeps(root: HTMLElement): Promise<BootstrapDeps> {
   const base = defaultDeps(root);
   if (import.meta.env.DEV && import.meta.env['VITE_CONFIG_MOCKS'] === 'true') {
-    const [{ crearMocksDesarrollo }, { crearAgendaMocks }, { createConfigSections }, { crearPublicoApiMock }, { crearAccionesApiMock }, { crearListaEsperaApiMock }] = await Promise.all([
+    const [{ crearMocksDesarrollo }, { crearAgendaMocks }, { createConfigSections }, { crearPublicoApiMock }, { crearAccionesApiMock }, { crearListaEsperaApiMock }, { crearHistoriaApiMock }] = await Promise.all([
       import('./dev/config-mocks'),
       import('./dev/agenda-mocks'),
       import('./features/config'),
       import('./dev/publico-mocks'),
       import('./dev/acciones-mocks'),
       import('./dev/lista-espera-mocks'),
+      import('./dev/historia-mocks'),
     ]);
     const mocks = crearMocksDesarrollo();
     const agenda = crearAgendaMocks({
@@ -41,6 +42,7 @@ async function resolverDeps(root: HTMLElement): Promise<BootstrapDeps> {
       publicoApi: crearPublicoApiMock(),
       accionesApi: crearAccionesApiMock(),
       listaEsperaApi: crearListaEsperaApiMock(),
+      historiaApi: crearHistoriaApiMock(),
     };
   }
   return base;

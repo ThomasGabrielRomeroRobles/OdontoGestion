@@ -1,5 +1,6 @@
 import { crearListaEsperaApiMock } from './dev/lista-espera-mocks';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { crearHistoriaApiMock } from './dev/historia-mocks';
 import { bootstrap, type BootstrapDeps } from './bootstrap';
 import { crearAgendaDepsDoble } from './features/agenda/deps-test-helpers';
 import { turnoFicticio } from './features/agenda/test-fixtures';
@@ -59,6 +60,28 @@ describe('bootstrap', () => {
     expect(location.pathname).toBe('/login');
     expect(location.search).toBe('?next=%2Fpacientes');
     expect(root.querySelector('input[type="password"]')).not.toBeNull();
+  });
+
+  it('sin sesión, /pacientes/7/historia redirige a login con next (C-05)', async () => {
+    me.mockResolvedValue(null);
+    history.replaceState(null, '', '/pacientes/7/historia');
+
+    stop = (await bootstrap(deps())).stop;
+
+    expect(location.pathname).toBe('/login');
+    expect(location.search).toBe('?next=%2Fpacientes%2F7%2Fhistoria');
+  });
+
+  it('con sesión, /pacientes/7/historia renderiza la historia clínica dentro del layout (C-05)', async () => {
+    me.mockResolvedValue({ email: 'odontologo@consultorio.example' });
+    history.replaceState(null, '', '/pacientes/7/historia');
+    const historiaApi = crearHistoriaApiMock(() => new Date('2026-11-26T13:00:00Z'));
+
+    stop = (await bootstrap({ ...deps(), historiaApi })).stop;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(root.querySelector('main h1')?.textContent).toBe('Historia clínica — Ficticio 7, Paciente');
+    expect(root.querySelectorAll('main [data-odontograma] button[data-fdi]')).toHaveLength(32);
   });
 
   it('si la consulta de sesión falla queda anónimo', async () => {
